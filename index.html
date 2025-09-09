@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Mobexpert - Recuperare Clienți</title>
+    <title>CRM Mobexpert Pro - Sistem Avansat Recuperare Clienți</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         * {
             font-family: 'Inter', sans-serif;
         }
         
         .glassmorphism {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.18);
         }
         
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-accent {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         
         .progress-ring {
@@ -61,6 +69,7 @@
             max-width: 320px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            white-space: normal;
         }
         
         .tooltip-content::after {
@@ -122,6 +131,28 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         
+        .filter-panel {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        
         .processing-overlay {
             position: fixed;
             top: 0;
@@ -152,11 +183,87 @@
         .pulse-ring {
             animation: pulse-ring 1.5s ease-out infinite;
         }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .filter-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+        }
+        
+        .filter-badge button {
+            margin-left: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .filter-badge button:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .email-template {
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            font-family: Georgia, serif;
+        }
+        
+        .export-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+            min-width: 200px;
+            z-index: 1000;
+        }
+        
+        .export-menu button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 10px 12px;
+            text-align: left;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .export-menu button:hover {
+            background: #f3f4f6;
+        }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
-    <!-- Header -->
-    <header class="gradient-bg text-white shadow-xl">
+    <!-- Header Îmbunătățit -->
+    <header class="gradient-bg text-white shadow-xl no-print">
         <div class="container mx-auto px-6 py-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
@@ -164,17 +271,143 @@
                         <span class="text-2xl">🏢</span>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold">CRM Mobexpert</h1>
-                        <p class="text-blue-100 text-sm">Sistem Inteligent de Recuperare Clienți</p>
+                        <h1 class="text-2xl font-bold">CRM Mobexpert Pro</h1>
+                        <p class="text-blue-100 text-sm">Sistem Inteligent de Recuperare și Analiză Clienți</p>
                     </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">Versiunea 2.0</span>
+                    <button onclick="toggleDarkMode()" class="p-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition">
+                        <span id="darkModeIcon">🌙</span>
+                    </button>
                 </div>
             </div>
         </div>
     </header>
 
     <div class="container mx-auto px-6 py-8 max-w-7xl">
-        <!-- Upload Section -->
-        <div class="modern-card p-8 mb-8">
+        <!-- Panou de Filtrare Avansat -->
+        <div id="filterPanel" class="modern-card filter-panel p-6 mb-8 no-print" style="display: none;">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                    <span class="mr-2">🔍</span> Filtrare Avansată
+                </h3>
+                <button onclick="resetFilters()" class="text-sm text-blue-600 hover:text-blue-800 transition">
+                    Resetează Filtre
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Căutare Text -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Caută Client</label>
+                    <input type="text" id="searchFilter" placeholder="Nume, ID sau magazin..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           oninput="applyFilters()">
+                </div>
+                
+                <!-- Filtrare Temperatură -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Temperatura</label>
+                    <select id="temperatureFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onchange="applyFilters()">
+                        <option value="">Toate</option>
+                        <option value="FIERBINTE">🔥 Fierbinte</option>
+                        <option value="CALDUT">🟡 Călduț</option>
+                        <option value="RACIT">🔵 Răcit</option>
+                        <option value="RECE">❄️ Rece</option>
+                        <option value="INGHETAT">💀 Înghețat</option>
+                    </select>
+                </div>
+                
+                <!-- Interval Valoare -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valoare (RON)</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="minValueFilter" placeholder="Min" 
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                        <input type="number" id="maxValueFilter" placeholder="Max"
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                    </div>
+                </div>
+                
+                <!-- Reclamații -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Reclamații</label>
+                    <select id="complaintsFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onchange="applyFilters()">
+                        <option value="">Toate</option>
+                        <option value="0">Fără reclamații</option>
+                        <option value="1-2">1-2 reclamații</option>
+                        <option value="3+">3+ reclamații</option>
+                        <option value="abandoned">Abandon post-reclamație</option>
+                    </select>
+                </div>
+                
+                <!-- Interval Zile Inactivitate -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Zile Inactivitate</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="minDaysFilter" placeholder="Min zile" 
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                        <input type="number" id="maxDaysFilter" placeholder="Max zile"
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                    </div>
+                </div>
+                
+                <!-- Scor -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Scor Recuperare</label>
+                    <div class="flex space-x-2">
+                        <input type="number" id="minScoreFilter" placeholder="Min" min="0" max="100"
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                        <input type="number" id="maxScoreFilter" placeholder="Max" min="0" max="100"
+                               class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               oninput="applyFilters()">
+                    </div>
+                </div>
+                
+                <!-- Prioritate -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Prioritate</label>
+                    <select id="priorityFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onchange="applyFilters()">
+                        <option value="">Toate</option>
+                        <option value="URGENT">🔴 Urgent</option>
+                        <option value="ÎNALTĂ">🟠 Înaltă</option>
+                        <option value="MEDIE">🟡 Medie</option>
+                        <option value="SCĂZUTĂ">🟢 Scăzută</option>
+                    </select>
+                </div>
+                
+                <!-- Nivel Risc -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nivel Risc</label>
+                    <select id="riskFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onchange="applyFilters()">
+                        <option value="">Toate</option>
+                        <option value="FOARTE MARE">Foarte Mare</option>
+                        <option value="MARE">Mare</option>
+                        <option value="MEDIU">Mediu</option>
+                        <option value="SCĂZUT">Scăzut</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Filtre Active -->
+            <div id="activeFilters" class="mt-4 flex flex-wrap items-center" style="display: none;">
+                <span class="text-sm text-gray-600 mr-2">Filtre active:</span>
+                <div id="filterBadges" class="flex flex-wrap"></div>
+            </div>
+        </div>
+
+        <!-- Upload Section Îmbunătățit -->
+        <div class="modern-card p-8 mb-8 no-print">
             <div class="flex items-center mb-6">
                 <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
                     <span class="text-white text-xl">📊</span>
@@ -220,35 +453,100 @@
                         class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
                     <span class="mr-2">🔍</span> Analizează Clienți Pierduți
                 </button>
-                <button onclick="exportData()" 
-                        class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg" 
-                        style="display: none;" id="exportButton">
-                    <span class="mr-2">📤</span> Exportă Rezultate Complete
-                </button>
+                
+                <!-- Buton Export cu Meniu Dropdown -->
+                <div class="relative flex-1" id="exportContainer" style="display: none;">
+                    <button onclick="toggleExportMenu()" 
+                            class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <span class="mr-2">📤</span> Export Avansat <span class="ml-2">▼</span>
+                    </button>
+                    <div id="exportMenu" class="export-menu" style="display: none;">
+                        <button onclick="exportExcel()" class="hover:bg-gray-100">
+                            <span class="mr-3">📊</span> Excel Complet
+                        </button>
+                        <button onclick="exportPDF()" class="hover:bg-gray-100">
+                            <span class="mr-3">📄</span> Raport PDF
+                        </button>
+                        <button onclick="exportEmailTemplates()" class="hover:bg-gray-100">
+                            <span class="mr-3">✉️</span> Template-uri Email
+                        </button>
+                        <button onclick="exportCSV()" class="hover:bg-gray-100">
+                            <span class="mr-3">📝</span> CSV pentru CRM
+                        </button>
+                        <button onclick="exportVoucherList()" class="hover:bg-gray-100">
+                            <span class="mr-3">🎁</span> Listă Vouchere
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Statistics -->
-        <div id="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8" style="display: none;">
-            <div class="modern-card p-6 text-center">
+        <!-- Dashboard cu Grafice -->
+        <div id="dashboard" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" style="display: none;">
+            <!-- Grafic Temperaturi -->
+            <div class="modern-card p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📊 Distribuție Temperaturi Clienți</h3>
+                <div class="chart-container">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Grafic Valoare Pierdută -->
+            <div class="modern-card p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">💰 Analiza Valorii Pierdute</h3>
+                <div class="chart-container">
+                    <canvas id="valueLossChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Grafic Reclamații -->
+            <div class="modern-card p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">⚠️ Impact Reclamații</h3>
+                <div class="chart-container">
+                    <canvas id="complaintsChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Grafic Trend Temporal -->
+            <div class="modern-card p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">📈 Trend Pierdere Clienți</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Îmbunătățite -->
+        <div id="stats" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8" style="display: none;">
+            <div class="modern-card stat-card p-6 text-center">
                 <div class="text-3xl font-bold text-red-600 mb-2" id="lostCount">0</div>
                 <div class="text-sm text-gray-600 font-medium">Clienți Pierduți</div>
+                <div class="text-xs text-gray-500 mt-1" id="lostPercentage">0%</div>
             </div>
-            <div class="modern-card p-6 text-center">
+            <div class="modern-card stat-card p-6 text-center">
                 <div class="text-3xl font-bold text-orange-600 mb-2" id="complaintCount">0</div>
                 <div class="text-sm text-gray-600 font-medium">Cu Reclamații</div>
+                <div class="text-xs text-gray-500 mt-1" id="complaintRate">0%</div>
             </div>
-            <div class="modern-card p-6 text-center">
+            <div class="modern-card stat-card p-6 text-center">
                 <div class="text-3xl font-bold text-blue-600 mb-2" id="lostRevenue">0</div>
-                <div class="text-sm text-gray-600 font-medium">Valoare Pierdută</div>
+                <div class="text-sm text-gray-600 font-medium">Valoare Istorică</div>
+                <div class="text-xs text-gray-500 mt-1">Total vânzări</div>
             </div>
-            <div class="modern-card p-6 text-center">
+            <div class="modern-card stat-card p-6 text-center">
+                <div class="text-3xl font-bold text-purple-600 mb-2" id="projectedLoss">0</div>
+                <div class="text-sm text-gray-600 font-medium">Pierdere Estimată</div>
+                <div class="text-xs text-gray-500 mt-1">Următoarele 12 luni</div>
+            </div>
+            <div class="modern-card stat-card p-6 text-center">
                 <div class="text-3xl font-bold text-green-600 mb-2" id="voucherBudget">0</div>
-                <div class="text-sm text-gray-600 font-medium">Buget Voucher-uri</div>
+                <div class="text-sm text-gray-600 font-medium">Buget Voucher</div>
+                <div class="text-xs text-gray-500 mt-1" id="voucherROI">ROI estimat</div>
             </div>
-            <div class="modern-card p-6 text-center">
-                <div class="text-3xl font-bold text-purple-600 mb-2" id="avgScore">0</div>
+            <div class="modern-card stat-card p-6 text-center">
+                <div class="text-3xl font-bold text-indigo-600 mb-2" id="avgScore">0</div>
                 <div class="text-sm text-gray-600 font-medium">Scor Mediu</div>
+                <div class="text-xs text-gray-500 mt-1" id="recoveryRate">Rată recuperare</div>
             </div>
         </div>
 
@@ -259,22 +557,27 @@
                 <div class="text-center">
                     <div class="client-temperature temp-fierbinte mb-2">🔥 Fierbinte</div>
                     <p class="text-xs text-gray-600">Activ recent, fără probleme majore</p>
+                    <div class="text-xs font-bold text-gray-700 mt-1" id="countFierbinte">0 clienți</div>
                 </div>
                 <div class="text-center">
                     <div class="client-temperature temp-caldut mb-2">🟡 Călduț</div>
                     <p class="text-xs text-gray-600">1-2 ani inactivitate, probleme minore</p>
+                    <div class="text-xs font-bold text-gray-700 mt-1" id="countCaldut">0 clienți</div>
                 </div>
                 <div class="text-center">
                     <div class="client-temperature temp-racit mb-2">🔵 Răcit</div>
                     <p class="text-xs text-gray-600">2-3 ani sau reclamații moderate</p>
+                    <div class="text-xs font-bold text-gray-700 mt-1" id="countRacit">0 clienți</div>
                 </div>
                 <div class="text-center">
                     <div class="client-temperature temp-rece mb-2">❄️ Rece</div>
                     <p class="text-xs text-gray-600">3+ ani sau probleme grave</p>
+                    <div class="text-xs font-bold text-gray-700 mt-1" id="countRece">0 clienți</div>
                 </div>
                 <div class="text-center">
                     <div class="client-temperature temp-inghetat mb-2">💀 Înghețat</div>
                     <p class="text-xs text-gray-600">5+ ani sau abandon post-reclamație</p>
+                    <div class="text-xs font-bold text-gray-700 mt-1" id="countInghetat">0 clienți</div>
                 </div>
             </div>
         </div>
@@ -287,12 +590,23 @@
                         <span class="text-2xl mr-3">🎯</span>
                         <div>
                             <h2 class="text-xl font-bold text-gray-800">Clienți de Recuperat</h2>
-                            <p class="text-gray-600 text-sm">Ordonați după prioritate și potențial de recuperare</p>
+                            <p class="text-gray-600 text-sm">
+                                <span id="filteredCount">0</span> rezultate 
+                                <span id="filterStatus" class="text-blue-600"></span>
+                            </p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-sm text-gray-600">Total afișat</div>
-                        <div class="text-xl font-bold text-blue-600" id="displayedCount">0</div>
+                    <div class="flex items-center space-x-4">
+                        <button onclick="toggleFilterPanel()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                            <span class="mr-2">🔍</span> Filtre
+                        </button>
+                        <select id="sortBy" onchange="sortResults()" class="px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="score">Sortare: Scor</option>
+                            <option value="value">Sortare: Valoare</option>
+                            <option value="days">Sortare: Zile Inactivitate</option>
+                            <option value="complaints">Sortare: Reclamații</option>
+                            <option value="temperature">Sortare: Temperatură</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -301,14 +615,19 @@
                 <table class="min-w-full">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="rounded">
+                            </th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Client</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Temperatura</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ultima Comandă</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Valoare</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Pierdere Est.</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Reclamații</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Scoring</th>
                             <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Voucher</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Acțiuni</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="bg-white divide-y divide-gray-100">
@@ -320,6 +639,37 @@
                 <div class="inline-flex items-center">
                     <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mr-3"></div>
                     <span class="text-gray-600 font-medium">Se încarcă mai mulți clienți...</span>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Afișare <span id="startItem">1</span> - <span id="endItem">25</span> din <span id="totalItems">0</span> rezultate
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="previousPage()" id="prevButton" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>
+                        ← Anterior
+                    </button>
+                    <button onclick="nextPage()" id="nextButton" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Următor →
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal pentru Email Template -->
+        <div id="emailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+            <div class="bg-white rounded-xl p-8 max-w-2xl max-h-[90vh] overflow-y-auto">
+                <h3 class="text-xl font-bold mb-4">✉️ Template Email Personalizat</h3>
+                <div id="emailContent" class="email-template"></div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button onclick="closeEmailModal()" class="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                        Închide
+                    </button>
+                    <button onclick="copyEmailTemplate()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Copiază Template
+                    </button>
                 </div>
             </div>
         </div>
@@ -353,13 +703,19 @@
     </div>
 
     <script>
+        // Variabile globale
         let salesData = [];
         let complaintsData = [];
         let lostClients = [];
+        let filteredClients = [];
         let displayedClients = 0;
-        const itemsPerLoad = 25; // Redus pentru performanță
+        let currentPage = 1;
+        const itemsPerPage = 25;
         let isLoading = false;
-
+        let selectedClients = new Set();
+        let charts = {};
+        
+        // Initializare
         document.addEventListener('DOMContentLoaded', () => {
             const salesFileInput = document.getElementById('salesFile');
             const complaintsFileInput = document.getElementById('complaintsFile');
@@ -379,6 +735,12 @@
             }
         });
 
+        // Funcție pentru sanitizare HTML (prevenire XSS)
+        function sanitizeHTML(str) {
+            return DOMPurify.sanitize(str, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+        }
+
+        // Citire fișiere Excel cu validare
         function readExcelFile(file, type) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -387,18 +749,25 @@
                     const workbook = XLSX.read(data, {type: 'array'});
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
-                        raw: false, // Convertește toate valorile în string-uri
-                        defval: '' // Valoare default pentru celule goale
+                        raw: false,
+                        defval: ''
+                    });
+                    
+                    // Validare și sanitizare date
+                    const sanitizedData = jsonData.map(row => {
+                        const sanitizedRow = {};
+                        for (const key in row) {
+                            sanitizedRow[key] = sanitizeHTML(String(row[key]));
+                        }
+                        return sanitizedRow;
                     });
                     
                     if (type === 'sales') {
-                        salesData = jsonData;
+                        salesData = sanitizedData;
                         console.log('Vânzări încărcate:', salesData.length, 'înregistrări');
-                        console.log('Sample sales data:', salesData[0]); // Debug
                     } else {
-                        complaintsData = jsonData;
+                        complaintsData = sanitizedData;
                         console.log('Reclamații încărcate:', complaintsData.length, 'înregistrări');
-                        console.log('Sample complaints data:', complaintsData[0]); // Debug
                     }
                 } catch (error) {
                     console.error('Eroare la citirea fișierului:', error);
@@ -408,6 +777,7 @@
             reader.readAsArrayBuffer(file);
         }
 
+        // Processing functions
         function showProcessingOverlay() {
             document.getElementById('processingOverlay').style.display = 'flex';
         }
@@ -449,14 +819,20 @@
                 hideProcessingOverlay();
                 
                 // Afișare rezultate
+                document.getElementById('filterPanel').style.display = 'block';
                 document.getElementById('results').style.display = 'block';
                 document.getElementById('stats').style.display = 'grid';
                 document.getElementById('temperatureLegend').style.display = 'block';
-                document.getElementById('exportButton').style.display = 'block';
+                document.getElementById('exportContainer').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'grid';
                 
-                displayedClients = 0;
-                document.getElementById('tableBody').innerHTML = '';
-                loadMoreClients();
+                // Inițializare grafice
+                initializeCharts();
+                
+                // Reset și reîncărcare
+                filteredClients = [...lostClients];
+                currentPage = 1;
+                displayResults();
                 
             } catch (error) {
                 console.error('Eroare procesare:', error);
@@ -466,32 +842,32 @@
         }
 
         async function analyzeClientsWithProgress() {
-            const totalSteps = 5;
+            const totalSteps = 6;
             let currentStep = 0;
             
-            // Pas 1: Procesare vânzări
             updateProgress((++currentStep / totalSteps) * 100, 'Procesare date vânzări...', 0, salesData.length);
             await new Promise(resolve => setTimeout(resolve, 100));
             
             const clientSales = await processSalesData();
             
-            // Pas 2: Procesare reclamații
             updateProgress((++currentStep / totalSteps) * 100, 'Procesare reclamații...', 0, complaintsData.length);
             await new Promise(resolve => setTimeout(resolve, 100));
             
             const clientComplaints = await processComplaintsData();
             
-            // Pas 3: Analiză cronologică
-            updateProgress((++currentStep / totalSteps) * 100, 'Analiză cronologică și clasificare termică...', 0, Object.keys(clientSales).length);
+            updateProgress((++currentStep / totalSteps) * 100, 'Analiză cronologică...', 0, Object.keys(clientSales).length);
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Pas 4: Calcul scoring și clasificare
-            updateProgress((++currentStep / totalSteps) * 100, 'Calcul scoring și voucher-uri...', 0, Object.keys(clientSales).length);
+            updateProgress((++currentStep / totalSteps) * 100, 'Calcul scoring și clasificare...', 0, Object.keys(clientSales).length);
             await new Promise(resolve => setTimeout(resolve, 100));
             
             lostClients = await classifyAndScoreClients(clientSales, clientComplaints);
             
-            // Pas 5: Finalizare
+            updateProgress((++currentStep / totalSteps) * 100, 'Calcul valori pierdute...', lostClients.length, lostClients.length);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            calculateProjectedLosses();
+            
             updateProgress((++currentStep / totalSteps) * 100, 'Finalizare analiză...', lostClients.length, lostClients.length);
             await new Promise(resolve => setTimeout(resolve, 500));
             
@@ -519,7 +895,8 @@
                             totalOrders: 0,
                             firstPurchase: null,
                             lastPurchase: null,
-                            activeYears: 0
+                            activeYears: 0,
+                            monthlyAverage: 0
                         };
                     }
                     
@@ -553,15 +930,20 @@
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
             
-            // Calculare vechime și frecvență
+            // Calculare metrici adiționale
             Object.values(clientSales).forEach(client => {
                 if (client.firstPurchase && client.lastPurchase) {
                     const years = (client.lastPurchase - client.firstPurchase) / (1000 * 60 * 60 * 24 * 365);
                     client.activeYears = Math.max(1, years);
                     client.ordersPerYear = client.totalOrders / client.activeYears;
+                    
+                    // Calcul medie lunară pentru estimări
+                    const months = years * 12 || 1;
+                    client.monthlyAverage = client.totalValue / months;
                 } else {
                     client.activeYears = 1;
                     client.ordersPerYear = client.totalOrders;
+                    client.monthlyAverage = client.totalValue / 12;
                 }
             });
             
@@ -611,7 +993,6 @@
         }
 
         function parseDate(dateStr) {
-            // Suportă formate: DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD
             if (!dateStr) return null;
             
             const str = dateStr.toString().trim();
@@ -642,21 +1023,19 @@
             const description = (complaint['DESCRIERE'] || '').toLowerCase();
             const quantity = parseFloat(complaint['Cantitate Reclamata'] || 0);
             
-            let severity = 1; // Scăzută
+            let severity = 1;
             
-            // Verificare cuvinte cheie pentru severitate mare
             const highSeverityKeywords = ['defect', 'stricat', 'deteriorat', 'nefunctional', 'sparta', 'rupta', 'lipseste', 'gresit', 'incorect'];
             const mediumSeverityKeywords = ['zgariat', 'mic', 'minor', 'culoare', 'dimensiune', 'intarziere'];
             
             const text = reason + ' ' + description;
             
             if (highSeverityKeywords.some(keyword => text.includes(keyword))) {
-                severity = 3; // Mare
+                severity = 3;
             } else if (mediumSeverityKeywords.some(keyword => text.includes(keyword))) {
-                severity = 2; // Medie
+                severity = 2;
             }
             
-            // Ajustare pe baza cantității
             if (quantity > 5) severity = Math.min(3, severity + 1);
             
             return severity;
@@ -675,13 +1054,11 @@
                     const client = clientSales[clientId];
                     const complaints = clientComplaints[clientId] || [];
                     
-                    // Calculare timp de la ultima comandă
                     let daysSinceLastPurchase = Infinity;
                     if (client.lastPurchase) {
                         daysSinceLastPurchase = (currentDate - client.lastPurchase) / (1000 * 60 * 60 * 24);
                     }
                     
-                    // Logică rafinată pentru identificarea clienților pierduți
                     const isLost = determineIfClientIsLost(client, complaints, daysSinceLastPurchase);
                     
                     if (isLost) {
@@ -697,7 +1074,8 @@
                             score: score,
                             voucherAmount: voucherAmount,
                             priority: determinePriority(score, temperature),
-                            riskLevel: calculateRiskLevel(client, complaints, daysSinceLastPurchase)
+                            riskLevel: calculateRiskLevel(client, complaints, daysSinceLastPurchase),
+                            projectedLoss: 0 // Va fi calculat separat
                         });
                     }
                 });
@@ -706,7 +1084,6 @@
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
             
-            // Sortare după prioritate și scor
             lostClientsList.sort((a, b) => {
                 const priorityOrder = { 'URGENT': 4, 'ÎNALTĂ': 3, 'MEDIE': 2, 'SCĂZUTĂ': 1 };
                 const aPriority = priorityOrder[a.priority] || 0;
@@ -720,41 +1097,32 @@
         }
 
         function determineIfClientIsLost(client, complaints, daysSinceLastPurchase) {
-            // Logică rafinată bazată pe multiple criterii
-            
-            // 1. Clienți cu reclamații grave care nu au mai cumpărat după
             if (complaints.length > 0) {
                 const lastComplaintDate = Math.max(...complaints.map(c => c.date ? c.date.getTime() : 0));
                 const lastPurchaseTime = client.lastPurchase ? client.lastPurchase.getTime() : 0;
                 
-                // Dacă ultima reclamație e după ultima comandă și au trecut >6 luni
                 if (lastComplaintDate > lastPurchaseTime && daysSinceLastPurchase > 180) {
                     return true;
                 }
                 
-                // Clienți cu reclamații și inactivitate >1 an
                 if (daysSinceLastPurchase > 365) {
                     return true;
                 }
                 
-                // Reclamații multiple cu severitate mare
                 const severeComplaints = complaints.filter(c => c.severity >= 3);
                 if (severeComplaints.length >= 2 && daysSinceLastPurchase > 180) {
                     return true;
                 }
             }
             
-            // 2. Clienți loiali care au devenit inactivi brusc
             if (client.ordersPerYear >= 3 && daysSinceLastPurchase > 730) {
                 return true;
             }
             
-            // 3. Clienți cu valoare mare inactivi >2 ani
             if (client.totalValue > 10000 && daysSinceLastPurchase > 730) {
                 return true;
             }
             
-            // 4. Orice client inactiv >3 ani
             if (daysSinceLastPurchase > 1095) {
                 return true;
             }
@@ -763,24 +1131,21 @@
         }
 
         function calculateClientTemperature(client, complaints, daysSinceLastPurchase) {
-            // Calculare "temperatura" clientului pe o scală de la 🔥 la 💀
-            
             let temperature = 'FIERBINTE';
             
-            // Factori de răcire
             const years = daysSinceLastPurchase / 365;
             const hasRecentComplaints = complaints.some(c => c.date && (new Date() - c.date) / (1000 * 60 * 60 * 24) < 365);
             const hasSevereComplaints = complaints.some(c => c.severity >= 3);
             const abandonedAfterComplaint = checkIfAbandonedAfterComplaint(client, complaints);
             
             if (years >= 5 || (abandonedAfterComplaint && hasSevereComplaints)) {
-                temperature = 'INGHETAT'; // 💀
+                temperature = 'INGHETAT';
             } else if (years >= 3 || (hasSevereComplaints && years >= 1)) {
-                temperature = 'RECE'; // ❄️
+                temperature = 'RECE';
             } else if (years >= 2 || (hasRecentComplaints && years >= 0.5)) {
-                temperature = 'RACIT'; // 🔵
+                temperature = 'RACIT';
             } else if (years >= 1 || complaints.length > 0) {
-                temperature = 'CALDUT'; // 🟡
+                temperature = 'CALDUT';
             }
             
             return temperature;
@@ -832,7 +1197,7 @@
                 else score += 12;
             }
             
-            // Bonus pentru temperatura (clienții mai "fierbinți" au șanse mai mari de recuperare)
+            // Bonus pentru temperatura
             const tempBonus = {
                 'FIERBINTE': 10,
                 'CALDUT': 7,
@@ -846,11 +1211,8 @@
         }
 
         function calculateVoucherAmount(score, temperature, totalValue) {
-            // Calculare voucher pe baza scorului, temperaturii și valorii istorice
-            
             let baseAmount = (score / 100) * 1500;
             
-            // Ajustări pe baza temperaturii
             const tempMultiplier = {
                 'FIERBINTE': 1.2,
                 'CALDUT': 1.1,
@@ -861,12 +1223,10 @@
             
             baseAmount *= tempMultiplier[temperature] || 1.0;
             
-            // Ajustare pe baza valorii istorice (clienți valoroși primesc bonus)
             if (totalValue > 50000) baseAmount *= 1.3;
             else if (totalValue > 20000) baseAmount *= 1.2;
             else if (totalValue > 10000) baseAmount *= 1.1;
             
-            // Limite minime și maxime
             return Math.round(Math.min(2000, Math.max(50, baseAmount)));
         }
 
@@ -878,14 +1238,13 @@
         }
 
         function calculateRiskLevel(client, complaints, daysSinceLastPurchase) {
-            // Nivel de risc de pierdere definitivă
             let risk = 'SCĂZUT';
             
             const years = daysSinceLastPurchase / 365;
-            const hasSeveComplaints = complaints.some(c => c.severity >= 3);
+            const hasSevereComplaints = complaints.some(c => c.severity >= 3);
             const abandoned = checkIfAbandonedAfterComplaint(client, complaints);
             
-            if ((years > 5) || (abandoned && hasSeveComplaints && years > 2)) {
+            if ((years > 5) || (abandoned && hasSevereComplaints && years > 2)) {
                 risk = 'FOARTE MARE';
             } else if ((years > 3) || (abandoned && years > 1)) {
                 risk = 'MARE';
@@ -896,57 +1255,293 @@
             return risk;
         }
 
+        // Calcul REAL valoare pierdută (proiecție)
+        function calculateProjectedLosses() {
+            lostClients.forEach(client => {
+                // Estimare pe baza mediei lunare * 12 luni * probabilitate recuperare
+                const recoveryProbability = client.score / 100;
+                const potentialMonthlyRevenue = client.monthlyAverage;
+                
+                // Ajustare pe baza temperaturii
+                const tempAdjustment = {
+                    'FIERBINTE': 0.8,
+                    'CALDUT': 0.6,
+                    'RACIT': 0.4,
+                    'RECE': 0.2,
+                    'INGHETAT': 0.1
+                };
+                
+                const adjustment = tempAdjustment[client.temperature] || 0.1;
+                client.projectedLoss = Math.round(potentialMonthlyRevenue * 12 * adjustment);
+            });
+        }
+
         function updateStatistics() {
             const lostCount = lostClients.length;
+            const totalClients = [...new Set(salesData.map(s => s['ID CLIENT']))].length;
+            const lostPercentage = ((lostCount / totalClients) * 100).toFixed(1);
+            
             const complaintCount = lostClients.filter(c => c.complaints.length > 0).length;
+            const complaintRate = ((complaintCount / lostCount) * 100).toFixed(1);
+            
             const lostRevenue = lostClients.reduce((sum, c) => sum + c.totalValue, 0);
+            const projectedLoss = lostClients.reduce((sum, c) => sum + c.projectedLoss, 0);
             const voucherBudget = lostClients.reduce((sum, c) => sum + c.voucherAmount, 0);
+            
             const avgScore = lostClients.length > 0 ? 
                 Math.round(lostClients.reduce((sum, c) => sum + c.score, 0) / lostClients.length) : 0;
             
+            const estimatedROI = ((projectedLoss * 0.3 - voucherBudget) / voucherBudget * 100).toFixed(0);
+            const recoveryRate = (avgScore * 0.8).toFixed(0);
+            
+            // Update DOM
             document.getElementById('lostCount').textContent = lostCount.toLocaleString('ro-RO');
+            document.getElementById('lostPercentage').textContent = `${lostPercentage}% din total`;
             document.getElementById('complaintCount').textContent = complaintCount.toLocaleString('ro-RO');
+            document.getElementById('complaintRate').textContent = `${complaintRate}% cu probleme`;
             document.getElementById('lostRevenue').textContent = formatCurrency(lostRevenue);
+            document.getElementById('projectedLoss').textContent = formatCurrency(projectedLoss);
             document.getElementById('voucherBudget').textContent = formatCurrency(voucherBudget);
+            document.getElementById('voucherROI').textContent = `ROI: ${estimatedROI}%`;
             document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('recoveryRate').textContent = `~${recoveryRate}% șansă`;
+            
+            // Update temperature counts
+            const tempCounts = {
+                'FIERBINTE': 0,
+                'CALDUT': 0,
+                'RACIT': 0,
+                'RECE': 0,
+                'INGHETAT': 0
+            };
+            
+            lostClients.forEach(client => {
+                tempCounts[client.temperature]++;
+            });
+            
+            document.getElementById('countFierbinte').textContent = `${tempCounts.FIERBINTE} clienți`;
+            document.getElementById('countCaldut').textContent = `${tempCounts.CALDUT} clienți`;
+            document.getElementById('countRacit').textContent = `${tempCounts.RACIT} clienți`;
+            document.getElementById('countRece').textContent = `${tempCounts.RECE} clienți`;
+            document.getElementById('countInghetat').textContent = `${tempCounts.INGHETAT} clienți`;
         }
 
-        function loadMoreClients() {
-            if (isLoading || displayedClients >= lostClients.length) return;
-            isLoading = true;
+        // Funcții pentru filtrare
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchFilter').value.toLowerCase();
+            const temperature = document.getElementById('temperatureFilter').value;
+            const minValue = parseFloat(document.getElementById('minValueFilter').value) || 0;
+            const maxValue = parseFloat(document.getElementById('maxValueFilter').value) || Infinity;
+            const complaintsFilter = document.getElementById('complaintsFilter').value;
+            const minDays = parseInt(document.getElementById('minDaysFilter').value) || 0;
+            const maxDays = parseInt(document.getElementById('maxDaysFilter').value) || Infinity;
+            const minScore = parseInt(document.getElementById('minScoreFilter').value) || 0;
+            const maxScore = parseInt(document.getElementById('maxScoreFilter').value) || 100;
+            const priority = document.getElementById('priorityFilter').value;
+            const riskLevel = document.getElementById('riskFilter').value;
             
-            const loadingMoreElement = document.getElementById('loadingMore');
-            if (loadingMoreElement) loadingMoreElement.style.display = 'block';
-            
-            setTimeout(() => {
-                const tbody = document.getElementById('tableBody');
-                if (!tbody) return;
-                
-                const start = displayedClients;
-                const end = Math.min(start + itemsPerLoad, lostClients.length);
-                
-                for (let i = start; i < end; i++) {
-                    const client = lostClients[i];
-                    const globalIndex = i + 1;
-                    
-                    const row = createClientRow(client, globalIndex);
-                    tbody.innerHTML += row;
+            filteredClients = lostClients.filter(client => {
+                // Search filter
+                if (searchTerm && !client.name.toLowerCase().includes(searchTerm) && 
+                    !client.id.toLowerCase().includes(searchTerm) &&
+                    !client.magazine.toLowerCase().includes(searchTerm)) {
+                    return false;
                 }
                 
-                displayedClients = end;
-                document.getElementById('displayedCount').textContent = displayedClients.toLocaleString('ro-RO');
-                
-                isLoading = false;
-                if (loadingMoreElement) {
-                    loadingMoreElement.style.display = displayedClients >= lostClients.length ? 'none' : 'block';
+                // Temperature filter
+                if (temperature && client.temperature !== temperature) {
+                    return false;
                 }
-            }, 100);
+                
+                // Value filter
+                if (client.totalValue < minValue || client.totalValue > maxValue) {
+                    return false;
+                }
+                
+                // Complaints filter
+                if (complaintsFilter) {
+                    if (complaintsFilter === '0' && client.complaints.length !== 0) return false;
+                    if (complaintsFilter === '1-2' && (client.complaints.length < 1 || client.complaints.length > 2)) return false;
+                    if (complaintsFilter === '3+' && client.complaints.length < 3) return false;
+                    if (complaintsFilter === 'abandoned' && !checkIfAbandonedAfterComplaint(client, client.complaints)) return false;
+                }
+                
+                // Days filter
+                if (client.daysSinceLastPurchase < minDays || client.daysSinceLastPurchase > maxDays) {
+                    return false;
+                }
+                
+                // Score filter
+                if (client.score < minScore || client.score > maxScore) {
+                    return false;
+                }
+                
+                // Priority filter
+                if (priority && client.priority !== priority) {
+                    return false;
+                }
+                
+                // Risk filter
+                if (riskLevel && client.riskLevel !== riskLevel) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Update active filters display
+            updateActiveFilters();
+            
+            // Reset to first page and display
+            currentPage = 1;
+            displayResults();
+        }
+
+        function updateActiveFilters() {
+            const filterBadges = document.getElementById('filterBadges');
+            const activeFiltersDiv = document.getElementById('activeFilters');
+            filterBadges.innerHTML = '';
+            
+            let hasActiveFilters = false;
+            
+            // Check each filter and create badges
+            const filters = [
+                { id: 'searchFilter', label: 'Căutare' },
+                { id: 'temperatureFilter', label: 'Temperatură' },
+                { id: 'complaintsFilter', label: 'Reclamații' },
+                { id: 'priorityFilter', label: 'Prioritate' },
+                { id: 'riskFilter', label: 'Risc' }
+            ];
+            
+            filters.forEach(filter => {
+                const value = document.getElementById(filter.id).value;
+                if (value) {
+                    hasActiveFilters = true;
+                    const badge = document.createElement('span');
+                    badge.className = 'filter-badge';
+                    badge.innerHTML = `${filter.label}: ${value} <button onclick="clearFilter('${filter.id}')" class="ml-2">×</button>`;
+                    filterBadges.appendChild(badge);
+                }
+            });
+            
+            // Check numeric filters
+            const numericFilters = [
+                { min: 'minValueFilter', max: 'maxValueFilter', label: 'Valoare' },
+                { min: 'minDaysFilter', max: 'maxDaysFilter', label: 'Zile' },
+                { min: 'minScoreFilter', max: 'maxScoreFilter', label: 'Scor' }
+            ];
+            
+            numericFilters.forEach(filter => {
+                const minValue = document.getElementById(filter.min).value;
+                const maxValue = document.getElementById(filter.max).value;
+                if (minValue || maxValue) {
+                    hasActiveFilters = true;
+                    const badge = document.createElement('span');
+                    badge.className = 'filter-badge';
+                    const range = `${minValue || 'min'}-${maxValue || 'max'}`;
+                    badge.innerHTML = `${filter.label}: ${range} <button onclick="clearNumericFilter('${filter.min}', '${filter.max}')" class="ml-2">×</button>`;
+                    filterBadges.appendChild(badge);
+                }
+            });
+            
+            activeFiltersDiv.style.display = hasActiveFilters ? 'flex' : 'none';
+            
+            // Update filter status text
+            const filterStatus = document.getElementById('filterStatus');
+            if (hasActiveFilters) {
+                filterStatus.textContent = `(${filteredClients.length} din ${lostClients.length} după filtrare)`;
+            } else {
+                filterStatus.textContent = '';
+            }
+        }
+
+        function clearFilter(filterId) {
+            document.getElementById(filterId).value = '';
+            applyFilters();
+        }
+
+        function clearNumericFilter(minId, maxId) {
+            document.getElementById(minId).value = '';
+            document.getElementById(maxId).value = '';
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('searchFilter').value = '';
+            document.getElementById('temperatureFilter').value = '';
+            document.getElementById('minValueFilter').value = '';
+            document.getElementById('maxValueFilter').value = '';
+            document.getElementById('complaintsFilter').value = '';
+            document.getElementById('minDaysFilter').value = '';
+            document.getElementById('maxDaysFilter').value = '';
+            document.getElementById('minScoreFilter').value = '';
+            document.getElementById('maxScoreFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            document.getElementById('riskFilter').value = '';
+            
+            applyFilters();
+        }
+
+        function toggleFilterPanel() {
+            const panel = document.getElementById('filterPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Funcții pentru sortare
+        function sortResults() {
+            const sortBy = document.getElementById('sortBy').value;
+            
+            filteredClients.sort((a, b) => {
+                switch(sortBy) {
+                    case 'score':
+                        return b.score - a.score;
+                    case 'value':
+                        return b.totalValue - a.totalValue;
+                    case 'days':
+                        return a.daysSinceLastPurchase - b.daysSinceLastPurchase;
+                    case 'complaints':
+                        return b.complaints.length - a.complaints.length;
+                    case 'temperature':
+                        const tempOrder = {'FIERBINTE': 5, 'CALDUT': 4, 'RACIT': 3, 'RECE': 2, 'INGHETAT': 1};
+                        return (tempOrder[b.temperature] || 0) - (tempOrder[a.temperature] || 0);
+                    default:
+                        return b.score - a.score;
+                }
+            });
+            
+            currentPage = 1;
+            displayResults();
+        }
+
+        // Display results with pagination
+        function displayResults() {
+            const tbody = document.getElementById('tableBody');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredClients.length);
+            
+            tbody.innerHTML = '';
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const client = filteredClients[i];
+                const row = createClientRow(client, i + 1);
+                tbody.innerHTML += row;
+            }
+            
+            // Update pagination info
+            document.getElementById('startItem').textContent = filteredClients.length > 0 ? startIndex + 1 : 0;
+            document.getElementById('endItem').textContent = endIndex;
+            document.getElementById('totalItems').textContent = filteredClients.length;
+            document.getElementById('filteredCount').textContent = filteredClients.length;
+            
+            // Update pagination buttons
+            document.getElementById('prevButton').disabled = currentPage === 1;
+            document.getElementById('nextButton').disabled = endIndex >= filteredClients.length;
         }
 
         function createClientRow(client, index) {
             const temperatureClass = {
                 'FIERBINTE': 'temp-fierbinte',
-                'CALDUT': 'temp-caldut', 
+                'CALDUT': 'temp-caldut',
                 'RACIT': 'temp-racit',
                 'RECE': 'temp-rece',
                 'INGHETAT': 'temp-inghetat'
@@ -955,31 +1550,41 @@
             const temperatureEmoji = {
                 'FIERBINTE': '🔥',
                 'CALDUT': '🟡',
-                'RACIT': '🔵', 
+                'RACIT': '🔵',
                 'RECE': '❄️',
                 'INGHETAT': '💀'
             };
 
+            const priorityEmoji = {
+                'URGENT': '🔴',
+                'ÎNALTĂ': '🟠',
+                'MEDIE': '🟡',
+                'SCĂZUTĂ': '🟢'
+            };
+
             const complaintsTooltip = client.complaints.length > 0 ? 
                 client.complaints.map(c => 
-                    `<strong>${c.reason}</strong><br>${c.description}<br><small>Responsabil: ${c.responsible}</small>`
+                    `<strong>${sanitizeHTML(c.reason)}</strong><br>${sanitizeHTML(c.description)}<br><small>Responsabil: ${sanitizeHTML(c.responsible)}</small>`
                 ).join('<br><br>') : 
-                'Fără reclamații registrate';
+                'Fără reclamații înregistrate';
 
             const scoreColor = client.score > 70 ? 'text-green-600' : 
                              client.score > 40 ? 'text-yellow-600' : 'text-red-600';
 
             return `
                 <tr class="hover:bg-gray-50 transition-colors duration-200">
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <input type="checkbox" class="rounded" value="${client.id}" onchange="toggleClientSelection('${client.id}')">
+                    </td>
                     <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                         ${String(index).padStart(3, '0')}
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center">
                             <div>
-                                <div class="text-sm font-semibold text-gray-900">${client.name}</div>
-                                <div class="text-xs text-gray-500">ID: ${client.id}</div>
-                                <div class="text-xs text-blue-600">${client.magazine}</div>
+                                <div class="text-sm font-semibold text-gray-900">${sanitizeHTML(client.name)}</div>
+                                <div class="text-xs text-gray-500">ID: ${sanitizeHTML(client.id)}</div>
+                                <div class="text-xs text-blue-600">${sanitizeHTML(client.magazine)}</div>
                             </div>
                         </div>
                     </td>
@@ -1001,6 +1606,10 @@
                         <div class="text-xs text-gray-600">${client.totalOrders} comenzi</div>
                         <div class="text-xs text-gray-500">${client.activeYears.toFixed(1)} ani</div>
                     </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-bold text-red-600">${formatCurrency(client.projectedLoss)}</div>
+                        <div class="text-xs text-gray-500">est. 12 luni</div>
+                    </td>
                     <td class="px-4 py-4">
                         <div class="tooltip">
                             <div class="flex items-center">
@@ -1013,6 +1622,8 @@
                                 ${complaintsTooltip}
                             </div>
                         </div>
+                        ${checkIfAbandonedAfterComplaint(client, client.complaints) ? 
+                            '<div class="text-xs text-red-600 font-bold">⚠️ Abandon</div>' : ''}
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="flex items-center space-x-2">
@@ -1023,91 +1634,221 @@
                             </div>
                             <span class="text-sm font-bold ${scoreColor}">${client.score}</span>
                         </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            ${priorityEmoji[client.priority]} ${client.priority}
+                        </div>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="text-sm font-bold text-green-600">
                             ${formatCurrency(client.voucherAmount)}
                         </div>
-                        <div class="text-xs text-gray-500">${client.priority}</div>
+                        <div class="text-xs text-gray-500">Risc: ${client.riskLevel}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <button onclick="generateEmailForClient('${client.id}')" 
+                                class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            ✉️ Email
+                        </button>
                     </td>
                 </tr>
             `;
         }
 
-        // Infinite scroll optimizat
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                const clientsToShow = filteredClients.length > 0 ? filteredClients : lostClients;
-                if (isLoading || displayedClients >= clientsToShow.length) return;
-                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-                    loadMoreClients();
+        // Pagination functions
+        function nextPage() {
+            const maxPage = Math.ceil(filteredClients.length / itemsPerPage);
+            if (currentPage < maxPage) {
+                currentPage++;
+                displayResults();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayResults();
+            }
+        }
+
+        // Selection functions
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll;
+                const clientId = checkbox.value;
+                if (selectAll) {
+                    selectedClients.add(clientId);
+                } else {
+                    selectedClients.delete(clientId);
                 }
-            }, 100);
-        });
-
-        function exportData() {
-            const exportData = lostClients.map((client, index) => ({
-                'Nr': index + 1,
-                'Client': client.name,
-                'ID Client': client.id,
-                'Magazin': client.magazine,
-                'Temperatura': client.temperature,
-                'Ultima Comandă': client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'N/A',
-                'Zile Inactivitate': Math.round(client.daysSinceLastPurchase),
-                'Valoare Totală': client.totalValue,
-                'Număr Comenzi': client.totalOrders,
-                'Ani Activitate': client.activeYears.toFixed(1),
-                'Comenzi/An': client.ordersPerYear.toFixed(1),
-                'Reclamații': client.complaints.length,
-                'Severitate Medie': client.complaints.length > 0 ? 
-                    (client.complaints.reduce((sum, c) => sum + c.severity, 0) / client.complaints.length).toFixed(1) : 'N/A',
-                'Scoring': client.score,
-                'Voucher Recomandat': client.voucherAmount,
-                'Prioritate': client.priority,
-                'Nivel Risc': client.riskLevel,
-                'Abandon Post-Reclamație': checkIfAbandonedAfterComplaint(client, client.complaints) ? 'Da' : 'Nu',
-                'Descrieri Reclamații': client.complaints.map(c => `${c.reason}: ${c.description}`).join(' | '),
-                'Responsabili': [...new Set(client.complaints.map(c => c.responsible))].filter(r => r).join(', ')
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Clienți Pierduți');
-            
-            // Adăugare summar pe a doua foaie
-            const summary = [{
-                'Indicator': 'Total Clienți Pierduți',
-                'Valoare': lostClients.length
-            }, {
-                'Indicator': 'Clienți cu Reclamații',
-                'Valoare': lostClients.filter(c => c.complaints.length > 0).length
-            }, {
-                'Indicator': 'Valoare Totală Pierdută (RON)',
-                'Valoare': lostClients.reduce((sum, c) => sum + c.totalValue, 0)
-            }, {
-                'Indicator': 'Buget Total Voucher-uri (RON)',
-                'Valoare': lostClients.reduce((sum, c) => sum + c.voucherAmount, 0)
-            }, {
-                'Indicator': 'Scor Mediu Recuperare',
-                'Valoare': Math.round(lostClients.reduce((sum, c) => sum + c.score, 0) / lostClients.length)
-            }];
-            
-            const summarySheet = XLSX.utils.json_to_sheet(summary);
-            XLSX.utils.book_append_sheet(workbook, summarySheet, 'Sumar');
-            
-            XLSX.writeFile(workbook, `analiza_clienti_pierduti_${new Date().toISOString().split('T')[0]}.xlsx`);
+            });
         }
 
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('ro-RO', {
-                style: 'currency',
-                currency: 'RON',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(value);
+        function toggleClientSelection(clientId) {
+            if (selectedClients.has(clientId)) {
+                selectedClients.delete(clientId);
+            } else {
+                selectedClients.add(clientId);
+            }
         }
-    </script>
-</body>
-</html>
+
+        // Initialize Charts
+        function initializeCharts() {
+            // Temperature Distribution Chart
+            const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+            const tempData = {
+                'FIERBINTE': 0,
+                'CALDUT': 0,
+                'RACIT': 0,
+                'RECE': 0,
+                'INGHETAT': 0
+            };
+            
+            lostClients.forEach(client => {
+                tempData[client.temperature]++;
+            });
+            
+            charts.temperature = new Chart(tempCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['🔥 Fierbinte', '🟡 Călduț', '🔵 Răcit', '❄️ Rece', '💀 Înghețat'],
+                    datasets: [{
+                        data: Object.values(tempData),
+                        backgroundColor: [
+                            '#ef4444',
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#6366f1',
+                            '#6b7280'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Value Loss Analysis Chart
+            const valueCtx = document.getElementById('valueLossChart').getContext('2d');
+            const valueRanges = {
+                '0-10K': 0,
+                '10K-25K': 0,
+                '25K-50K': 0,
+                '50K-100K': 0,
+                '100K+': 0
+            };
+            
+            lostClients.forEach(client => {
+                if (client.totalValue < 10000) valueRanges['0-10K']++;
+                else if (client.totalValue < 25000) valueRanges['10K-25K']++;
+                else if (client.totalValue < 50000) valueRanges['25K-50K']++;
+                else if (client.totalValue < 100000) valueRanges['50K-100K']++;
+                else valueRanges['100K+']++;
+            });
+            
+            charts.value = new Chart(valueCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(valueRanges),
+                    datasets: [{
+                        label: 'Număr Clienți',
+                        data: Object.values(valueRanges),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Complaints Impact Chart
+            const complaintsCtx = document.getElementById('complaintsChart').getContext('2d');
+            const complaintCategories = {
+                'Fără reclamații': 0,
+                '1-2 reclamații': 0,
+                '3-5 reclamații': 0,
+                '5+ reclamații': 0
+            };
+            
+            lostClients.forEach(client => {
+                const count = client.complaints.length;
+                if (count === 0) complaintCategories['Fără reclamații']++;
+                else if (count <= 2) complaintCategories['1-2 reclamații']++;
+                else if (count <= 5) complaintCategories['3-5 reclamații']++;
+                else complaintCategories['5+ reclamații']++;
+            });
+            
+            charts.complaints = new Chart(complaintsCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(complaintCategories),
+                    datasets: [{
+                        data: Object.values(complaintCategories),
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#991b1b'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            const monthlyLosses = {};
+            const last12Months = [];
+            const now = new Date();
+            
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                last12Months.push(key);
+                monthlyLosses[key] = 0;
+            }
+            
+            lostClients.forEach(client => {
+                if (client.lastPurchase) {
+                    const date = client.lastPurchase;
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (monthlyLosses[key] !== undefined) {
+                        monthlyLosses[key]++;
+                    }
+                }
+            });
+            
+            charts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: last12Months,
+                    datasets: [{
+                        label: 'Clienți Pierduți',
+                        data: Object.values(monthlyLosses),
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectR
