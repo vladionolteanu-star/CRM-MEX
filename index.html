@@ -7,112 +7,175 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-        }
         .loader {
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #2563eb;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background-color: #f9fafb;
+        .tooltip {
+            position: relative;
+            cursor: help;
         }
-        td, th {
-            text-align: left;
-            vertical-align: top;
+        .tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            white-space: nowrap;
+            max-width: 300px;
+            white-space: normal;
+            transition: opacity 0.3s;
+        }
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        .score-bar {
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+            height: 8px;
+            border-radius: 4px;
+            position: relative;
+        }
+        .score-indicator {
+            position: absolute;
+            top: -2px;
+            width: 3px;
+            height: 12px;
+            background: #1f2937;
+            border-radius: 1px;
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-blue-900 text-white p-4 mb-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">🏢 CRM Mobexpert</h1>
+            <div class="space-x-4">
+                <button class="bg-blue-700 px-4 py-2 rounded hover:bg-blue-600 transition">Dashboard</button>
+                <button class="px-4 py-2 rounded hover:bg-blue-700 transition">Clienți Activi</button>
+                <button class="px-4 py-2 rounded hover:bg-blue-700 transition">Campanii</button>
+                <button class="px-4 py-2 rounded hover:bg-blue-700 transition">Rapoarte</button>
+            </div>
+        </div>
+    </nav>
+
     <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <h1 class="text-2xl font-semibold text-gray-800 mb-4">🏢 CRM Mobexpert - Clienți</h1>
+        <!-- Upload Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Analiză Clienți Pierduți</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">📊 Vânzări (Excel/CSV)</label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        🛒 Încarcă Fișier Vânzări (Excel/CSV)
+                    </label>
                     <input type="file" id="salesFile" accept=".xlsx,.xls,.csv" 
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-100 file:text-blue-600 hover:file:bg-blue-200">
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="text-xs text-gray-500 mt-2">Coloane: MAGAZIN, ID CLIENT, CLIENT, DATA, VALOARE FACTURATA, CANTITATE FACTURATA, NR FACTURI</p>
                 </div>
-                <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">⚠️ Reclamații (Excel/CSV)</label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        ⚠️ Încarcă Fișier Reclamații (Excel/CSV)
+                    </label>
                     <input type="file" id="complaintsFile" accept=".xlsx,.xls,.csv"
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-red-100 file:text-red-600 hover:file:bg-red-200">
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                    <p class="text-xs text-gray-500 mt-2">Coloane: MAGAZIN, NR RECLAMATIE, DATA RECLAMATIE, MOTIV RECLAMATIE, ID CLIENT, DESCRIERE, RESPONSABIL COMANDA, Cantitate Reclamata</p>
                 </div>
             </div>
             <div class="flex space-x-4">
                 <button onclick="processData()" 
-                        class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
-                    🔍 Analizează
+                        class="w-full md:w-auto bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                    🔍 Analizează Clienți Pierduți
                 </button>
                 <button onclick="exportData()" 
-                        class="w-full md:w-auto bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition shadow-sm" style="display: none;" id="exportButton">
-                    📤 Exportă
+                        class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200" style="display: none;" id="exportButton">
+                    📤 Exportă Rezultate
                 </button>
             </div>
         </div>
-        <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" style="display: none;">
-            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
-                <div class="text-xl font-semibold text-red-600" id="lostCount">0</div>
+
+        <!-- Statistics -->
+        <div id="stats" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" style="display: none;">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-red-600" id="lostCount">0</div>
                 <div class="text-sm text-gray-600">Clienți Pierduți</div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
-                <div class="text-xl font-semibold text-orange-600" id="complaintCount">0</div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-orange-600" id="complaintCount">0</div>
                 <div class="text-sm text-gray-600">Cu Reclamații</div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
-                <div class="text-xl font-semibold text-blue-600" id="lostRevenue">0 RON</div>
-                <div class="text-sm text-gray-600">Valoare Pierdută <span id="lostRevenueExpl" class="text-xs text-gray-500">(Media anuală * ani inactivitate)</span></div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-blue-600" id="lostRevenue">0 RON</div>
+                <div class="text-sm text-gray-600">Valoare Pierdută</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-green-600" id="voucherBudget">0 RON</div>
+                <div class="text-sm text-gray-600">Buget Voucher-uri</div>
             </div>
         </div>
-        <div id="results" class="bg-white rounded-xl shadow-md overflow-hidden" style="display: none;">
-            <div class="px-4 py-3 bg-gray-50 border-b">
-                <h2 class="text-lg font-semibold text-gray-800">🎯 Clienți de Recuperat</h2>
+
+        <!-- Results Table -->
+        <div id="results" class="bg-white rounded-lg shadow-md overflow-hidden" style="display: none;">
+            <div class="px-6 py-4 bg-gray-50 border-b">
+                <h2 class="text-xl font-semibold text-gray-800">🎯 Clienți de Recuperat (Ordonați după Prioritate)</h2>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">NR CRT</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Client</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Contact</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Ultima Comandă</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Vânzări pe An</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Valoare Totală</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Reclamații</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Motiv</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Responsabil</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Descriere</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Articole</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Notă</th>
-                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Vechime</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultima Comandă</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valoare Totală</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reclamații</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scoring</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voucher</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody" class="divide-y divide-gray-200">
+                    <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
                     </tbody>
                 </table>
             </div>
             <div id="loadingMore" class="text-center py-4" style="display: none;">
-                <div class="loader mx-auto mb-2"></div>
-                <p class="text-sm text-gray-600">Se încarcă...</p>
+                <div class="loader mx-auto mb-4"></div>
+                <p class="text-gray-600">Se încarcă mai mulți clienți...</p>
             </div>
         </div>
+
+        <!-- Loading -->
         <div id="loading" class="text-center py-8" style="display: none;">
-            <div class="loader mx-auto mb-2"></div>
-            <p class="text-sm text-gray-600">Se procesează...</p>
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">Se procesează datele...</p>
         </div>
     </div>
+
     <script>
         let salesData = [];
         let complaintsData = [];
@@ -124,12 +187,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             const salesFileInput = document.getElementById('salesFile');
             const complaintsFileInput = document.getElementById('complaintsFile');
+            
             if (salesFileInput) {
                 salesFileInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) readExcelFile(file, 'sales');
                 });
             }
+            
             if (complaintsFileInput) {
                 complaintsFileInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
@@ -159,20 +224,24 @@
 
         function processData() {
             if (salesData.length === 0 || complaintsData.length === 0) {
-                alert('Încarcă ambele fișiere!');
+                alert('Te rog încarcă ambele fișiere înainte de analiză!');
                 return;
             }
 
             const loadingElement = document.getElementById('loading');
             const resultsElement = document.getElementById('results');
+            const statsElement = document.getElementById('stats');
             const exportButton = document.getElementById('exportButton');
+            
             if (loadingElement) loadingElement.style.display = 'block';
             if (resultsElement) resultsElement.style.display = 'none';
+            if (statsElement) statsElement.style.display = 'none';
             
             setTimeout(() => {
                 analyzeClients();
                 if (loadingElement) loadingElement.style.display = 'none';
                 if (resultsElement) resultsElement.style.display = 'block';
+                if (statsElement) statsElement.style.display = 'grid';
                 if (exportButton) exportButton.style.display = 'block';
                 displayedClients = 0;
                 const tableBody = document.getElementById('tableBody');
@@ -182,7 +251,9 @@
         }
 
         function analyzeClients() {
+            // Procesare vânzări cu noua structură
             const clientSales = {};
+            
             salesData.forEach(sale => {
                 const clientId = sale['ID CLIENT'];
                 if (!clientId) return;
@@ -190,12 +261,11 @@
                 if (!clientSales[clientId]) {
                     clientSales[clientId] = {
                         id: clientId,
-                        name: sale['CLIENT SPECIFIC'] || sale['MAGAZIN'] || 'Necunoscut',
-                        phone: sale['NR TELEFON'] && sale['NR TELEFON'] !== '#null' ? sale['NR TELEFON'] : '',
-                        email: sale['EMAIL CLIENT'] && sale['EMAIL CLIENT'] !== '#null' ? sale['EMAIL CLIENT'] : '',
+                        name: sale['CLIENT'] || 'Necunoscut',
+                        magazine: sale['MAGAZIN'] || '',
                         sales: [],
-                        salesByYear: {},
                         totalValue: 0,
+                        totalOrders: 0,
                         firstPurchase: null,
                         lastPurchase: null,
                         activeYears: 0
@@ -203,35 +273,50 @@
                 }
                 
                 const value = parseFloat(sale['VALOARE FACTURATA'] || 0);
-                const year = parseInt(sale['AN'] || 2025);
+                const dateStr = sale['DATA'];
+                let purchaseDate = null;
                 
-                if (isNaN(value) || isNaN(year)) return;
-                
-                clientSales[clientId].sales.push({
-                    year: year,
-                    value: value,
-                    product: sale['ONLINE PRODUCT TYPE'] || ''
-                });
-                clientSales[clientId].totalValue += value;
-                clientSales[clientId].salesByYear[year] = (clientSales[clientId].salesByYear[year] || 0) + value;
-                
-                if (!clientSales[clientId].firstPurchase || year < clientSales[clientId].firstPurchase) {
-                    clientSales[clientId].firstPurchase = year;
+                if (dateStr) {
+                    // Parse data în format DD.MM.YYYY
+                    const parts = dateStr.split('.');
+                    if (parts.length === 3) {
+                        purchaseDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
                 }
-                if (!clientSales[clientId].lastPurchase || year > clientSales[clientId].lastPurchase) {
-                    clientSales[clientId].lastPurchase = year;
+                
+                if (!isNaN(value) && value > 0) {
+                    clientSales[clientId].sales.push({
+                        date: purchaseDate,
+                        value: value,
+                        quantity: parseFloat(sale['CANTITATE FACTURATA'] || 0)
+                    });
+                    clientSales[clientId].totalValue += value;
+                    clientSales[clientId].totalOrders += parseInt(sale['NR FACTURI'] || 1);
+                    
+                    if (!clientSales[clientId].firstPurchase || (purchaseDate && purchaseDate < clientSales[clientId].firstPurchase)) {
+                        clientSales[clientId].firstPurchase = purchaseDate;
+                    }
+                    if (!clientSales[clientId].lastPurchase || (purchaseDate && purchaseDate > clientSales[clientId].lastPurchase)) {
+                        clientSales[clientId].lastPurchase = purchaseDate;
+                    }
                 }
             });
 
+            // Calculare vechime și frecvență
             Object.values(clientSales).forEach(client => {
                 if (client.firstPurchase && client.lastPurchase) {
-                    client.activeYears = client.lastPurchase - client.firstPurchase + 1;
+                    const years = (client.lastPurchase - client.firstPurchase) / (1000 * 60 * 60 * 24 * 365);
+                    client.activeYears = Math.max(1, years);
+                    client.ordersPerYear = client.totalOrders / client.activeYears;
                 } else {
                     client.activeYears = 1;
+                    client.ordersPerYear = client.totalOrders;
                 }
             });
 
+            // Procesare reclamații cu noua structură
             const clientComplaints = {};
+            
             complaintsData.forEach(complaint => {
                 const clientId = complaint['ID CLIENT'];
                 if (!clientId) return;
@@ -240,96 +325,115 @@
                     clientComplaints[clientId] = [];
                 }
                 
-                const complaintYear = parseInt(complaint['AN RECLAMATIE'] || complaint['DATA RECLAMATIE']?.split('-')[0] || 2025);
-                if (isNaN(complaintYear)) return;
+                const dateStr = complaint['DATA RECLAMATIE'];
+                let complaintDate = null;
+                
+                if (dateStr) {
+                    const parts = dateStr.split('.');
+                    if (parts.length === 3) {
+                        complaintDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                }
                 
                 clientComplaints[clientId].push({
-                    year: complaintYear,
-                    date: complaint['DATA RECLAMATIE'] || '',
+                    date: complaintDate,
                     reason: complaint['MOTIV RECLAMATIE'] || '',
                     description: complaint['DESCRIERE'] || '',
-                    resolved: complaint['REZOLVAT CLIENT'] === 'D' ? 'D' : 'N',
-                    product: complaint['ARTICOL DENUMIRE'] || '',
-                    clientName: complaint['NUME CLIENT'] || 'Necunoscut',
                     responsible: complaint['RESPONSABIL COMANDA'] || '',
+                    number: complaint['NR RECLAMATIE'] || '',
+                    quantity: parseFloat(complaint['Cantitate Reclamata'] || 0)
                 });
             });
 
+            // Identificare clienți pierduți cu scoring
             lostClients = [];
-            const currentYear = 2025;
+            const currentDate = new Date();
             
             Object.keys(clientSales).forEach(clientId => {
                 const client = clientSales[clientId];
                 const complaints = clientComplaints[clientId] || [];
                 
-                if (complaints.length > 0 && complaints[0].clientName !== 'Necunoscut') {
-                    client.name = complaints[0].clientName;
+                // Calculare timp de la ultima comandă
+                let daysSinceLastPurchase = Infinity;
+                if (client.lastPurchase) {
+                    daysSinceLastPurchase = (currentDate - client.lastPurchase) / (1000 * 60 * 60 * 24);
                 }
                 
-                const yearsSinceLastPurchase = client.lastPurchase ? currentYear - client.lastPurchase : Infinity;
-                const hasComplaints = complaints.length > 0;
-                const hasUnresolvedComplaints = complaints.some(c => c.resolved !== 'D');
+                // Considerăm pierduți dacă:
+                // - Au reclamații și nu au cumpărat în ultimele 365 zile
+                // - Sau nu au cumpărat în ultimele 730 zile (2 ani)
+                const isLost = (complaints.length > 0 && daysSinceLastPurchase > 365) || 
+                              daysSinceLastPurchase > 730;
                 
-                if ((hasComplaints && yearsSinceLastPurchase >= 1) || yearsSinceLastPurchase >= 2) {
-                    const descriptions = complaints.map(c => c.description).filter(d => d).join('; ');
-                    const uniqueProducts = [...new Set(complaints.map(c => c.product).filter(p => p))].join(', ');
-                    const uniqueResponsibles = [...new Set(complaints.map(c => c.responsible).filter(r => r))].join(', ');
-                    const annualAvg = client.totalValue / client.activeYears;
-                    const lostValue = annualAvg * yearsSinceLastPurchase;
-                    
-                    const lastComplaintYear = complaints.length > 0 ? Math.max(...complaints.map(c => c.year)) : 0;
-                    const hasPurchasedAfterComplaint = complaints.length > 0 && client.lastPurchase > lastComplaintYear;
-                    
-                    const salesByYearStr = Object.entries(client.salesByYear)
-                        .map(([year, value]) => `${year}: ${formatCurrency(value)}`)
-                        .join('; ');
+                if (isLost) {
+                    const score = calculateClientScore(client, complaints);
+                    const voucherAmount = Math.round((score / 100) * 1500);
                     
                     lostClients.push({
                         ...client,
                         complaints: complaints,
-                        hasUnresolvedComplaints: hasUnresolvedComplaints,
-                        yearsSinceLastPurchase: yearsSinceLastPurchase,
-                        priority: hasUnresolvedComplaints ? 'URGENTĂ' : (hasComplaints ? 'MARE' : 'MEDIE'),
-                        concatenatedDescriptions: descriptions || 'Fără descrieri',
-                        concatenatedProducts: uniqueProducts || 'Fără articole',
-                        concatenatedResponsibles: uniqueResponsibles || 'Fără responsabili',
-                        lostValue: isNaN(lostValue) ? 0 : lostValue,
-                        note: hasPurchasedAfterComplaint ? 'A cumpărat după reclamație' : 'Nu a mai cumpărat',
-                        hasNotPurchasedAfterComplaint: !hasPurchasedAfterComplaint,
-                        salesByYear: salesByYearStr || 'Fără vânzări',
-                        seniority: client.activeYears
+                        daysSinceLastPurchase: Math.round(daysSinceLastPurchase),
+                        score: score,
+                        voucherAmount: voucherAmount,
+                        hasUnresolvedComplaints: complaints.length > 0,
+                        priority: score > 70 ? 'ÎNALTĂ' : (score > 40 ? 'MEDIE' : 'SCĂZUTĂ')
                     });
                 }
             });
 
-            lostClients = [...new Map(lostClients.map(client => [client.id, client])).values()];
-
-            lostClients.sort((a, b) => {
-                if (a.hasUnresolvedComplaints && !b.hasUnresolvedComplaints) return -1;
-                if (!a.hasUnresolvedComplaints && b.hasUnresolvedComplaints) return 1;
-                return b.totalValue - a.totalValue;
-            });
+            // Sortare după scor (descrescător)
+            lostClients.sort((a, b) => b.score - a.score);
 
             updateStatistics();
+        }
+
+        function calculateClientScore(client, complaints) {
+            let score = 0;
+            
+            // 1. Vechime client (30% din scor)
+            if (client.activeYears >= 5) score += 30;
+            else if (client.activeYears >= 3) score += 20;
+            else if (client.activeYears >= 1) score += 10;
+            else score += 5;
+            
+            // 2. Frecvența comenzilor (25% din scor)
+            if (client.ordersPerYear > 10) score += 25;
+            else if (client.ordersPerYear >= 5) score += 20;
+            else if (client.ordersPerYear >= 2) score += 15;
+            else score += 10;
+            
+            // 3. Valoare totală client (30% din scor)
+            if (client.totalValue > 50000) score += 30;
+            else if (client.totalValue >= 20000) score += 25;
+            else if (client.totalValue >= 10000) score += 20;
+            else if (client.totalValue >= 5000) score += 15;
+            else score += 10;
+            
+            // 4. Tipul reclamației/gravitate (15% din scor)
+            if (complaints.length === 0) score += 15;
+            else if (complaints.length <= 2) score += 10;
+            else if (complaints.length <= 5) score += 5;
+            else score += 0;
+            
+            return Math.min(100, score);
         }
 
         function updateStatistics() {
             const lostCount = lostClients.length;
             const complaintCount = lostClients.filter(c => c.complaints.length > 0).length;
-            const lostRevenue = lostClients.reduce((sum, c) => sum + c.lostValue, 0);
+            const lostRevenue = lostClients.reduce((sum, c) => sum + c.totalValue, 0);
+            const voucherBudget = lostClients.reduce((sum, c) => sum + c.voucherAmount, 0);
             
-            const lostCountElement = document.getElementById('lostCount');
-            const complaintCountElement = document.getElementById('complaintCount');
-            const lostRevenueElement = document.getElementById('lostRevenue');
-            
-            if (lostCountElement) lostCountElement.textContent = lostCount;
-            if (complaintCountElement) complaintCountElement.textContent = complaintCount;
-            if (lostRevenueElement) lostRevenueElement.textContent = formatCurrency(lostRevenue);
+            document.getElementById('lostCount').textContent = lostCount;
+            document.getElementById('complaintCount').textContent = complaintCount;
+            document.getElementById('lostRevenue').textContent = formatCurrency(lostRevenue);
+            document.getElementById('voucherBudget').textContent = formatCurrency(voucherBudget);
         }
 
         function loadMoreClients() {
             if (isLoading || displayedClients >= lostClients.length) return;
             isLoading = true;
+            
             const loadingMoreElement = document.getElementById('loadingMore');
             if (loadingMoreElement) loadingMoreElement.style.display = 'block';
             
@@ -343,41 +447,74 @@
                 for (let i = start; i < end; i++) {
                     const client = lostClients[i];
                     const globalIndex = i + 1;
-                    const mainComplaint = client.complaints[0] || {};
-                    const priorityColor = client.priority === 'URGENTĂ' ? 'red' : (client.priority === 'MARE' ? 'orange' : 'yellow');
-                    const rowClass = client.hasNotPurchasedAfterComplaint && client.complaints.length > 0 ? 'bg-red-100' : 'odd:bg-gray-50';
                     
+                    const scoreColor = client.score > 70 ? 'green' : (client.score > 40 ? 'yellow' : 'red');
+                    const priorityColor = client.priority === 'ÎNALTĂ' ? 'red' : (client.priority === 'MEDIE' ? 'yellow' : 'gray');
+                    
+                    const complaintsText = client.complaints.length > 0 ? 
+                        client.complaints.map(c => `${c.reason}: ${c.description}`).join(' | ') : 
+                        'Fără reclamații';
+                    
+                    const responsiblesText = client.complaints.length > 0 ? 
+                        [...new Set(client.complaints.map(c => c.responsible))].join(', ') : 
+                        '';
+
                     const row = `
-                        <tr class="${rowClass} hover:bg-gray-100">
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${String(globalIndex).padStart(2, '0')}</td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
-                                <div class="font-medium">${client.name}</div>
-                                <div class="text-xs text-gray-500">${client.id}</div>
+                        <tr class="hover:bg-gray-50 ${client.hasUnresolvedComplaints ? 'bg-red-50' : ''}">
+                            <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                ${String(globalIndex).padStart(2, '0')}
                             </td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
-                                <div>${client.phone || '-'}</div>
-                                <div class="text-xs text-gray-500">${client.email || '-'}</div>
+                            <td class="px-4 py-4">
+                                <div class="text-sm font-medium text-gray-900">${client.name}</div>
+                                <div class="text-xs text-gray-500">ID: ${client.id}</div>
+                                <div class="text-xs text-gray-500">${client.magazine}</div>
                             </td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
-                                <div>${client.lastPurchase || '-'}</div>
-                                <div class="text-xs text-gray-500">(${client.yearsSinceLastPurchase} ani)</div>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    ${client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'N/A'}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    ${Math.round(client.daysSinceLastPurchase)} zile
+                                </div>
                             </td>
-                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.salesByYear}</td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
-                                <div class="font-medium">${formatCurrency(client.totalValue)}</div>
-                                <div class="text-xs text-gray-500">${client.sales.length} comenzi</div>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-gray-900">${formatCurrency(client.totalValue)}</div>
+                                <div class="text-xs text-gray-500">${client.totalOrders} comenzi</div>
+                                <div class="text-xs text-gray-500">${client.activeYears.toFixed(1)} ani</div>
                             </td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
-                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-${priorityColor}-100 text-${priorityColor}-800">
-                                    ${client.complaints.length} ${client.hasUnresolvedComplaints ? '❌' : '✓'}
+                            <td class="px-4 py-4">
+                                <div class="tooltip">
+                                    <span class="text-sm ${client.complaints.length > 0 ? 'text-red-600' : 'text-green-600'}">
+                                        ${client.complaints.length} reclamații
+                                    </span>
+                                    <div class="tooltip-content">
+                                        <strong>Reclamații:</strong><br>
+                                        ${complaintsText}<br><br>
+                                        <strong>Responsabili:</strong><br>
+                                        ${responsiblesText}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-16 mr-2">
+                                        <div class="score-bar">
+                                            <div class="score-indicator" style="left: ${client.score}%"></div>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-medium text-${scoreColor}-600">${client.score}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <span class="text-sm font-semibold text-green-600">
+                                    ${formatCurrency(client.voucherAmount)}
                                 </span>
                             </td>
-                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${mainComplaint.reason || '-'}</td>
-                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedResponsibles}</td>
-                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedDescriptions}</td>
-                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedProducts}</td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${client.note}</td>
-                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${client.seniority} ani</td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-${priorityColor}-100 text-${priorityColor}-800">
+                                    ${client.priority}
+                                </span>
+                            </td>
                         </tr>
                     `;
                     tbody.innerHTML += row;
@@ -391,6 +528,7 @@
             }, 200);
         }
 
+        // Infinite scroll
         window.addEventListener('scroll', () => {
             if (isLoading || displayedClients >= lostClients.length) return;
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
@@ -400,30 +538,28 @@
 
         function exportData() {
             const exportData = lostClients.map((client, index) => ({
-                'NR CRT': String(index + 1).padStart(2, '0'),
+                'Nr': index + 1,
                 'Client': client.name,
                 'ID Client': client.id,
-                'Telefon': client.phone || '-',
-                'Email': client.email || '-',
-                'Ultima Comandă': client.lastPurchase || '-',
-                'Vânzări pe An': client.salesByYear,
-                'Ani Inactivitate': client.yearsSinceLastPurchase,
-                'Valoare Totală': formatCurrency(client.totalValue),
-                'Numar Comenzi': client.sales.length,
+                'Magazin': client.magazine,
+                'Ultima Comandă': client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'N/A',
+                'Zile Inactivitate': Math.round(client.daysSinceLastPurchase),
+                'Valoare Totală': client.totalValue,
+                'Număr Comenzi': client.totalOrders,
+                'Ani Activitate': client.activeYears.toFixed(1),
+                'Comenzi/An': client.ordersPerYear.toFixed(1),
                 'Reclamații': client.complaints.length,
-                'Reclamații Nerezolvate': client.hasUnresolvedComplaints ? 'Da' : 'Nu',
-                'Motiv Reclamație': client.complaints[0]?.reason || '-',
-                'Responsabili': client.concatenatedResponsibles,
-                'Descrieri': client.concatenatedDescriptions,
-                'Articole': client.concatenatedProducts,
-                'Notă': client.note,
-                'Vechime Mobexpert': `${client.seniority} ani`
+                'Scoring': client.score,
+                'Voucher Recomandat': client.voucherAmount,
+                'Prioritate': client.priority,
+                'Descrieri Reclamații': client.complaints.map(c => c.description).join(' | '),
+                'Responsabili': [...new Set(client.complaints.map(c => c.responsible))].join(', ')
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Clienți Pierduți');
-            XLSX.writeFile(workbook, 'clienti_pierduti.xlsx');
+            XLSX.writeFile(workbook, `clienti_pierduti_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
         function formatCurrency(value) {
