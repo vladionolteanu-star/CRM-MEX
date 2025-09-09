@@ -1,0 +1,448 @@
+```html
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Mobexpert - Recuperare Clienți</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">🏢 CRM Mobexpert - Recuperare Clienți</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        📊 Încarcă Fișier Vânzări (Excel/CSV)
+                    </label>
+                    <input type="file" id="salesFile" accept=".xlsx,.xls,.csv" 
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        ⚠️ Încarcă Fișier Reclamații (Excel/CSV)
+                    </label>
+                    <input type="file" id="complaintsFile" accept=".xlsx,.xls,.csv"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+                </div>
+            </div>
+            <div class="flex space-x-4">
+                <button onclick="processData()" 
+                        class="w-full md:w-auto bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200">
+                    🔍 Analizează Clienți Pierduți
+                </button>
+                <button onclick="exportData()" 
+                        class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200" style="display: none;" id="exportButton">
+                    📤 Exportă Toți Clienți
+                </button>
+            </div>
+        </div>
+        <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" style="display: none;">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-red-600" id="lostCount">0</div>
+                <div class="text-sm text-gray-600">Clienți Pierduți</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-orange-600" id="complaintCount">0</div>
+                <div class="text-sm text-gray-600">Cu Reclamații</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-2xl font-bold text-blue-600" id="lostRevenue">0 RON</div>
+                <div class="text-sm text-gray-600">Valoare Pierdută <span id="lostRevenueExpl" class="text-xs text-gray-500">(Media anuală per client * ani inactivitate)</span></div>
+            </div>
+        </div>
+        <div id="results" class="bg-white rounded-lg shadow-md overflow-hidden" style="display: none;">
+            <div class="px-6 py-4 bg-gray-50 border-b">
+                <h2 class="text-xl font-semibold text-gray-800">🎯 Clienți de Recuperat (Prioritate Maximă)</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NR CRT</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultima Comandă</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vânzări pe An</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valoare Totală</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reclamații</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motiv Reclamație</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsabil</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descriere</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articole</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notă</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vechime Mobexpert</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+                </table>
+            </div>
+            <div id="loadingMore" class="text-center py-4" style="display: none;">
+                <div class="loader mx-auto mb-4"></div>
+                <p class="text-gray-600">Se încarcă mai mulți clienți...</p>
+            </div>
+        </div>
+        <div id="loading" class="text-center py-8" style="display: none;">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">Se procesează datele...</p>
+        </div>
+    </div>
+    <script>
+        let salesData = [];
+        let complaintsData = [];
+        let lostClients = [];
+        let displayedClients = 0;
+        const itemsPerLoad = 50;
+        let isLoading = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const salesFileInput = document.getElementById('salesFile');
+            const complaintsFileInput = document.getElementById('complaintsFile');
+            if (salesFileInput) {
+                salesFileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) readExcelFile(file, 'sales');
+                });
+            }
+            if (complaintsFileInput) {
+                complaintsFileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) readExcelFile(file, 'complaints');
+                });
+            }
+        });
+
+        function readExcelFile(file, type) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                if (type === 'sales') {
+                    salesData = jsonData;
+                    console.log('Vânzări încărcate:', salesData.length, 'înregistrări');
+                } else {
+                    complaintsData = jsonData;
+                    console.log('Reclamații încărcate:', complaintsData.length, 'înregistrări');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData() {
+            if (salesData.length === 0 || complaintsData.length === 0) {
+                alert('Te rog încarcă ambele fișiere înainte de analiză!');
+                return;
+            }
+
+            const loadingElement = document.getElementById('loading');
+            const resultsElement = document.getElementById('results');
+            const exportButton = document.getElementById('exportButton');
+            if (loadingElement) loadingElement.style.display = 'block';
+            if (resultsElement) resultsElement.style.display = 'none';
+            
+            setTimeout(() => {
+                analyzeClients();
+                if (loadingElement) loadingElement.style.display = 'none';
+                if (resultsElement) resultsElement.style.display = 'block';
+                if (exportButton) exportButton.style.display = 'block';
+                displayedClients = 0;
+                const tableBody = document.getElementById('tableBody');
+                if (tableBody) tableBody.innerHTML = '';
+                loadMoreClients();
+            }, 500);
+        }
+
+        function analyzeClients() {
+            const clientSales = {};
+            salesData.forEach(sale => {
+                const clientId = sale['ID CLIENT'];
+                if (!clientId) return;
+                
+                if (!clientSales[clientId]) {
+                    clientSales[clientId] = {
+                        id: clientId,
+                        name: sale['CLIENT SPECIFIC'] || sale['MAGAZIN'] || 'Necunoscut',
+                        phone: sale['NR TELEFON'] && sale['NR TELEFON'] !== '#null' ? sale['NR TELEFON'] : '',
+                        email: sale['EMAIL CLIENT'] && sale['EMAIL CLIENT'] !== '#null' ? sale['EMAIL CLIENT'] : '',
+                        sales: [],
+                        salesByYear: {},
+                        totalValue: 0,
+                        firstPurchase: null,
+                        lastPurchase: null,
+                        activeYears: 0
+                    };
+                }
+                
+                const value = parseFloat(sale['VALOARE FACTURATA'] || 0);
+                const year = parseInt(sale['AN'] || 2025);
+                
+                if (isNaN(value) || isNaN(year)) return;
+                
+                clientSales[clientId].sales.push({
+                    year: year,
+                    value: value,
+                    product: sale['ONLINE PRODUCT TYPE'] || ''
+                });
+                clientSales[clientId].totalValue += value;
+                clientSales[clientId].salesByYear[year] = (clientSales[clientId].salesByYear[year] || 0) + value;
+                
+                if (!clientSales[clientId].firstPurchase || year < clientSales[clientId].firstPurchase) {
+                    clientSales[clientId].firstPurchase = year;
+                }
+                if (!clientSales[clientId].lastPurchase || year > clientSales[clientId].lastPurchase) {
+                    clientSales[clientId].lastPurchase = year;
+                }
+            });
+
+            Object.values(clientSales).forEach(client => {
+                if (client.firstPurchase && client.lastPurchase) {
+                    client.activeYears = client.lastPurchase - client.firstPurchase + 1;
+                } else {
+                    client.activeYears = 1;
+                }
+            });
+
+            const clientComplaints = {};
+            complaintsData.forEach(complaint => {
+                const clientId = complaint['ID CLIENT'];
+                if (!clientId) return;
+                
+                if (!clientComplaints[clientId]) {
+                    clientComplaints[clientId] = [];
+                }
+                
+                const complaintYear = parseInt(complaint['AN RECLAMATIE'] || complaint['DATA RECLAMATIE']?.split('-')[0] || 2025);
+                if (isNaN(complaintYear)) return;
+                
+                clientComplaints[clientId].push({
+                    year: complaintYear,
+                    date: complaint['DATA RECLAMATIE'] || '',
+                    reason: complaint['MOTIV RECLAMATIE'] || '',
+                    description: complaint['DESCRIERE'] || '',
+                    resolved: complaint['REZOLVAT CLIENT'] === 'D' ? 'D' : 'N',
+                    product: complaint['ARTICOL DENUMIRE'] || '',
+                    clientName: complaint['NUME CLIENT'] || 'Necunoscut',
+                    responsible: complaint['RESPONSABIL COMANDA'] || '',
+                });
+            });
+
+            lostClients = [];
+            const currentYear = 2025;
+            
+            Object.keys(clientSales).forEach(clientId => {
+                const client = clientSales[clientId];
+                const complaints = clientComplaints[clientId] || [];
+                
+                if (complaints.length > 0 && complaints[0].clientName !== 'Necunoscut') {
+                    client.name = complaints[0].clientName;
+                }
+                
+                const yearsSinceLastPurchase = client.lastPurchase ? currentYear - client.lastPurchase : Infinity;
+                const hasComplaints = complaints.length > 0;
+                const hasUnresolvedComplaints = complaints.some(c => c.resolved !== 'D');
+                
+                if ((hasComplaints && yearsSinceLastPurchase >= 1) || yearsSinceLastPurchase >= 2) {
+                    const descriptions = complaints.map(c => c.description).filter(d => d).join('; ');
+                    const uniqueProducts = [...new Set(complaints.map(c => c.product).filter(p => p))].join(', ');
+                    const uniqueResponsibles = [...new Set(complaints.map(c => c.responsible).filter(r => r))].join(', ');
+                    const annualAvg = client.totalValue / client.activeYears;
+                    const lostValue = annualAvg * yearsSinceLastPurchase;
+                    
+                    const lastComplaintYear = complaints.length > 0 ? Math.max(...complaints.map(c => c.year)) : 0;
+                    const hasPurchasedAfterComplaint = complaints.length > 0 && client.lastPurchase > lastComplaintYear;
+                    
+                    const salesByYearStr = Object.entries(client.salesByYear)
+                        .map(([year, value]) => `${year}: ${formatCurrency(value)}`)
+                        .join('; ');
+                    
+                    lostClients.push({
+                        ...client,
+                        complaints: complaints,
+                        hasUnresolvedComplaints: hasUnresolvedComplaints,
+                        yearsSinceLastPurchase: yearsSinceLastPurchase,
+                        priority: hasUnresolvedComplaints ? 'URGENTĂ' : (hasComplaints ? 'MARE' : 'MEDIE'),
+                        concatenatedDescriptions: descriptions || 'Fără descrieri',
+                        concatenatedProducts: uniqueProducts || 'Fără articole',
+                        concatenatedResponsibles: uniqueResponsibles || 'Fără responsabili',
+                        lostValue: isNaN(lostValue) ? 0 : lostValue,
+                        note: hasPurchasedAfterComplaint ? 'A cumpărat după reclamație' : 'Nu a mai cumpărat după reclamație',
+                        hasNotPurchasedAfterComplaint: !hasPurchasedAfterComplaint,
+                        salesByYear: salesByYearStr || 'Fără vânzări',
+                        seniority: client.activeYears
+                    });
+                }
+            });
+
+            lostClients = [...new Map(lostClients.map(client => [client.id, client])).values()];
+
+            lostClients.sort((a, b) => {
+                if (a.hasUnresolvedComplaints && !b.hasUnresolvedComplaints) return -1;
+                if (!a.hasUnresolvedComplaints && b.hasUnresolvedComplaints) return 1;
+                return b.totalValue - a.totalValue;
+            });
+
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const lostCount = lostClients.length;
+            const complaintCount = lostClients.filter(c => c.complaints.length > 0).length;
+            const lostRevenue = lostClients.reduce((sum, c) => sum + c.lostValue, 0);
+            
+            const lostCountElement = document.getElementById('lostCount');
+            const complaintCountElement = document.getElementById('complaintCount');
+            const lostRevenueElement = document.getElementById('lostRevenue');
+            const lostRevenueExplElement = document.getElementById('lostRevenueExpl');
+            
+            if (lostCountElement) lostCountElement.textContent = lostCount;
+            if (complaintCountElement) complaintCountElement.textContent = complaintCount;
+            if (lostRevenueElement) lostRevenueElement.textContent = formatCurrency(lostRevenue);
+            if (lostRevenueExplElement) lostRevenueExplElement.textContent = '(Media anuală per client * ani inactivitate)';
+        }
+
+        function loadMoreClients() {
+            if (isLoading || displayedClients >= lostClients.length) return;
+            isLoading = true;
+            const loadingMoreElement = document.getElementById('loadingMore');
+            if (loadingMoreElement) loadingMoreElement.style.display = 'block';
+            
+            setTimeout(() => {
+                const tbody = document.getElementById('tableBody');
+                if (!tbody) return;
+                
+                const start = displayedClients;
+                const end = Math.min(start + itemsPerLoad, lostClients.length);
+                
+                for (let i = start; i < end; i++) {
+                    const client = lostClients[i];
+                    const globalIndex = i + 1;
+                    const mainComplaint = client.complaints[0] || {};
+                    const priorityColor = client.priority === 'URGENTĂ' ? 'red' : (client.priority === 'MARE' ? 'orange' : 'yellow');
+                    const rowClass = client.hasNotPurchasedAfterComplaint && client.complaints.length > 0 ? 'bg-red-100' : '';
+                    
+                    const row = `
+                        <tr class="${rowClass} hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${String(globalIndex).padStart(2, '0')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${client.name}</div>
+                                <div class="text-sm text-gray-500">ID: ${client.id}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${client.phone || 'Fără telefon'}</div>
+                                <div class="text-sm text-gray-500">${client.email || 'Fără email'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm text-gray-900">${client.lastPurchase || 'N/A'}</span>
+                                <span class="text-xs text-gray-500 block">(${client.yearsSinceLastPurchase} ani)</span>
+                            </td>
+                            <td class="px-6 py-4 max-w-sm whitespace-normal">
+                                <div class="text-sm text-gray-900">${client.salesByYear}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-semibold text-gray-900">${formatCurrency(client.totalValue)}</div>
+                                <div class="text-xs text-gray-500">${client.sales.length} comenzi</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-${priorityColor}-100 text-${priorityColor}-800">
+                                    ${client.complaints.length} ${client.hasUnresolvedComplaints ? '❌' : '✓'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 max-w-sm whitespace-normal">
+                                <div class="text-sm text-gray-900">${mainComplaint.reason || 'Fără reclamații'}</div>
+                            </td>
+                            <td class="px-6 py-4 max-w-sm whitespace-normal">
+                                <div class="text-sm text-gray-900">${client.concatenatedResponsibles}</div>
+                            </td>
+                            <td class="px-6 py-4 max-w-sm whitespace-normal">
+                                <div class="text-sm text-gray-900">${client.concatenatedDescriptions}</div>
+                            </td>
+                            <td class="px-6 py-4 max-w-sm whitespace-normal">
+                                <div class="text-sm text-gray-900">${client.concatenatedProducts}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${client.note}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${client.seniority} ani</div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                }
+                
+                displayedClients = end;
+                isLoading = false;
+                if (loadingMoreElement) {
+                    loadingMoreElement.style.display = displayedClients >= lostClients.length ? 'none' : 'block';
+                }
+            }, 200);
+        }
+
+        window.addEventListener('scroll', () => {
+            if (isLoading || displayedClients >= lostClients.length) return;
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                loadMoreClients();
+            }
+        });
+
+        function exportData() {
+            const exportData = lostClients.map((client, index) => ({
+                'NR CRT': String(index + 1).padStart(2, '0'),
+                'Client': client.name,
+                'ID Client': client.id,
+                'Telefon': client.phone || 'Fără telefon',
+                'Email': client.email || 'Fără email',
+                'Ultima Comandă': client.lastPurchase || 'N/A',
+                'Vânzări pe An': client.salesByYear,
+                'Ani Inactivitate': client.yearsSinceLastPurchase,
+                'Valoare Totală': formatCurrency(client.totalValue),
+                'Numar Comenzi': client.sales.length,
+                'Reclamații': client.complaints.length,
+                'Reclamații Nerezolvate': client.hasUnresolvedComplaints ? 'Da' : 'Nu',
+                'Motiv Reclamație': client.complaints[0]?.reason || 'Fără reclamații',
+                'Responsabili': client.concatenatedResponsibles,
+                'Descrieri': client.concatenatedDescriptions,
+                'Articole': client.concatenatedProducts,
+                'Notă': client.note,
+                'Vechime Mobexpert': `${client.seniority} ani`
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Clienți Pierduți');
+            XLSX.writeFile(workbook, 'clienti_pierduti.xlsx');
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('ro-RO', {
+                style: 'currency',
+                currency: 'RON',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+    </script>
+</body>
+</html>
+```
+
