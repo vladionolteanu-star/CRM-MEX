@@ -1894,3 +1894,50 @@
     </script>
 </body>
 </html>
+<script>
+    // Funcție pentru formatarea valorilor monetare
+    function formatCurrency(value) {
+        if (isNaN(value)) return '0 RON';
+        return new Intl.NumberFormat('ro-RO', {
+            style: 'currency',
+            currency: 'RON',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    }
+
+    // Funcție pentru sanitizarea textelor (evită XSS)
+    function sanitizeHTML(str) {
+        if (typeof str !== "string") return str;
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Funcție pentru a verifica abandonul după reclamații
+    function checkIfAbandonedAfterComplaint(client, complaints) {
+        try {
+            if (!client || !complaints) return false;
+            if (complaints.length === 0) return false;
+            // Heuristică simplă: dacă clientul are reclamații și nu a mai cumpărat de mult
+            return client.daysSinceLastPurchase > 180 && complaints.length > 0;
+        } catch (e) {
+            console.error("Eroare în checkIfAbandonedAfterComplaint:", e);
+            return false;
+        }
+    }
+</script>
+
+<script>
+    // mic script pentru anul curent (footer)
+    document.addEventListener('DOMContentLoaded', () => {
+        const y = document.getElementById('year');
+        if (y) y.textContent = new Date().getFullYear();
+    });
+</script>
+
+</body>
+</html>
