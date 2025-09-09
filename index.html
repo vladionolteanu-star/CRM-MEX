@@ -1039,7 +1039,8 @@
         window.addEventListener('scroll', () => {
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
-                if (isLoading || displayedClients >= lostClients.length) return;
+                const clientsToShow = filteredClients.length > 0 ? filteredClients : lostClients;
+                if (isLoading || displayedClients >= clientsToShow.length) return;
                 if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
                     loadMoreClients();
                 }
