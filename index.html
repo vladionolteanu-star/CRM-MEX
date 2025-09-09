@@ -1926,5 +1926,66 @@
         }
     });
 </script>
+<!-- SheetJS pentru a citi Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    async function loadExcelAndProcess(filePath) {
+        try {
+            // 1. Descarcă Excelul ca ArrayBuffer
+            const response = await fetch(filePath);
+            if (!response.ok) throw new Error("Nu pot încărca fișierul Excel: " + filePath);
+
+            const arrayBuffer = await response.arrayBuffer();
+
+            // 2. Citește cu SheetJS
+            const workbook = XLSX.read(arrayBuffer, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+
+            // 3. Convertește în JSON
+            const data = XLSX.utils.sheet_to_json(sheet);
+
+            // 4. Salvează în lostClients
+            window.lostClients = data.map((row, idx) => ({
+                id: row.ID || `CL${idx+1}`,
+                name: row.Nume || "Necunoscut",
+                magazine: row.Magazin || "",
+                temperature: row.Temperatura || "NECUNOSCUT",
+                lastPurchase: row["Ultima Achiziție"] ? new Date(row["Ultima Achiziție"]) : null,
+                daysSinceLastPurchase: row["Zile De La Ultima Achiziție"] || 0,
+                totalValue: row["Valoare Totală"] || 0,
+                totalOrders: row["Comenzi"] || 0,
+                activeYears: row["Ani Activi"] || 0,
+                projectedLoss: row["Pierdere Estimată"] || 0,
+                complaints: row.Reclamații ? JSON.parse(row.Reclamații) : [],
+                score: row.Scor || 0,
+                priority: row.Prioritate || "NECUNOSCUT",
+                voucherAmount: row.Voucher || 0,
+                riskLevel: row.Risc || "NECUNOSCUT"
+            }));
+
+            // 5. Creează copii pentru filtrare
+            window.filteredClients = lostClients.slice();
+            window.selectedClients = new Set();
+
+            console.log("Date Excel încărcate ✅", lostClients);
+
+            // 6. Rulează procesarea
+            processData();
+
+        } catch (e) {
+            console.error("Eroare la încărcarea Excelului:", e);
+            alert("Nu am putut încărca datele din Excel. Verifică formatul fișierului.");
+        }
+    }
+
+    // Rulează imediat ce DOM-ul e gata
+    document.addEventListener("DOMContentLoaded", () => {
+        // schimbă aici numele fișierului tău Excel
+        loadExcelAndProcess("clients.xlsx");
+    });
+</script>
+
 </body>
 </html>
