@@ -12,11 +12,11 @@
             font-family: 'Inter', sans-serif;
         }
         .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #2563eb;
             border-radius: 50%;
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -27,75 +27,76 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            background-color: #f9fafb;
+        }
+        td, th {
+            text-align: left;
+            vertical-align: top;
         }
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h1 class="text-3xl font-semibold text-gray-800 mb-4">🏢 CRM Mobexpert - Recuperare Clienți</h1>
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-semibold text-gray-800 mb-4">🏢 CRM Mobexpert - Clienți</h1>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        📊 Încarcă Fișier Vânzări (Excel/CSV)
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">📊 Vânzări (Excel/CSV)</label>
                     <input type="file" id="salesFile" accept=".xlsx,.xls,.csv" 
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-600 hover:file:bg-blue-200">
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-100 file:text-blue-600 hover:file:bg-blue-200">
                 </div>
                 <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        ⚠️ Încarcă Fișier Reclamații (Excel/CSV)
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">⚠️ Reclamații (Excel/CSV)</label>
                     <input type="file" id="complaintsFile" accept=".xlsx,.xls,.csv"
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-100 file:text-red-600 hover:file:bg-red-200">
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-red-100 file:text-red-600 hover:file:bg-red-200">
                 </div>
             </div>
             <div class="flex space-x-4">
                 <button onclick="processData()" 
-                        class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-md">
-                    🔍 Analizează Clienți
+                        class="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
+                    🔍 Analizează
                 </button>
                 <button onclick="exportData()" 
-                        class="w-full md:w-auto bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 shadow-md" style="display: none;" id="exportButton">
-                    📤 Exportă Toți Clienți
+                        class="w-full md:w-auto bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition shadow-sm" style="display: none;" id="exportButton">
+                    📤 Exportă
                 </button>
             </div>
         </div>
         <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" style="display: none;">
-            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
-                <div class="text-2xl font-bold text-red-600" id="lostCount">0</div>
+            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
+                <div class="text-xl font-semibold text-red-600" id="lostCount">0</div>
                 <div class="text-sm text-gray-600">Clienți Pierduți</div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
-                <div class="text-2xl font-bold text-orange-600" id="complaintCount">0</div>
+            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
+                <div class="text-xl font-semibold text-orange-600" id="complaintCount">0</div>
                 <div class="text-sm text-gray-600">Cu Reclamații</div>
             </div>
-            <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
-                <div class="text-2xl font-bold text-blue-600" id="lostRevenue">0 RON</div>
+            <div class="bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition">
+                <div class="text-xl font-semibold text-blue-600" id="lostRevenue">0 RON</div>
                 <div class="text-sm text-gray-600">Valoare Pierdută <span id="lostRevenueExpl" class="text-xs text-gray-500">(Media anuală * ani inactivitate)</span></div>
             </div>
         </div>
-        <div id="results" class="bg-white rounded-xl shadow-lg overflow-hidden" style="display: none;">
-            <div class="px-6 py-4 bg-gray-50 border-b">
-                <h2 class="text-xl font-semibold text-gray-800">🎯 Clienți de Recuperat</h2>
+        <div id="results" class="bg-white rounded-xl shadow-md overflow-hidden" style="display: none;">
+            <div class="px-4 py-3 bg-gray-50 border-b">
+                <h2 class="text-lg font-semibold text-gray-800">🎯 Clienți de Recuperat</h2>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
+                    <thead>
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">NR CRT</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Client</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Contact</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Ultima Comandă</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Vânzări pe An</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Valoare Totală</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Reclamații</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Motiv Reclamație</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Responsabil</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Descriere</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Articole</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Notă</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider w-32">Vechime</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">NR CRT</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Client</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Contact</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Ultima Comandă</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Vânzări pe An</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Valoare Totală</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Reclamații</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Motiv</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Responsabil</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Descriere</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Articole</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Notă</th>
+                            <th class="px-3 py-2 text-xs font-medium text-gray-600 uppercase w-28">Vechime</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-200">
@@ -103,13 +104,13 @@
                 </table>
             </div>
             <div id="loadingMore" class="text-center py-4" style="display: none;">
-                <div class="loader mx-auto mb-4"></div>
-                <p class="text-gray-600 text-sm">Se încarcă mai mulți clienți...</p>
+                <div class="loader mx-auto mb-2"></div>
+                <p class="text-sm text-gray-600">Se încarcă...</p>
             </div>
         </div>
         <div id="loading" class="text-center py-8" style="display: none;">
-            <div class="loader mx-auto mb-4"></div>
-            <p class="text-gray-600 text-sm">Se procesează datele...</p>
+            <div class="loader mx-auto mb-2"></div>
+            <p class="text-sm text-gray-600">Se procesează...</p>
         </div>
     </div>
     <script>
@@ -158,7 +159,7 @@
 
         function processData() {
             if (salesData.length === 0 || complaintsData.length === 0) {
-                alert('Te rog încarcă ambele fișiere înainte de analiză!');
+                alert('Încarcă ambele fișiere!');
                 return;
             }
 
@@ -293,7 +294,7 @@
                         concatenatedProducts: uniqueProducts || 'Fără articole',
                         concatenatedResponsibles: uniqueResponsibles || 'Fără responsabili',
                         lostValue: isNaN(lostValue) ? 0 : lostValue,
-                        note: hasPurchasedAfterComplaint ? 'A cumpărat după reclamație' : 'Nu a mai cumpărat după reclamație',
+                        note: hasPurchasedAfterComplaint ? 'A cumpărat după reclamație' : 'Nu a mai cumpărat',
                         hasNotPurchasedAfterComplaint: !hasPurchasedAfterComplaint,
                         salesByYear: salesByYearStr || 'Fără vânzări',
                         seniority: client.activeYears
@@ -320,12 +321,10 @@
             const lostCountElement = document.getElementById('lostCount');
             const complaintCountElement = document.getElementById('complaintCount');
             const lostRevenueElement = document.getElementById('lostRevenue');
-            const lostRevenueExplElement = document.getElementById('lostRevenueExpl');
             
             if (lostCountElement) lostCountElement.textContent = lostCount;
             if (complaintCountElement) complaintCountElement.textContent = complaintCount;
             if (lostRevenueElement) lostRevenueElement.textContent = formatCurrency(lostRevenue);
-            if (lostRevenueExplElement) lostRevenueExplElement.textContent = '(Media anuală * ani inactivitate)';
         }
 
         function loadMoreClients() {
@@ -349,36 +348,36 @@
                     const rowClass = client.hasNotPurchasedAfterComplaint && client.complaints.length > 0 ? 'bg-red-100' : 'odd:bg-gray-50';
                     
                     const row = `
-                        <tr class="${rowClass} hover:bg-gray-100 transition">
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">${String(globalIndex).padStart(2, '0')}</td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">
+                        <tr class="${rowClass} hover:bg-gray-100">
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${String(globalIndex).padStart(2, '0')}</td>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
                                 <div class="font-medium">${client.name}</div>
-                                <div class="text-xs text-gray-500">ID: ${client.id}</div>
+                                <div class="text-xs text-gray-500">${client.id}</div>
                             </td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">
-                                <div>${client.phone || 'Fără telefon'}</div>
-                                <div class="text-xs text-gray-500">${client.email || 'Fără email'}</div>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
+                                <div>${client.phone || '-'}</div>
+                                <div class="text-xs text-gray-500">${client.email || '-'}</div>
                             </td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">
-                                <div>${client.lastPurchase || 'N/A'}</div>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
+                                <div>${client.lastPurchase || '-'}</div>
                                 <div class="text-xs text-gray-500">(${client.yearsSinceLastPurchase} ani)</div>
                             </td>
-                            <td class="px-6 py-4 w-32 whitespace-normal text-sm text-gray-900 max-h-24 overflow-y-auto">${client.salesByYear}</td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">
+                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.salesByYear}</td>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
                                 <div class="font-medium">${formatCurrency(client.totalValue)}</div>
                                 <div class="text-xs text-gray-500">${client.sales.length} comenzi</div>
                             </td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-${priorityColor}-100 text-${priorityColor}-800">
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-${priorityColor}-100 text-${priorityColor}-800">
                                     ${client.complaints.length} ${client.hasUnresolvedComplaints ? '❌' : '✓'}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 w-32 whitespace-normal text-sm text-gray-900 max-h-24 overflow-y-auto">${mainComplaint.reason || 'Fără reclamații'}</td>
-                            <td class="px-6 py-4 w-32 whitespace-normal text-sm text-gray-900 max-h-24 overflow-y-auto">${client.concatenatedResponsibles}</td>
-                            <td class="px-6 py-4 w-32 whitespace-normal text-sm text-gray-900 max-h-24 overflow-y-auto">${client.concatenatedDescriptions}</td>
-                            <td class="px-6 py-4 w-32 whitespace-normal text-sm text-gray-900 max-h-24 overflow-y-auto">${client.concatenatedProducts}</td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">${client.note}</td>
-                            <td class="px-6 py-4 w-32 whitespace-nowrap text-sm text-gray-900">${client.seniority} ani</td>
+                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${mainComplaint.reason || '-'}</td>
+                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedResponsibles}</td>
+                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedDescriptions}</td>
+                            <td class="px-3 py-2 w-28 whitespace-normal text-sm text-gray-900 max-h-20 overflow-y-auto">${client.concatenatedProducts}</td>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${client.note}</td>
+                            <td class="px-3 py-2 w-28 whitespace-nowrap text-sm text-gray-900">${client.seniority} ani</td>
                         </tr>
                     `;
                     tbody.innerHTML += row;
@@ -404,16 +403,16 @@
                 'NR CRT': String(index + 1).padStart(2, '0'),
                 'Client': client.name,
                 'ID Client': client.id,
-                'Telefon': client.phone || 'Fără telefon',
-                'Email': client.email || 'Fără email',
-                'Ultima Comandă': client.lastPurchase || 'N/A',
+                'Telefon': client.phone || '-',
+                'Email': client.email || '-',
+                'Ultima Comandă': client.lastPurchase || '-',
                 'Vânzări pe An': client.salesByYear,
                 'Ani Inactivitate': client.yearsSinceLastPurchase,
                 'Valoare Totală': formatCurrency(client.totalValue),
                 'Numar Comenzi': client.sales.length,
                 'Reclamații': client.complaints.length,
                 'Reclamații Nerezolvate': client.hasUnresolvedComplaints ? 'Da' : 'Nu',
-                'Motiv Reclamație': client.complaints[0]?.reason || 'Fără reclamații',
+                'Motiv Reclamație': client.complaints[0]?.reason || '-',
                 'Responsabili': client.concatenatedResponsibles,
                 'Descrieri': client.concatenatedDescriptions,
                 'Articole': client.concatenatedProducts,
