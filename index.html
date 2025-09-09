@@ -1901,3 +1901,30 @@
 
 </body>
 </html>
+<script>
+    // Funcție wrapper pentru procesarea datelor
+    function processData() {
+        try {
+            // Rulează pașii principali
+            if (typeof applyFilters === "function") applyFilters();
+            if (typeof sortResults === "function") sortResults();
+            if (typeof displayResults === "function") displayResults();
+            if (typeof initializeCharts === "function") initializeCharts();
+
+            console.log("Procesarea datelor s-a finalizat cu succes ✅");
+        } catch (e) {
+            console.error("Eroare la processData:", e);
+            alert("Eroare la procesarea datelor. Verifică consola pentru detalii.");
+        }
+    }
+
+    // Previne eroarea 'Unexpected token <' dacă se încarcă un fișier greșit
+    window.addEventListener("error", function (event) {
+        if (event.message && event.message.includes("Unexpected token '<'")) {
+            console.warn("⚠️ S-a încercat încărcarea unui fișier invalid (probabil HTML în loc de JS).");
+            event.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>
