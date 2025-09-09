@@ -382,17 +382,27 @@
         function readExcelFile(file, type) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                
-                if (type === 'sales') {
-                    salesData = jsonData;
-                    console.log('Vânzări încărcate:', salesData.length, 'înregistrări');
-                } else {
-                    complaintsData = jsonData;
-                    console.log('Reclamații încărcate:', complaintsData.length, 'înregistrări');
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
+                        raw: false, // Convertește toate valorile în string-uri
+                        defval: '' // Valoare default pentru celule goale
+                    });
+                    
+                    if (type === 'sales') {
+                        salesData = jsonData;
+                        console.log('Vânzări încărcate:', salesData.length, 'înregistrări');
+                        console.log('Sample sales data:', salesData[0]); // Debug
+                    } else {
+                        complaintsData = jsonData;
+                        console.log('Reclamații încărcate:', complaintsData.length, 'înregistrări');
+                        console.log('Sample complaints data:', complaintsData[0]); // Debug
+                    }
+                } catch (error) {
+                    console.error('Eroare la citirea fișierului:', error);
+                    alert('Eroare la citirea fișierului: ' + error.message);
                 }
             };
             reader.readAsArrayBuffer(file);
