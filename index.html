@@ -573,7 +573,7 @@
                         clientComplaints[clientId] = [];
                     }
                     
-                    const dateStr = complaint['DATA RECLAMATIE'];
+                    const dateStr = String(complaint['DATA RECLAMATIE'] || '');
                     let complaintDate = null;
                     
                     if (dateStr) {
