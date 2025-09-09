@@ -1255,11 +1255,14 @@
             return risk;
         }
 
+        // Calcul REAL valoare pierdută (proiecție)
         function calculateProjectedLosses() {
             lostClients.forEach(client => {
+                // Estimare pe baza mediei lunare * 12 luni * probabilitate recuperare
                 const recoveryProbability = client.score / 100;
                 const potentialMonthlyRevenue = client.monthlyAverage;
                 
+                // Ajustare pe baza temperaturii
                 const tempAdjustment = {
                     'FIERBINTE': 0.8,
                     'CALDUT': 0.6,
@@ -1291,6 +1294,7 @@
             const estimatedROI = ((projectedLoss * 0.3 - voucherBudget) / voucherBudget * 100).toFixed(0);
             const recoveryRate = (avgScore * 0.8).toFixed(0);
             
+            // Update DOM
             document.getElementById('lostCount').textContent = lostCount.toLocaleString('ro-RO');
             document.getElementById('lostPercentage').textContent = `${lostPercentage}% din total`;
             document.getElementById('complaintCount').textContent = complaintCount.toLocaleString('ro-RO');
@@ -1302,6 +1306,7 @@
             document.getElementById('avgScore').textContent = avgScore;
             document.getElementById('recoveryRate').textContent = `~${recoveryRate}% șansă`;
             
+            // Update temperature counts
             const tempCounts = {
                 'FIERBINTE': 0,
                 'CALDUT': 0,
@@ -1321,6 +1326,7 @@
             document.getElementById('countInghetat').textContent = `${tempCounts.INGHETAT} clienți`;
         }
 
+        // Funcții pentru filtrare
         function applyFilters() {
             const searchTerm = document.getElementById('searchFilter').value.toLowerCase();
             const temperature = document.getElementById('temperatureFilter').value;
@@ -1335,20 +1341,24 @@
             const riskLevel = document.getElementById('riskFilter').value;
             
             filteredClients = lostClients.filter(client => {
+                // Search filter
                 if (searchTerm && !client.name.toLowerCase().includes(searchTerm) && 
                     !client.id.toLowerCase().includes(searchTerm) &&
                     !client.magazine.toLowerCase().includes(searchTerm)) {
                     return false;
                 }
                 
+                // Temperature filter
                 if (temperature && client.temperature !== temperature) {
                     return false;
                 }
                 
+                // Value filter
                 if (client.totalValue < minValue || client.totalValue > maxValue) {
                     return false;
                 }
                 
+                // Complaints filter
                 if (complaintsFilter) {
                     if (complaintsFilter === '0' && client.complaints.length !== 0) return false;
                     if (complaintsFilter === '1-2' && (client.complaints.length < 1 || client.complaints.length > 2)) return false;
@@ -1356,18 +1366,22 @@
                     if (complaintsFilter === 'abandoned' && !checkIfAbandonedAfterComplaint(client, client.complaints)) return false;
                 }
                 
+                // Days filter
                 if (client.daysSinceLastPurchase < minDays || client.daysSinceLastPurchase > maxDays) {
                     return false;
                 }
                 
+                // Score filter
                 if (client.score < minScore || client.score > maxScore) {
                     return false;
                 }
                 
+                // Priority filter
                 if (priority && client.priority !== priority) {
                     return false;
                 }
                 
+                // Risk filter
                 if (riskLevel && client.riskLevel !== riskLevel) {
                     return false;
                 }
@@ -1375,8 +1389,10 @@
                 return true;
             });
             
+            // Update active filters display
             updateActiveFilters();
             
+            // Reset to first page and display
             currentPage = 1;
             displayResults();
         }
@@ -1388,6 +1404,7 @@
             
             let hasActiveFilters = false;
             
+            // Check each filter and create badges
             const filters = [
                 { id: 'searchFilter', label: 'Căutare' },
                 { id: 'temperatureFilter', label: 'Temperatură' },
@@ -1407,6 +1424,7 @@
                 }
             });
             
+            // Check numeric filters
             const numericFilters = [
                 { min: 'minValueFilter', max: 'maxValueFilter', label: 'Valoare' },
                 { min: 'minDaysFilter', max: 'maxDaysFilter', label: 'Zile' },
@@ -1428,6 +1446,7 @@
             
             activeFiltersDiv.style.display = hasActiveFilters ? 'flex' : 'none';
             
+            // Update filter status text
             const filterStatus = document.getElementById('filterStatus');
             if (hasActiveFilters) {
                 filterStatus.textContent = `(${filteredClients.length} din ${lostClients.length} după filtrare)`;
@@ -1468,6 +1487,7 @@
             panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
+        // Funcții pentru sortare
         function sortResults() {
             const sortBy = document.getElementById('sortBy').value;
             
@@ -1493,6 +1513,7 @@
             displayResults();
         }
 
+        // Display results with pagination
         function displayResults() {
             const tbody = document.getElementById('tableBody');
             const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1506,11 +1527,13 @@
                 tbody.innerHTML += row;
             }
             
+            // Update pagination info
             document.getElementById('startItem').textContent = filteredClients.length > 0 ? startIndex + 1 : 0;
             document.getElementById('endItem').textContent = endIndex;
             document.getElementById('totalItems').textContent = filteredClients.length;
             document.getElementById('filteredCount').textContent = filteredClients.length;
             
+            // Update pagination buttons
             document.getElementById('prevButton').disabled = currentPage === 1;
             document.getElementById('nextButton').disabled = endIndex >= filteredClients.length;
         }
@@ -1559,4 +1582,273 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center">
                             <div>
-                                <div class="text
+                                <div class="text-sm font-semibold text-gray-900">${sanitizeHTML(client.name)}</div>
+                                <div class="text-xs text-gray-500">ID: ${sanitizeHTML(client.id)}</div>
+                                <div class="text-xs text-blue-600">${sanitizeHTML(client.magazine)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="client-temperature ${temperatureClass[client.temperature]}">
+                            ${temperatureEmoji[client.temperature]} ${client.temperature}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            ${client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'Necunoscută'}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            ${Math.round(client.daysSinceLastPurchase)} zile în urmă
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-bold text-gray-900">${formatCurrency(client.totalValue)}</div>
+                        <div class="text-xs text-gray-600">${client.totalOrders} comenzi</div>
+                        <div class="text-xs text-gray-500">${client.activeYears.toFixed(1)} ani</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-bold text-red-600">${formatCurrency(client.projectedLoss)}</div>
+                        <div class="text-xs text-gray-500">est. 12 luni</div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="tooltip">
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium ${client.complaints.length > 0 ? 'text-red-600' : 'text-green-600'}">
+                                    ${client.complaints.length}
+                                </span>
+                                <span class="ml-1 text-xs text-gray-500">reclamații</span>
+                            </div>
+                            <div class="tooltip-content">
+                                ${complaintsTooltip}
+                            </div>
+                        </div>
+                        ${checkIfAbandonedAfterComplaint(client, client.complaints) ? 
+                            '<div class="text-xs text-red-600 font-bold">⚠️ Abandon</div>' : ''}
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-16">
+                                <div class="score-bar">
+                                    <div class="score-indicator" style="left: ${client.score}%"></div>
+                                </div>
+                            </div>
+                            <span class="text-sm font-bold ${scoreColor}">${client.score}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            ${priorityEmoji[client.priority]} ${client.priority}
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm font-bold text-green-600">
+                            ${formatCurrency(client.voucherAmount)}
+                        </div>
+                        <div class="text-xs text-gray-500">Risc: ${client.riskLevel}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <button onclick="generateEmailForClient('${client.id}')" 
+                                class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            ✉️ Email
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Pagination functions
+        function nextPage() {
+            const maxPage = Math.ceil(filteredClients.length / itemsPerPage);
+            if (currentPage < maxPage) {
+                currentPage++;
+                displayResults();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayResults();
+            }
+        }
+
+        // Selection functions
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll;
+                const clientId = checkbox.value;
+                if (selectAll) {
+                    selectedClients.add(clientId);
+                } else {
+                    selectedClients.delete(clientId);
+                }
+            });
+        }
+
+        function toggleClientSelection(clientId) {
+            if (selectedClients.has(clientId)) {
+                selectedClients.delete(clientId);
+            } else {
+                selectedClients.add(clientId);
+            }
+        }
+
+        // Initialize Charts
+        function initializeCharts() {
+            // Temperature Distribution Chart
+            const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+            const tempData = {
+                'FIERBINTE': 0,
+                'CALDUT': 0,
+                'RACIT': 0,
+                'RECE': 0,
+                'INGHETAT': 0
+            };
+            
+            lostClients.forEach(client => {
+                tempData[client.temperature]++;
+            });
+            
+            charts.temperature = new Chart(tempCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['🔥 Fierbinte', '🟡 Călduț', '🔵 Răcit', '❄️ Rece', '💀 Înghețat'],
+                    datasets: [{
+                        data: Object.values(tempData),
+                        backgroundColor: [
+                            '#ef4444',
+                            '#f59e0b',
+                            '#3b82f6',
+                            '#6366f1',
+                            '#6b7280'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Value Loss Analysis Chart
+            const valueCtx = document.getElementById('valueLossChart').getContext('2d');
+            const valueRanges = {
+                '0-10K': 0,
+                '10K-25K': 0,
+                '25K-50K': 0,
+                '50K-100K': 0,
+                '100K+': 0
+            };
+            
+            lostClients.forEach(client => {
+                if (client.totalValue < 10000) valueRanges['0-10K']++;
+                else if (client.totalValue < 25000) valueRanges['10K-25K']++;
+                else if (client.totalValue < 50000) valueRanges['25K-50K']++;
+                else if (client.totalValue < 100000) valueRanges['50K-100K']++;
+                else valueRanges['100K+']++;
+            });
+            
+            charts.value = new Chart(valueCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(valueRanges),
+                    datasets: [{
+                        label: 'Număr Clienți',
+                        data: Object.values(valueRanges),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Complaints Impact Chart
+            const complaintsCtx = document.getElementById('complaintsChart').getContext('2d');
+            const complaintCategories = {
+                'Fără reclamații': 0,
+                '1-2 reclamații': 0,
+                '3-5 reclamații': 0,
+                '5+ reclamații': 0
+            };
+            
+            lostClients.forEach(client => {
+                const count = client.complaints.length;
+                if (count === 0) complaintCategories['Fără reclamații']++;
+                else if (count <= 2) complaintCategories['1-2 reclamații']++;
+                else if (count <= 5) complaintCategories['3-5 reclamații']++;
+                else complaintCategories['5+ reclamații']++;
+            });
+            
+            charts.complaints = new Chart(complaintsCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(complaintCategories),
+                    datasets: [{
+                        data: Object.values(complaintCategories),
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#991b1b'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            const monthlyLosses = {};
+            const last12Months = [];
+            const now = new Date();
+            
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                last12Months.push(key);
+                monthlyLosses[key] = 0;
+            }
+            
+            lostClients.forEach(client => {
+                if (client.lastPurchase) {
+                    const date = client.lastPurchase;
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (monthlyLosses[key] !== undefined) {
+                        monthlyLosses[key]++;
+                    }
+                }
+            });
+            
+            charts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: last12Months,
+                    datasets: [{
+                        label: 'Clienți Pierduți',
+                        data: Object.values(monthlyLosses),
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectR
