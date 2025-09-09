@@ -1695,191 +1695,151 @@
         }
 
         // Initialize Charts
-        function initializeCharts() {
-            // Temperature Distribution Chart
-            const tempCtx = document.getElementById('temperatureChart').getContext('2d');
-            const tempData = {
-                'FIERBINTE': 0,
-                'CALDUT': 0,
-                'RACIT': 0,
-                'RECE': 0,
-                'INGHETAT': 0
-            };
-            
-            lostClients.forEach(client => {
-                tempData[client.temperature]++;
-            });
-            
-            charts.temperature = new Chart(tempCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['🔥 Fierbinte', '🟡 Călduț', '🔵 Răcit', '❄️ Rece', '💀 Înghețat'],
-                    datasets: [{
-                        data: Object.values(tempData),
-                        backgroundColor: [
-                            '#ef4444',
-                            '#f59e0b',
-                            '#3b82f6',
-                            '#6366f1',
-                            '#6b7280'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-            
-            // Value Loss Analysis Chart
-            const valueCtx = document.getElementById('valueLossChart').getContext('2d');
-            const valueRanges = {
-                '0-10K': 0,
-                '10K-25K': 0,
-                '25K-50K': 0,
-                '50K-100K': 0,
-                '100K+': 0
-            };
-            
-            lostClients.forEach(client => {
-                if (client.totalValue < 10000) valueRanges['0-10K']++;
-                else if (client.totalValue < 25000) valueRanges['10K-25K']++;
-                else if (client.totalValue < 50000) valueRanges['25K-50K']++;
-                else if (client.totalValue < 100000) valueRanges['50K-100K']++;
-                else valueRanges['100K+']++;
-            });
-            
-            charts.value = new Chart(valueCtx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(valueRanges),
-                    datasets: [{
-                        label: 'Număr Clienți',
-                        data: Object.values(valueRanges),
-                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-            
-            // Complaints Impact Chart
-            const complaintsCtx = document.getElementById('complaintsChart').getContext('2d');
-            const complaintCategories = {
-                'Fără reclamații': 0,
-                '1-2 reclamații': 0,
-                '3-5 reclamații': 0,
-                '5+ reclamații': 0
-            };
-            
-            lostClients.forEach(client => {
-                const count = client.complaints.length;
-                if (count === 0) complaintCategories['Fără reclamații']++;
-                else if (count <= 2) complaintCategories['1-2 reclamații']++;
-                else if (count <= 5) complaintCategories['3-5 reclamații']++;
-                else complaintCategories['5+ reclamații']++;
-            });
-            
-            charts.complaints = new Chart(complaintsCtx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(complaintCategories),
-                    datasets: [{
-                        data: Object.values(complaintCategories),
-                        backgroundColor: [
-                            '#10b981',
-                            '#f59e0b',
-                            '#ef4444',
-                            '#991b1b'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-            
-            // Trend Chart
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            const monthlyLosses = {};
-            const last12Months = [];
-            const now = new Date();
-            
-            for (let i = 11; i >= 0; i--) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                last12Months.push(key);
-                monthlyLosses[key] = 0;
-            }
-            
-            lostClients.forEach(client => {
-                if (client.lastPurchase) {
-                    const date = client.lastPurchase;
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                    if (monthlyLosses[key] !== undefined) {
-                        monthlyLosses[key]++;
-                    }
-                }
-            });
-            
-            charts.trend = new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: last12Months,
-                    datasets: [{
-                        label: 'Clienți Pierduți',
-                        data: Object.values(monthlyLosses),
-                        borderColor: 'rgba(147, 51, 234, 1)',
-                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
-                        tension: 0.4
-                    }]
-                },
-                                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
-                }
-            });
-        }
+<script>
+    function initializeCharts() {
+        // Temperature Distribution Chart
+        const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+        if (charts.temperature) charts.temperature.destroy(); // previne eroarea de canvas
+        const tempData = {
+            'FIERBINTE': 0,
+            'CALDUT': 0,
+            'RACIT': 0,
+            'RECE': 0,
+            'INGHETAT': 0
+        };
 
-        // Init app după ce DOM-ul e gata
-        document.addEventListener('DOMContentLoaded', function () {
-            try {
-                applyFilters();
-                initializeCharts();
-                sortResults();
-            } catch (e) {
-                console.error("Eroare la inițializare:", e);
+        lostClients.forEach(client => {
+            tempData[client.temperature]++;
+        });
+
+        charts.temperature = new Chart(tempCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['🔥 Fierbinte', '🟡 Călduț', '🔵 Răcit', '❄️ Rece', '💀 Înghețat'],
+                datasets: [{
+                    data: Object.values(tempData),
+                    backgroundColor: [
+                        '#ef4444',
+                        '#f59e0b',
+                        '#3b82f6',
+                        '#6366f1',
+                        '#6b7280'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
             }
         });
-    </script>
+
+        // Value Loss Analysis Chart
+        const valueCtx = document.getElementById('valueLossChart').getContext('2d');
+        if (charts.value) charts.value.destroy();
+        const valueRanges = { '0-10K': 0, '10K-25K': 0, '25K-50K': 0, '50K-100K': 0, '100K+': 0 };
+
+        lostClients.forEach(client => {
+            if (client.totalValue < 10000) valueRanges['0-10K']++;
+            else if (client.totalValue < 25000) valueRanges['10K-25K']++;
+            else if (client.totalValue < 50000) valueRanges['25K-50K']++;
+            else if (client.totalValue < 100000) valueRanges['50K-100K']++;
+            else valueRanges['100K+']++;
+        });
+
+        charts.value = new Chart(valueCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(valueRanges),
+                datasets: [{
+                    label: 'Număr Clienți',
+                    data: Object.values(valueRanges),
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Complaints Impact Chart
+        const complaintsCtx = document.getElementById('complaintsChart').getContext('2d');
+        if (charts.complaints) charts.complaints.destroy();
+        const complaintCategories = { 'Fără reclamații': 0, '1-2 reclamații': 0, '3-5 reclamații': 0, '5+ reclamații': 0 };
+
+        lostClients.forEach(client => {
+            const count = client.complaints.length;
+            if (count === 0) complaintCategories['Fără reclamații']++;
+            else if (count <= 2) complaintCategories['1-2 reclamații']++;
+            else if (count <= 5) complaintCategories['3-5 reclamații']++;
+            else complaintCategories['5+ reclamații']++;
+        });
+
+        charts.complaints = new Chart(complaintsCtx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(complaintCategories),
+                datasets: [{
+                    data: Object.values(complaintCategories),
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#991b1b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Trend Chart
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        if (charts.trend) charts.trend.destroy();
+        const monthlyLosses = {};
+        const last12Months = [];
+        const now = new Date();
+
+        for (let i = 11; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            last12Months.push(key);
+            monthlyLosses[key] = 0;
+        }
+
+        lostClients.forEach(client => {
+            if (client.lastPurchase) {
+                const date = client.lastPurchase;
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlyLosses[key] !== undefined) {
+                    monthlyLosses[key]++;
+                }
+            }
+        });
+
+        charts.trend = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: last12Months,
+                datasets: [{
+                    label: 'Clienți Pierduți',
+                    data: Object.values(monthlyLosses),
+                    borderColor: 'rgba(147, 51, 234, 1)',
+                    backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+</script>
+
 
     <footer class="text-center py-6 text-gray-500 text-sm">
         &copy; <span id="year"></span> CRM-MEX
