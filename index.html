@@ -1849,39 +1849,48 @@
                         tension: 0.4
                     }]
                 },
-                options: {
+                                options: {
                     responsive: true,
-                    maintainAspectR
-<!-- START: safe footer & close (non-breaking) -->
-<footer id="app-footer" class="footer">
-  <div class="container">
-    <small>&copy; <span id="year"></span> CRM-MEX</small>
-  </div>
-</footer>
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-<script>
-  // Rulează numai după ce DOM-ul e gata
-  document.addEventListener('DOMContentLoaded', function () {
-    // Setează anul în footer (non-breaking)
-    var y = document.getElementById('year');
-    if (y) y.textContent = new Date().getFullYear();
+        // Init app după ce DOM-ul e gata
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                applyFilters();
+                initializeCharts();
+                sortResults();
+            } catch (e) {
+                console.error("Eroare la inițializare:", e);
+            }
+        });
+    </script>
 
-    // Inițializări defensive (NU schimbă logica existentă)
-    // Apelează funcții doar dacă există:
-    if (typeof window.initApp === 'function') { try { window.initApp(); } catch (e) { console.error(e); } }
-    if (typeof window.bindUI === 'function')  { try { window.bindUI(); } catch (e) { console.error(e); } }
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        &copy; <span id="year"></span> CRM-MEX
+    </footer>
 
-    // Exemple de guard-uri sigure (nu aruncă erori dacă elementele lipsesc)
-    var navToggle = document.querySelector('[data-nav-toggle]');
-    var nav       = document.querySelector('[data-nav]');
-    if (navToggle && nav) {
-      navToggle.addEventListener('click', function () {
-        nav.classList.toggle('is-open');
-      });
-    }
-  });
-</script>
-
-<!-- Dacă ai scripturi inline mai sus, lasă-le; aici doar închiderile finale -->
+    <script>
+        // mic script pentru anul curent
+        document.addEventListener('DOMContentLoaded', () => {
+            const y = document.getElementById('year');
+            if (y) y.textContent = new Date().getFullYear();
+        });
+    </script>
 </body>
 </html>
