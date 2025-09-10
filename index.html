@@ -1,10 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperarea vanzarilor pierdute</title>
+    <title>CRM Mobexpert Pro - Sistem Inteligent Recuperare Clienți</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -719,7 +718,7 @@
                             clientSales[clientId].sales.push({
                                 date: purchaseDate,
                                 value: value,
-                                quantity: parseFloat(sale['CANTITATE'] || 0)
+                                quantity: parseFloat(sale['CANTITATE FACTURATA'] || 0)
                             });
                             clientSales[clientId].totalValue += value;
                             clientSales[clientId].totalOrders += parseInt(sale['NR FACTURI'] || 1);
@@ -751,8 +750,9 @@
                         
                         clientComplaints[clientId].push({
                             date: complaintDate,
-                            reason: complaint['MOTIV'] || '',
+                            reason: complaint['MOTIV RECLAMATIE'] || '',
                             description: complaint['DESCRIERE'] || '',
+                            responsible: complaint['RESPONSABIL COMANDA'] || '',
                             severity: this.calculateSeverity(complaint)
                         });
                     });
@@ -937,14 +937,14 @@
                 calculateStatistics() {
                     this.stats.lostCount = this.lostClients.length;
                     this.stats.withComplaints = this.lostClients.filter(c => c.complaints.length > 0).length;
-                    this.stats.complaintRate = Math.round((this.stats.withComplaints / this.stats.lostCount) * 100) || 0;
+                    this.stats.complaintRate = Math.round((this.stats.withComplaints / this.stats.lostCount) * 100);
                     this.stats.totalRevenue = this.lostClients.reduce((sum, c) => sum + c.totalValue, 0);
                     this.stats.projectedLoss = this.lostClients.reduce((sum, c) => sum + c.projectedLoss, 0);
                     this.stats.voucherBudget = this.lostClients.reduce((sum, c) => sum + c.voucherAmount, 0);
-                    this.stats.avgScore = Math.round(this.lostClients.reduce((sum, c) => sum + c.score, 0) / this.lostClients.length) || 0;
+                    this.stats.avgScore = Math.round(this.lostClients.reduce((sum, c) => sum + c.score, 0) / this.lostClients.length);
                     
                     const totalClients = [...new Set(this.salesData.map(s => s['ID CLIENT']))].length;
-                    this.stats.lostPercentage = Math.round((this.stats.lostCount / totalClients) * 100) || 0;
+                    this.stats.lostPercentage = Math.round((this.stats.lostCount / totalClients) * 100);
                     
                     // Update temperature counts
                     this.temperatureInfo.forEach(temp => {
@@ -1192,68 +1192,68 @@ CEO Mobexpert`
                         'Pierdere Estimată 12L': client.projectedLoss,
                         'Număr Comenzi': client.totalOrders,
                         'Reclamații': client.complaints.length,
-                        'Scor': client.score,
-                        'Voucher Sugerat': client.voucherAmount,
+                        'Abandon Post-Reclamație': client.abandonedAfterComplaint ? 'DA' : 'NU',
+                        'Scor Recuperare': client.score,
+                        'Voucher Recomandat': client.voucherAmount,
                         'Prioritate': client.priority,
-                        'Nivel Risc': client.riskLevel,
-                        'Abandon după reclamație': client.abandonedAfterComplaint ? 'Da' : 'Nu'
+                        'Nivel Risc': client.riskLevel
                     }));
                     
                     const worksheet = XLSX.utils.json_to_sheet(exportData);
                     const workbook = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(workbook, worksheet, 'Clienți Pierduți');
                     
-                    // Stilizare header
-                    const headerStyle = {
-                        font: { bold: true },
-                        fill: { fgColor: { rgb: "E5E7EB" } },
-                        alignment: { horizontal: "center" }
-                    };
+                    // Add summary sheet
+                    const summary = [
+                        {'Indicator': 'Total Clienți Pierduți', 'Valoare': this.stats.lostCount},
+                        {'Indicator': 'Clienți cu Reclamații', 'Valoare': this.stats.withComplaints},
+                        {'Indicator': 'Valoare Totală Istorică', 'Valoare': this.stats.totalRevenue},
+                        {'Indicator': 'Pierdere Estimată 12 Luni', 'Valoare': this.stats.projectedLoss},
+                        {'Indicator': 'Buget Total Vouchere', 'Valoare': this.stats.voucherBudget},
+                        {'Indicator': 'Scor Mediu Recuperare', 'Valoare': this.stats.avgScore}
+                    ];
                     
-                    Object.keys(exportData[0]).forEach((key, index) => {
-                        const cell = XLSX.utils.encode_cell({ r: 0, c: index });
-                        worksheet[cell].s = headerStyle;
-                    });
+                    const summarySheet = XLSX.utils.json_to_sheet(summary);
+                    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Sumar');
                     
-                    // Ajustare lățime coloane
-                    const colWidths = Object.keys(exportData[0]).map((key, index) => ({
-                        wch: Math.max(key.length, ...exportData.map(row => String(row[key]).length))
-                    }));
-                    worksheet['!cols'] = colWidths;
-                    
-                    XLSX.writeFile(workbook, 'Clienti_Pierduti_Mobexpert.xlsx');
-                    this.showToast('Rezultatele au fost exportate cu succes!', 'success');
+                    XLSX.writeFile(workbook, `CRM_Mobexpert_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    this.showToast('Export realizat cu succes!', 'success');
                 },
                 
-                sortClients(criteria) {
-                    let sortedClients = [...this.lostClients];
-                    switch (criteria) {
-                        case 'score':
-                            sortedClients.sort((a, b) => b.score - a.score);
-                            break;
-                        case 'value':
-                            sortedClients.sort((a, b) => b.totalValue - a.totalValue);
-                            break;
-                        case 'days':
-                            sortedClients.sort((a, b) => b.daysSinceLastPurchase - a.daysSinceLastPurchase);
-                            break;
-                        case 'temperature':
-                            const tempOrder = ['FIERBINTE', 'CALDUT', 'RACIT', 'RECE', 'INGHETAT'];
-                            sortedClients.sort((a, b) => tempOrder.indexOf(a.temperature) - tempOrder.indexOf(b.temperature));
-                            break;
+                // Pagination
+                updatePagination() {
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    this.displayedClients = this.lostClients.slice(start, end);
+                },
+                
+                nextPage() {
+                    const maxPage = Math.ceil(this.lostClients.length / this.itemsPerPage);
+                    if (this.currentPage < maxPage) {
+                        this.currentPage++;
+                        this.updatePagination();
                     }
-                    this.lostClients = sortedClients;
-                    this.currentPage = 1;
-                    this.updatePagination();
+                },
+                
+                previousPage() {
+                    if (this.currentPage > 1) {
+                        this.currentPage--;
+                        this.updatePagination();
+                    }
                 },
                 
                 toggleSelectAll() {
-                    if (this.selectedClients.size === this.lostClients.length) {
-                        this.selectedClients.clear();
-                    } else {
-                        this.lostClients.forEach(client => this.selectedClients.add(client.id));
-                    }
-                    this.updatePagination();
+                    const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+                    const selectAll = document.querySelector('thead input[type="checkbox"]').checked;
+                    
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = selectAll;
+                        if (selectAll) {
+                            this.selectedClients.add(checkbox.value);
+                        } else {
+                            this.selectedClients.clear();
+                        }
+                    });
                 },
                 
                 toggleClientSelection(clientId) {
@@ -1264,105 +1264,109 @@ CEO Mobexpert`
                     }
                 },
                 
-                updatePagination() {
-                    const start = (this.currentPage - 1) * this.itemsPerPage;
-                    const end = start + this.itemsPerPage;
-                    this.displayedClients = this.lostClients.slice(start, end);
-                },
-                
-                previousPage() {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                        this.updatePagination();
+                sortClients(criteria) {
+                    switch(criteria) {
+                        case 'score':
+                            this.lostClients.sort((a, b) => b.score - a.score);
+                            break;
+                        case 'value':
+                            this.lostClients.sort((a, b) => b.totalValue - a.totalValue);
+                            break;
+                        case 'days':
+                            this.lostClients.sort((a, b) => a.daysSinceLastPurchase - b.daysSinceLastPurchase);
+                            break;
+                        case 'temperature':
+                            const tempOrder = {'FIERBINTE': 5, 'CALDUT': 4, 'RACIT': 3, 'RECE': 2, 'INGHETAT': 1};
+                            this.lostClients.sort((a, b) => (tempOrder[b.temperature] || 0) - (tempOrder[a.temperature] || 0));
+                            break;
                     }
+                    this.updatePagination();
                 },
                 
-                nextPage() {
-                    if (this.currentPage < Math.ceil(this.lostClients.length / this.itemsPerPage)) {
-                        this.currentPage++;
-                        this.updatePagination();
-                    }
-                },
-                
+                // Helper methods
                 parseDate(dateStr) {
-                    if (!dateStr) return new Date();
-                    // Suport pentru multiple formate de dată
-                    const formats = [
-                        'DD.MM.YYYY',
-                        'DD/MM/YYYY',
-                        'YYYY-MM-DD',
-                        'MM/DD/YYYY'
-                    ];
+                    if (!dateStr) return null;
+                    const str = dateStr.toString().trim();
+                    let parts;
                     
-                    for (const format of formats) {
-                        const date = new Date(dateStr.replace(/(\d{2})[./-](\d{2})[./-](\d{4})/, 
-                            format.includes('YYYY-MM-DD') ? '$3-$2-$1' : '$2/$1/$3'));
-                        if (!isNaN(date)) return date;
+                    if (str.includes('.')) {
+                        parts = str.split('.');
+                        if (parts.length === 3) {
+                            return new Date(parts[2], parts[1] - 1, parts[0]);
+                        }
+                    } else if (str.includes('/')) {
+                        parts = str.split('/');
+                        if (parts.length === 3) {
+                            return new Date(parts[2], parts[1] - 1, parts[0]);
+                        }
+                    } else if (str.includes('-')) {
+                        parts = str.split('-');
+                        if (parts.length === 3) {
+                            return new Date(parts[0], parts[1] - 1, parts[2]);
+                        }
                     }
-                    return new Date();
-                },
-                
-                calculateSeverity(complaint) {
-                    const reason = complaint.reason.toLowerCase();
-                    const description = complaint.description.toLowerCase();
                     
-                    if (reason.includes('defect') || description.includes('stricat') || description.includes('calitate slabă')) {
-                        return 3; // Sever
-                    } else if (reason.includes('întârziere') || description.includes('livrare')) {
-                        return 2; // Moderat
-                    }
-                    return 1; // Minor
-                },
-                
-                getPriority(score, temperature) {
-                    if (score >= 80 || temperature === 'FIERBINTE') return 'URGENT';
-                    if (score >= 60 || temperature === 'CALDUT') return 'ÎNALT';
-                    if (score >= 40 || temperature === 'RACIT') return 'MEDIU';
-                    return 'SCĂZUT';
-                },
-                
-                getPriorityEmoji(priority) {
-                    const emojis = {
-                        'URGENT': '🔥',
-                        'ÎNALT': '⏫',
-                        'MEDIU': '➡️',
-                        'SCĂZUT': '⏬'
-                    };
-                    return emojis[priority] || '➡️';
-                },
-                
-                getRiskLevel(complaints, days) {
-                    if (complaints.length > 2 || days > 1825) return 'FOARTE RIDICAT';
-                    if (complaints.length > 1 || days > 1095) return 'RIDICAT';
-                    if (complaints.length > 0 || days > 730) return 'MODERAT';
-                    return 'SCĂZUT';
-                },
-                
-                checkAbandonment(client, complaints) {
-                    if (complaints.length === 0) return false;
-                    const lastComplaint = complaints.reduce((latest, c) => 
-                        !latest || c.date > latest ? c.date : latest, null);
-                    return client.lastPurchase < lastComplaint;
-                },
-                
-                formatCurrency(value) {
-                    if (!value) return '0 RON';
-                    return new Intl.NumberFormat('ro-RO', {
-                        style: 'currency',
-                        currency: 'RON'
-                    }).format(value);
+                    return null;
                 },
                 
                 formatDate(date) {
-                    if (!date) return '-';
-                    return new Intl.DateTimeFormat('ro-RO', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit'
-                    }).format(date);
+                    if (!date) return 'N/A';
+                    return date.toLocaleDateString('ro-RO');
                 },
                 
-                getTemperatureClass(temperature) {
+                formatCurrency(value) {
+                    return new Intl.NumberFormat('ro-RO', {
+                        style: 'currency',
+                        currency: 'RON',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(value);
+                },
+                
+                calculateSeverity(complaint) {
+                    const reason = (complaint['MOTIV RECLAMATIE'] || '').toLowerCase();
+                    const description = (complaint['DESCRIERE'] || '').toLowerCase();
+                    
+                    let severity = 1;
+                    
+                    const highSeverity = ['defect', 'stricat', 'deteriorat', 'nefunctional', 'sparta', 'rupta'];
+                    const mediumSeverity = ['zgariat', 'minor', 'culoare', 'dimensiune', 'intarziere'];
+                    
+                    const text = reason + ' ' + description;
+                    
+                    if (highSeverity.some(keyword => text.includes(keyword))) severity = 3;
+                    else if (mediumSeverity.some(keyword => text.includes(keyword))) severity = 2;
+                    
+                    return severity;
+                },
+                
+                checkAbandonment(client, complaints) {
+                    if (complaints.length === 0 || !client.lastPurchase) return false;
+                    
+                    const lastComplaintDate = Math.max(...complaints.map(c => c.date ? c.date.getTime() : 0));
+                    const lastPurchaseTime = client.lastPurchase.getTime();
+                    
+                    return lastComplaintDate > lastPurchaseTime;
+                },
+                
+                getPriority(score, temperature) {
+                    if (temperature === 'FIERBINTE' && score > 80) return 'URGENT';
+                    if (score > 70) return 'ÎNALTĂ';
+                    if (score > 40) return 'MEDIE';
+                    return 'SCĂZUTĂ';
+                },
+                
+                getRiskLevel(complaints, days) {
+                    const years = days / 365;
+                    const hasSevere = complaints.some(c => c.severity >= 3);
+                    
+                    if (years > 5 || (hasSevere && years > 2)) return 'FOARTE MARE';
+                    if (years > 3) return 'MARE';
+                    if (years > 1.5 || complaints.length > 2) return 'MEDIU';
+                    return 'SCĂZUT';
+                },
+                
+                getTemperatureClass(temp) {
                     const classes = {
                         'FIERBINTE': 'fierbinte',
                         'CALDUT': 'caldut',
@@ -1370,10 +1374,10 @@ CEO Mobexpert`
                         'RECE': 'rece',
                         'INGHETAT': 'inghetat'
                     };
-                    return classes[temperature] || 'racit';
+                    return classes[temp] || 'racit';
                 },
                 
-                getTemperatureEmoji(temperature) {
+                getTemperatureEmoji(temp) {
                     const emojis = {
                         'FIERBINTE': '🔥',
                         'CALDUT': '🟡',
@@ -1381,7 +1385,7 @@ CEO Mobexpert`
                         'RECE': '❄️',
                         'INGHETAT': '💀'
                     };
-                    return emojis[temperature] || '🔵';
+                    return emojis[temp] || '🔵';
                 },
                 
                 getScoreClass(score) {
@@ -1391,28 +1395,67 @@ CEO Mobexpert`
                     return 'score-low';
                 },
                 
-                showToast(message, type) {
+                getPriorityEmoji(priority) {
+                    const emojis = {
+                        'URGENT': '🔴',
+                        'ÎNALTĂ': '🟠',
+                        'MEDIE': '🟡',
+                        'SCĂZUTĂ': '🟢'
+                    };
+                    return emojis[priority] || '🟢';
+                },
+                
+                showToast(message, type = 'info') {
+                    const bgColors = {
+                        success: 'linear-gradient(135deg, #10b981, #059669)',
+                        error: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        info: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                    };
+                    
                     Toastify({
                         text: message,
                         duration: 3000,
                         gravity: "top",
                         position: "right",
-                        backgroundColor: type === 'success' ? "#10b981" : "#ef4444",
-                        stopOnFocus: true
+                        style: {
+                            background: bgColors[type] || bgColors.info,
+                            borderRadius: '12px',
+                            padding: '12px 20px',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                        }
                     }).showToast();
-                },
-                
-                initEmailJS() {
-                    // Aici adaugă logica de inițializare EmailJS dacă e necesar
-                    this.showToast('EmailJS configurat. Înlocuiește YOUR_PUBLIC_KEY cu cheia ta reală!', 'success');
                 },
                 
                 delay(ms) {
                     return new Promise(resolve => setTimeout(resolve, ms));
+                },
+                
+                initEmailJS() {
+                    const serviceId = prompt('Introdu EmailJS Service ID:');
+                    const templateId = prompt('Introdu EmailJS Template ID:');
+                    const publicKey = prompt('Introdu EmailJS Public Key:');
+                    
+                    if (serviceId && templateId && publicKey) {
+                        localStorage.setItem('emailjs_service', serviceId);
+                        localStorage.setItem('emailjs_template', templateId);
+                        emailjs.init(publicKey);
+                        this.showToast('EmailJS configurat cu succes!', 'success');
+                    }
                 }
-            };
+            }
         }
+        
+        // Initialize tooltips when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('CRM Mobexpert Pro v3.0 - Enhanced Edition');
+            console.log('Sistem complet funcțional - Ready to deploy!');
+            
+            // Initialize Alpine.js if not auto-initialized
+            if (typeof Alpine !== 'undefined') {
+                Alpine.start();
+            }
+        });
     </script>
 </body>
 </html>
-```
