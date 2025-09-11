@@ -3,17 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Mobexpert - Recuperare Clienți</title>
+    <title>Analiză Avansată Clienți - Sistem de Recuperare</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         * {
             font-family: 'Inter', sans-serif;
+        }
+        
+        /* Modern Animations */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        .animated-gradient {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
         }
         
         .glassmorphism {
@@ -34,6 +65,13 @@
             stroke-dasharray: 251.2;
             stroke-dashoffset: 251.2;
             transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        
+        /* Modern Loading Animation */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
         }
         
         .tooltip {
@@ -64,6 +102,7 @@
             max-width: 320px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            white-space: pre-line;
         }
         
         .tooltip-content::after {
@@ -86,31 +125,6 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .client-temperature:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        
-        .client-value-category {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .client-value-category:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
         .temp-fierbinte { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
@@ -118,12 +132,6 @@
         .temp-racit { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
         .temp-rece { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
         .temp-inghetat { background: linear-gradient(135deg, #6b7280, #374151); color: white; }
-        
-        .value-standard { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
-        .value-bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
-        .value-silver { background: linear-gradient(135deg, #6b7280, #4b5563); color: white; }
-        .value-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-        .value-vip { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; }
         
         .score-bar {
             background: linear-gradient(90deg, #ef4444 0%, #f59e0b 30%, #10b981 60%, #059669 100%);
@@ -149,6 +157,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             border: 1px solid rgba(226, 232, 240, 0.8);
             transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease;
         }
         
         .modern-card:hover {
@@ -162,7 +171,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -170,29 +180,13 @@
         }
         
         .processing-card {
-            background: white;
-            border-radius: 20px;
+            background: linear-gradient(145deg, #ffffff, #f3f4f6);
+            border-radius: 24px;
             padding: 40px;
             text-align: center;
             max-width: 400px;
             margin: 20px;
-        }
-        
-        .filter-loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            z-index: 100;
-        }
-        
-        .abandoned-row {
-            border-left: 4px solid #ef4444 !important;
-            background-color: #fef2f2 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
         
         @keyframes pulse-ring {
@@ -204,32 +198,110 @@
             animation: pulse-ring 1.5s ease-out infinite;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        /* Modern Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
-        .animate-spin {
-            animation: spin 1s linear infinite;
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
         
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
+        /* Filter buttons */
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Progress Animation */
+        .progress-wave {
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: wave 1.5s linear infinite;
+        }
+        
+        @keyframes wave {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* Login Modal */
+        .login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(20px);
+        }
+        
+        .login-card {
+            background: linear-gradient(145deg, #ffffff, #f9fafb);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: fadeInUp 0.6s ease;
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-card">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full animated-gradient flex items-center justify-center">
+                    <span class="text-4xl">🔐</span>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Acces Securizat</h2>
+                <p class="text-gray-600">Introduceți parola pentru a continua</p>
+            </div>
+            <input type="password" id="passwordInput" 
+                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-all"
+                   placeholder="Introduceți parola" 
+                   onkeypress="handlePasswordKeyPress(event)">
+            <button onclick="checkPassword()" 
+                    class="w-full mt-4 btn-primary">
+                Accesează
+            </button>
+            <div id="passwordError" class="mt-3 text-red-500 text-sm text-center" style="display: none;">
+                Parolă incorectă!
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
-    <header class="gradient-bg text-white shadow-xl">
+    <header class="animated-gradient text-white shadow-xl" style="display: none;" id="mainContent">
         <div class="container mx-auto px-6 py-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur">
                         <span class="text-2xl">🏢</span>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold">CRM Mobexpert</h1>
+                        <h1 class="text-2xl font-bold">Analiză Avansată Clienți</h1>
                         <p class="text-blue-100 text-sm">Sistem Inteligent de Recuperare Clienți</p>
                     </div>
                 </div>
@@ -237,21 +309,21 @@
         </div>
     </header>
 
-    <div class="container mx-auto px-6 py-8 max-w-7xl">
+    <div class="container mx-auto px-6 py-8 max-w-7xl" style="display: none;" id="mainContainer">
         <!-- Upload Section -->
         <div class="modern-card p-8 mb-8">
             <div class="flex items-center mb-6">
-                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+                <div class="w-10 h-10 animated-gradient rounded-lg flex items-center justify-center mr-4">
                     <span class="text-white text-xl">📊</span>
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">Analiză Avansată Clienți</h2>
-                    <p class="text-gray-600">Încarcă datele pentru analiză inteligentă cu algoritm de clasificare termică și valorică</p>
+                    <p class="text-gray-600">Încarcă datele pentru analiză cu algoritm de clasificare termică și valorică</p>
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 bg-blue-50 bg-opacity-50">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all">
                     <div class="flex items-center mb-3">
                         <span class="text-2xl mr-3">🛒</span>
                         <label class="text-sm font-semibold text-gray-700">
@@ -265,7 +337,7 @@
                     </p>
                 </div>
                 
-                <div class="border-2 border-dashed border-red-300 rounded-xl p-6 bg-red-50 bg-opacity-50">
+                <div class="border-2 border-dashed border-red-300 rounded-xl p-6 bg-gradient-to-br from-red-50 to-pink-50 hover:from-red-100 hover:to-pink-100 transition-all">
                     <div class="flex items-center mb-3">
                         <span class="text-2xl mr-3">⚠️</span>
                         <label class="text-sm font-semibold text-gray-700">
@@ -278,1300 +350,263 @@
                         <strong>Coloane necesare:</strong> MAGAZIN, NR RECLAMATIE, DATA RECLAMATIE, MOTIV RECLAMATIE, ID CLIENT, DESCRIERE, RESPONSABIL COMANDA, Cantitate Reclamata
                     </p>
                 </div>
+                
+                <div class="border-2 border-dashed border-green-300 rounded-xl p-6 bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all">
+                    <div class="flex items-center mb-3">
+                        <span class="text-2xl mr-3">📞</span>
+                        <label class="text-sm font-semibold text-gray-700">
+                            Date de Contact (Excel/CSV)
+                        </label>
+                    </div>
+                    <input type="file" id="contactFile" accept=".xlsx,.xls,.csv"
+                           class="block w-full text-sm text-gray-600 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-green-700 hover:file:bg-green-50 transition-all">
+                    <p class="text-xs text-gray-500 mt-3 leading-relaxed">
+                        <strong>Coloane necesare:</strong> ID CLIENT, EMAIL CLIENT, TEL CLIENT
+                    </p>
+                </div>
             </div>
             
             <div class="flex flex-col sm:flex-row gap-4">
                 <button onclick="processData()" 
-                        class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        class="flex-1 btn-primary flex items-center justify-center">
                     <span class="mr-2">🔍</span> Analizează Clienți Pierduți
                 </button>
-                <button onclick="exportExcel()" 
-                        class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg" 
-                        style="display: none;" id="exportExcelButton">
-                    <span class="mr-2">📊</span> Export Excel
-                </button>
-                <button onclick="exportPDF()" 
-                        class="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-red-600 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg" 
-                        style="display: none;" id="exportPDFButton">
-                    <span class="mr-2">📄</span> Export PDF
+                <button onclick="exportData()" 
+                        class="flex-1 btn-primary flex items-center justify-center" 
+                        style="display: none;" id="exportButton">
+                    <span class="mr-2">📤</span> Exportă Rezultate Complete
                 </button>
             </div>
         </div>
 
-        <!-- Statistics -->
-        <div id="stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" style="display: none;">
-            <div class="modern-card p-6 text-center">
-                <div class="tooltip">
-                    <div class="text-3xl font-bold text-red-600 mb-2" id="lostCount">0</div>
-                    <div class="text-sm text-gray-600 font-medium">Clienți Pierduți</div>
-                    <div class="tooltip-content">
-                        <strong>Client Pierdut:</strong><br>
-                        Client care nu a mai făcut achiziții în ultimele 12 luni și prezintă unul din aceste criterii:<br>
-                        • A abandonat după o reclamație<br>
-                        • Era client fidel (3+ comenzi/an) și a devenit inactiv brusc<br>
-                        • Client cu valoare mare (10k+ RON) inactiv >2 ani<br>
-                        • Orice client inactiv >3 ani
-                    </div>
-                </div>
-            </div>
-            <div class="modern-card p-6 text-center">
-                <div class="text-3xl font-bold text-orange-600 mb-2" id="complaintCount">0</div>
-                <div class="text-sm text-gray-600 font-medium">Cu Reclamații</div>
-            </div>
-            <div class="modern-card p-6 text-center">
-                <div class="tooltip">
-                    <div class="text-3xl font-bold text-purple-600 mb-2" id="avgScore">0</div>
-                    <div class="text-sm text-gray-600 font-medium">Scor Mediu Recuperare</div>
-                    <div class="tooltip-content">
-                        <strong>Scor Recuperare (0-100):</strong><br>
-                        • Vechime/Loialitate (35%): ani activitate, frecvență comenzi<br>
-                        • Valoare Client (30%): suma totală cheltuită<br>
-                        • Frecvența Comenzilor (20%): comenzi/an<br>
-                        • Impact Reclamații (15%): severitate, abandon post-reclamație<br>
-                        <em>Scor >70 = Prioritate înaltă recuperare</em>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div id="chartsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" style="display: none;">
-            <div class="modern-card p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">📊 Segmentare Valorică</h3>
-                <div class="chart-container">
-                    <canvas id="valueChart"></canvas>
-                </div>
-            </div>
-            <div class="modern-card p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">🌡️ Clasificare Termică</h3>
-                <div class="chart-container">
-                    <canvas id="temperatureChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filters Section -->
-        <div id="filtersSection" class="modern-card p-6 mb-8" style="display: none;">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">🔍 Filtrare și Segmentare</h3>
-            
-            <!-- Temperature Legend -->
-            <div class="mb-6">
-                <h4 class="text-md font-medium text-gray-700 mb-3">🌡️ Clasificare Termică</h4>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <div class="text-center">
-                        <div class="client-temperature temp-fierbinte mb-2" onclick="filterByTemperature('FIERBINTE')">🔥 Fierbinte</div>
-                        <p class="text-xs text-gray-600">Activ recent, fără probleme</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-temperature temp-caldut mb-2" onclick="filterByTemperature('CALDUT')">🟡 Călduț</div>
-                        <p class="text-xs text-gray-600">1-2 ani inactivitate</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-temperature temp-racit mb-2" onclick="filterByTemperature('RACIT')">🔵 Răcit</div>
-                        <p class="text-xs text-gray-600">2-3 ani inactivitate</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-temperature temp-rece mb-2" onclick="filterByTemperature('RECE')">❄️ Rece</div>
-                        <p class="text-xs text-gray-600">3+ ani sau probleme grave</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-temperature temp-inghetat mb-2" onclick="filterByTemperature('INGHETAT')">💀 Înghețat</div>
-                        <p class="text-xs text-gray-600">5+ ani sau abandon total</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Value Classification -->
-            <div class="mb-6">
-                <h4 class="text-md font-medium text-gray-700 mb-3">💰 Clasificare Valorică (cheltuieli/an)</h4>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <div class="text-center">
-                        <div class="client-value-category value-standard mb-2" onclick="filterByValueCategory('STANDARD')">🥉 Standard</div>
-                        <p class="text-xs text-gray-600">0 - 2.000 RON/an</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-value-category value-bronze mb-2" onclick="filterByValueCategory('BRONZE')">🟤 Bronze</div>
-                        <p class="text-xs text-gray-600">2.000 - 5.000 RON/an</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-value-category value-silver mb-2" onclick="filterByValueCategory('SILVER')">🥈 Silver</div>
-                        <p class="text-xs text-gray-600">5.000 - 10.000 RON/an</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-value-category value-gold mb-2" onclick="filterByValueCategory('GOLD')">🥇 Gold</div>
-                        <p class="text-xs text-gray-600">10.000 - 25.000 RON/an</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="client-value-category value-vip mb-2" onclick="filterByValueCategory('VIP')">👑 VIP</div>
-                        <p class="text-xs text-gray-600">25.000+ RON/an</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap gap-3">
-                <button onclick="clearAllFilters()" 
-                        class="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-all">
-                    🔄 Reset Filtre
-                </button>
-                <button onclick="showAbandonedOnly()" 
-                        class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-all">
-                    ⚠️ Doar Abandonați Post-Reclamație
-                </button>
-            </div>
-        </div>
-
-        <!-- Results Table -->
-        <div id="results" class="modern-card overflow-hidden" style="display: none;">
-            <div class="px-8 py-6 bg-gradient-to-r from-gray-50 to-blue-50 border-b relative">
-                <div id="filterLoader" class="filter-loading" style="display: none;">
-                    <div class="flex items-center">
-                        <div class="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mr-3"></div>
-                        <span class="text-gray-700 font-medium">Aplicare filtre...</span>
-                    </div>
+        <!-- Filter Section -->
+        <div id="filterSection" class="modern-card p-6 mb-8" style="display: none;">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-4">
+                    <label class="text-sm font-semibold text-gray-700">Filtrare An:</label>
+                    <select id="yearFilter" onchange="applyFilters()" 
+                            class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none">
+                        <option value="all">Toți anii</option>
+                    </select>
                 </div>
                 
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <span class="text-2xl mr-3">🎯</span>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-800">Clienți de Recuperat</h2>
-                            <p class="text-gray-600 text-sm">Ordonați după prioritate și potențial de recuperare</p>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="filterByTemperature('all')" 
+                            class="filter-btn bg-gray-100 hover:bg-gray-200 text-gray-700 tooltip">
+                        Toți clienții
+                        <div class="tooltip-content">
+                            <strong>📊 Calcul Scoring - Toți Clienții</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub 1/an: 5 puncte
+                            
+                            • Impact reclamații (15%)
+                              - Fără reclamații: 15 puncte
+                              - Severitate mică: 12 puncte
+                              - Severitate medie: 7 puncte
+                              - Severitate mare: 3 puncte
+                              - Abandon post-reclamație: 0 puncte
+                            
+                            TOTAL MAXIM: 100 puncte
                         </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm text-gray-600">Total afișat</div>
-                        <div class="text-xl font-bold text-blue-600" id="displayedCount">0</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">#</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Client</th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                <div class="tooltip">
-                                    Temperatura
-                                    <div class="tooltip-content">
-                                        <strong>Clasificare Termică:</strong><br>
-                                        Bazată pe timpul de inactivitate și problemele întâmpinate:<br>
-                                        🔥 <strong>Fierbinte:</strong> Activ recent, fără probleme majore<br>
-                                        🟡 <strong>Călduț:</strong> 1-2 ani inactivitate, probleme minore<br>
-                                        🔵 <strong>Răcit:</strong> 2-3 ani sau reclamații moderate<br>
-                                        ❄️ <strong>Rece:</strong> 3+ ani sau probleme grave<br>
-                                        💀 <strong>Înghețat:</strong> 5+ ani sau abandon post-reclamație
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                <div class="tooltip">
-                                    Categoria
-                                    <div class="tooltip-content">
-                                        <strong>Clasificare Valorică:</strong><br>
-                                        Bazată pe cheltuielile medii anuale:<br>
-                                        🥉 <strong>Standard:</strong> 0 - 2.000 RON/an<br>
-                                        🟤 <strong>Bronze:</strong> 2.000 - 5.000 RON/an<br>
-                                        🥈 <strong>Silver:</strong> 5.000 - 10.000 RON/an<br>
-                                        🥇 <strong>Gold:</strong> 10.000 - 25.000 RON/an<br>
-                                        👑 <strong>VIP:</strong> 25.000+ RON/an
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ultima Comandă</th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                <div class="tooltip">
-                                    Valoare & Activitate
-                                    <div class="tooltip-content">
-                                        <strong>Metrici Financiari:</strong><br>
-                                        • <strong>Valoare Totală:</strong> Suma tuturor achizițiilor<br>
-                                        • <strong>Comenzi:</strong> Numărul total de facturi<br>
-                                        • <strong>Ani Activitate:</strong> Perioada între prima și ultima comandă<br>
-                                        • <strong>Comenzi/An:</strong> Frecvența de cumpărare
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                <div class="tooltip">
-                                    Reclamații
-                                    <div class="tooltip-content">
-                                        <strong>Istoric Reclamații:</strong><br>
-                                        Detalii despre problemele raportate de client:<br>
-                                        • Numărul total de reclamații<br>
-                                        • Motivele și descrierile<br>
-                                        • Responsabilii comenzilor<br>
-                                        • Severitatea problemelor
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                <div class="tooltip">
-                                    Scoring
-                                    <div class="tooltip-content">
-                                        <strong>Scor Recuperare (0-100):</strong><br>
-                                        Calculat pe baza:<br>
-                                        • <strong>Vechime/Loialitate (35%):</strong> Ani activitate, frecvență comenzi<br>
-                                        • <strong>Valoare Client (30%):</strong> Suma totală cheltuită<br>
-                                        • <strong>Frecvența Comenzilor (20%):</strong> Comenzi/an<br>
-                                        • <strong>Impact Reclamații (15%):</strong> Severitate, abandon<br>
-                                        <em>Scor >70 = Prioritate înaltă</em>
-                                    </div>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody" class="bg-white divide-y divide-gray-100">
-                    </tbody>
-                </table>
-            </div>
-            
-            <div id="loadingMore" class="text-center py-8" style="display: none;">
-                <div class="inline-flex items-center">
-                    <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mr-3"></div>
-                    <span class="text-gray-600 font-medium">Se încarcă mai mulți clienți...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Processing Overlay -->
-    <div id="processingOverlay" class="processing-overlay" style="display: none;">
-        <div class="processing-card">
-            <div class="relative mb-6">
-                <svg class="w-24 h-24 mx-auto" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="#e5e7eb" stroke-width="8" fill="none"/>
-                    <circle id="progressCircle" cx="50" cy="50" r="40" stroke="#3b82f6" stroke-width="8" fill="none" 
-                            class="progress-ring-circle" stroke-linecap="round"/>
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <span id="progressPercent" class="text-2xl font-bold text-blue-600">0%</span>
-                </div>
-            </div>
-            
-            <h3 class="text-xl font-bold text-gray-800 mb-2">Procesare Date</h3>
-            <p id="processingStatus" class="text-gray-600 mb-4">Inițializare analiză...</p>
-            
-            <div class="bg-gray-200 rounded-full h-2 mb-4">
-                <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-            </div>
-            
-            <p class="text-sm text-gray-500">
-                <span id="processedItems">0</span> / <span id="totalItems">0</span> înregistrări procesate
-            </p>
-        </div>
-    </div>
-
-    <script>
-        let salesData = [];
-        let complaintsData = [];
-        let lostClients = [];
-        let filteredClients = [];
-        let displayedClients = 0;
-        let currentFilters = {
-            temperature: null,
-            valueCategory: null,
-            abandonedOnly: false
-        };
-        const itemsPerLoad = 25;
-        let isLoading = false;
-        let valueChart = null;
-        let temperatureChart = null;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const salesFileInput = document.getElementById('salesFile');
-            const complaintsFileInput = document.getElementById('complaintsFile');
-            
-            if (salesFileInput) {
-                salesFileInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) readExcelFile(file, 'sales');
-                });
-            }
-            
-            if (complaintsFileInput) {
-                complaintsFileInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) readExcelFile(file, 'complaints');
-                });
-            }
-        });
-
-        function readExcelFile(file, type) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
-                        raw: false,
-                        defval: ''
-                    });
-                    
-                    if (type === 'sales') {
-                        salesData = jsonData;
-                        console.log('Vânzări încărcate:', salesData.length, 'înregistrări');
-                    } else {
-                        complaintsData = jsonData;
-                        console.log('Reclamații încărcate:', complaintsData.length, 'înregistrări');
-                    }
-                } catch (error) {
-                    console.error('Eroare la citirea fișierului:', error);
-                    alert('Eroare la citirea fișierului: ' + error.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function showProcessingOverlay() {
-            document.getElementById('processingOverlay').style.display = 'flex';
-        }
-
-        function hideProcessingOverlay() {
-            document.getElementById('processingOverlay').style.display = 'none';
-        }
-
-        function updateProgress(percent, status, processed = 0, total = 0) {
-            const progressCircle = document.getElementById('progressCircle');
-            const progressPercent = document.getElementById('progressPercent');
-            const processingStatus = document.getElementById('processingStatus');
-            const progressBar = document.getElementById('progressBar');
-            const processedItems = document.getElementById('processedItems');
-            const totalItems = document.getElementById('totalItems');
-            
-            const circumference = 2 * Math.PI * 40;
-            const offset = circumference - (percent / 100) * circumference;
-            
-            progressCircle.style.strokeDashoffset = offset;
-            progressPercent.textContent = Math.round(percent) + '%';
-            processingStatus.textContent = status;
-            progressBar.style.width = percent + '%';
-            processedItems.textContent = processed;
-            totalItems.textContent = total;
-        }
-
-        async function processData() {
-            if (salesData.length === 0 || complaintsData.length === 0) {
-                alert('Te rog încarcă ambele fișiere înainte de analiză!');
-                return;
-            }
-
-            showProcessingOverlay();
-            
-            try {
-                await analyzeClientsWithProgress();
-                
-                hideProcessingOverlay();
-                
-                // Afișare rezultate
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('stats').style.display = 'grid';
-                document.getElementById('filtersSection').style.display = 'block';
-                document.getElementById('chartsSection').style.display = 'grid';
-                document.getElementById('exportExcelButton').style.display = 'block';
-                document.getElementById('exportPDFButton').style.display = 'block';
-                
-                // Reset filtre și afișare
-                clearAllFilters();
-                createCharts();
-                
-            } catch (error) {
-                console.error('Eroare procesare:', error);
-                hideProcessingOverlay();
-                alert('Eroare la procesarea datelor: ' + error.message);
-            }
-        }
-
-        async function analyzeClientsWithProgress() {
-            const totalSteps = 5;
-            let currentStep = 0;
-            
-            // Pas 1: Procesare vânzări
-            updateProgress((++currentStep / totalSteps) * 100, 'Procesare date vânzări...', 0, salesData.length);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const clientSales = await processSalesData();
-            
-            // Pas 2: Procesare reclamații
-            updateProgress((++currentStep / totalSteps) * 100, 'Procesare reclamații...', 0, complaintsData.length);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const clientComplaints = await processComplaintsData();
-            
-            // Pas 3: Analiză cronologică
-            updateProgress((++currentStep / totalSteps) * 100, 'Analiză cronologică și clasificare termică...', 0, Object.keys(clientSales).length);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Pas 4: Calcul scoring și clasificare
-            updateProgress((++currentStep / totalSteps) * 100, 'Calcul scoring și clasificare valorică...', 0, Object.keys(clientSales).length);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            lostClients = await classifyAndScoreClients(clientSales, clientComplaints);
-            
-            // Pas 5: Finalizare
-            updateProgress((++currentStep / totalSteps) * 100, 'Finalizare analiză...', lostClients.length, lostClients.length);
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            updateStatistics();
-        }
-
-        async function processSalesData() {
-            const clientSales = {};
-            const batchSize = 1000;
-            
-            for (let i = 0; i < salesData.length; i += batchSize) {
-                const batch = salesData.slice(i, i + batchSize);
-                
-                batch.forEach(sale => {
-                    const clientId = sale['ID CLIENT'];
-                    if (!clientId) return;
-                    
-                    if (!clientSales[clientId]) {
-                        clientSales[clientId] = {
-                            id: clientId,
-                            name: sale['CLIENT'] || 'Necunoscut',
-                            magazine: sale['MAGAZIN'] || '',
-                            sales: [],
-                            totalValue: 0,
-                            totalOrders: 0,
-                            firstPurchase: null,
-                            lastPurchase: null,
-                            activeYears: 0
-                        };
-                    }
-                    
-                    const value = parseFloat(sale['VALOARE FACTURATA'] || 0);
-                    const dateStr = sale['DATA'];
-                    let purchaseDate = null;
-                    
-                    if (dateStr) {
-                        purchaseDate = parseDate(dateStr);
-                    }
-                    
-                    if (!isNaN(value) && value > 0) {
-                        clientSales[clientId].sales.push({
-                            date: purchaseDate,
-                            value: value,
-                            quantity: parseFloat(sale['CANTITATE FACTURATA'] || 0)
-                        });
-                        clientSales[clientId].totalValue += value;
-                        clientSales[clientId].totalOrders += parseInt(sale['NR FACTURI'] || 1);
-                        
-                        if (!clientSales[clientId].firstPurchase || (purchaseDate && purchaseDate < clientSales[clientId].firstPurchase)) {
-                            clientSales[clientId].firstPurchase = purchaseDate;
-                        }
-                        if (!clientSales[clientId].lastPurchase || (purchaseDate && purchaseDate > clientSales[clientId].lastPurchase)) {
-                            clientSales[clientId].lastPurchase = purchaseDate;
-                        }
-                    }
-                });
-                
-                updateProgress(20 + (i / salesData.length) * 20, `Procesare vânzări... ${i + batch.length}/${salesData.length}`, i + batch.length, salesData.length);
-                await new Promise(resolve => setTimeout(resolve, 1));
-            }
-            
-            // Fix pentru calculul anilor de activitate
-            Object.values(clientSales).forEach(client => {
-                if (client.firstPurchase && client.lastPurchase) {
-                    const timeDiff = client.lastPurchase - client.firstPurchase;
-                    const years = timeDiff / (1000 * 60 * 60 * 24 * 365);
-                    // Fix: minimum 1 an și maximum rezonabil de ani
-                    client.activeYears = Math.max(1, Math.min(years, 20));
-                    client.ordersPerYear = client.totalOrders / client.activeYears;
-                } else {
-                    client.activeYears = 1;
-                    client.ordersPerYear = client.totalOrders;
-                }
-            });
-            
-            return clientSales;
-        }
-
-        async function processComplaintsData() {
-            const clientComplaints = {};
-            const batchSize = 1000;
-            
-            for (let i = 0; i < complaintsData.length; i += batchSize) {
-                const batch = complaintsData.slice(i, i + batchSize);
-                
-                batch.forEach(complaint => {
-                    const clientId = complaint['ID CLIENT'];
-                    if (!clientId) return;
-                    
-                    if (!clientComplaints[clientId]) {
-                        clientComplaints[clientId] = [];
-                    }
-                    
-                    const dateStr = String(complaint['DATA RECLAMATIE'] || '');
-                    let complaintDate = null;
-                    
-                    if (dateStr) {
-                        complaintDate = parseDate(dateStr);
-                    }
-                    
-                    const severity = calculateComplaintSeverity(complaint);
-                    
-                    clientComplaints[clientId].push({
-                        date: complaintDate,
-                        reason: complaint['MOTIV RECLAMATIE'] || '',
-                        description: complaint['DESCRIERE'] || '',
-                        responsible: complaint['RESPONSABIL COMANDA'] || '',
-                        number: complaint['NR RECLAMATIE'] || '',
-                        quantity: parseFloat(complaint['Cantitate Reclamata'] || 0),
-                        severity: severity
-                    });
-                });
-                
-                updateProgress(40 + (i / complaintsData.length) * 20, `Procesare reclamații... ${i + batch.length}/${complaintsData.length}`, i + batch.length, complaintsData.length);
-                await new Promise(resolve => setTimeout(resolve, 1));
-            }
-            
-            return clientComplaints;
-        }
-
-        function parseDate(dateStr) {
-            if (!dateStr) return null;
-            
-            const str = dateStr.toString().trim();
-            let parts;
-            
-            if (str.includes('.')) {
-                parts = str.split('.');
-                if (parts.length === 3) {
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            } else if (str.includes('/')) {
-                parts = str.split('/');
-                if (parts.length === 3) {
-                    return new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            } else if (str.includes('-')) {
-                parts = str.split('-');
-                if (parts.length === 3) {
-                    return new Date(parts[0], parts[1] - 1, parts[2]);
-                }
-            }
-            
-            return null;
-        }
-
-        function calculateComplaintSeverity(complaint) {
-            const reason = (complaint['MOTIV RECLAMATIE'] || '').toLowerCase();
-            const description = (complaint['DESCRIERE'] || '').toLowerCase();
-            const quantity = parseFloat(complaint['Cantitate Reclamata'] || 0);
-            
-            let severity = 1;
-            
-            const highSeverityKeywords = ['defect', 'stricat', 'deteriorat', 'nefunctional', 'sparta', 'rupta', 'lipseste', 'gresit', 'incorect'];
-            const mediumSeverityKeywords = ['zgariat', 'mic', 'minor', 'culoare', 'dimensiune', 'intarziere'];
-            
-            const text = reason + ' ' + description;
-            
-            if (highSeverityKeywords.some(keyword => text.includes(keyword))) {
-                severity = 3;
-            } else if (mediumSeverityKeywords.some(keyword => text.includes(keyword))) {
-                severity = 2;
-            }
-            
-            if (quantity > 5) severity = Math.min(3, severity + 1);
-            
-            return severity;
-        }
-
-        async function classifyAndScoreClients(clientSales, clientComplaints) {
-            const currentDate = new Date();
-            const lostClientsList = [];
-            const allClients = Object.keys(clientSales);
-            const batchSize = 100;
-            
-            for (let i = 0; i < allClients.length; i += batchSize) {
-                const batch = allClients.slice(i, i + batchSize);
-                
-                batch.forEach(clientId => {
-                    const client = clientSales[clientId];
-                    const complaints = clientComplaints[clientId] || [];
-                    
-                    let daysSinceLastPurchase = Infinity;
-                    if (client.lastPurchase) {
-                        daysSinceLastPurchase = (currentDate - client.lastPurchase) / (1000 * 60 * 60 * 24);
-                    }
-                    
-                    // Client pierdut: 12+ luni inactivitate în loc de logica complexă anterioară
-                    const isLost = daysSinceLastPurchase >= 365;
-                    
-                    if (isLost) {
-                        const temperature = calculateClientTemperature(client, complaints, daysSinceLastPurchase);
-                        const score = calculateAdvancedClientScore(client, complaints, temperature);
-                        const valueCategory = calculateValueCategory(client);
-                        
-                        lostClientsList.push({
-                            ...client,
-                            complaints: complaints,
-                            daysSinceLastPurchase: Math.round(daysSinceLastPurchase),
-                            temperature: temperature,
-                            valueCategory: valueCategory,
-                            score: score,
-                            priority: determinePriority(score, temperature),
-                            riskLevel: calculateRiskLevel(client, complaints, daysSinceLastPurchase),
-                            abandonedAfterComplaint: checkIfAbandonedAfterComplaint(client, complaints)
-                        });
-                    }
-                });
-                
-                updateProgress(60 + (i / allClients.length) * 20, `Clasificare clienți... ${i + batch.length}/${allClients.length}`, i + batch.length, allClients.length);
-                await new Promise(resolve => setTimeout(resolve, 1));
-            }
-            
-            // Sortare după prioritate și scor
-            lostClientsList.sort((a, b) => {
-                const priorityOrder = { 'URGENT': 4, 'ÎNALTĂ': 3, 'MEDIE': 2, 'SCĂZUTĂ': 1 };
-                const aPriority = priorityOrder[a.priority] || 0;
-                const bPriority = priorityOrder[b.priority] || 0;
-                
-                if (aPriority !== bPriority) return bPriority - aPriority;
-                return b.score - a.score;
-            });
-            
-            return lostClientsList;
-        }
-
-        function calculateValueCategory(client) {
-            if (client.activeYears === 0) return 'STANDARD';
-            
-            const valuePerYear = client.totalValue / client.activeYears;
-            
-            if (valuePerYear >= 25000) return 'VIP';
-            if (valuePerYear >= 10000) return 'GOLD';
-            if (valuePerYear >= 5000) return 'SILVER';
-            if (valuePerYear >= 2000) return 'BRONZE';
-            return 'STANDARD';
-        }
-
-        function calculateClientTemperature(client, complaints, daysSinceLastPurchase) {
-            let temperature = 'FIERBINTE';
-            
-            const years = daysSinceLastPurchase / 365;
-            const hasRecentComplaints = complaints.some(c => c.date && (new Date() - c.date) / (1000 * 60 * 60 * 24) < 365);
-            const hasSevereComplaints = complaints.some(c => c.severity >= 3);
-            const abandonedAfterComplaint = checkIfAbandonedAfterComplaint(client, complaints);
-            
-            if (years >= 5 || (abandonedAfterComplaint && hasSevereComplaints)) {
-                temperature = 'INGHETAT';
-            } else if (years >= 3 || (hasSevereComplaints && years >= 1)) {
-                temperature = 'RECE';
-            } else if (years >= 2 || (hasRecentComplaints && years >= 0.5)) {
-                temperature = 'RACIT';
-            } else if (years >= 1 || complaints.length > 0) {
-                temperature = 'CALDUT';
-            }
-            
-            return temperature;
-        }
-
-        function checkIfAbandonedAfterComplaint(client, complaints) {
-            if (complaints.length === 0 || !client.lastPurchase) return false;
-            
-            const lastComplaintDate = Math.max(...complaints.map(c => c.date ? c.date.getTime() : 0));
-            const lastPurchaseTime = client.lastPurchase.getTime();
-            
-            return lastComplaintDate > lastPurchaseTime;
-        }
-
-        function calculateAdvancedClientScore(client, complaints, temperature) {
-            let score = 0;
-            
-            // 1. Vechime și loialitate (35%)
-            if (client.activeYears >= 10) score += 35;
-            else if (client.activeYears >= 5) score += 30;
-            else if (client.activeYears >= 3) score += 25;
-            else if (client.activeYears >= 1) score += 15;
-            else score += 10;
-            
-            // 2. Valoare client (30%)
-            if (client.totalValue > 100000) score += 30;
-            else if (client.totalValue > 50000) score += 25;
-            else if (client.totalValue > 20000) score += 20;
-            else if (client.totalValue > 10000) score += 15;
-            else score += 10;
-            
-            // 3. Frecvența comenzilor (20%)
-            if (client.ordersPerYear > 12) score += 20;
-            else if (client.ordersPerYear > 6) score += 15;
-            else if (client.ordersPerYear > 3) score += 12;
-            else if (client.ordersPerYear > 1) score += 8;
-            else score += 5;
-            
-            // 4. Impact reclamații (15%)
-            if (complaints.length === 0) {
-                score += 15;
-            } else {
-                const avgSeverity = complaints.reduce((sum, c) => sum + c.severity, 0) / complaints.length;
-                const abandoned = checkIfAbandonedAfterComplaint(client, complaints);
-                
-                if (abandoned && avgSeverity >= 2.5) score += 0;
-                else if (avgSeverity >= 2.5) score += 3;
-                else if (avgSeverity >= 2) score += 7;
-                else score += 12;
-            }
-            
-            // Bonus pentru temperatura
-            const tempBonus = {
-                'FIERBINTE': 10,
-                'CALDUT': 7,
-                'RACIT': 5,
-                'RECE': 2,
-                'INGHETAT': 0
-            };
-            score += tempBonus[temperature] || 0;
-            
-            return Math.min(100, Math.max(0, score));
-        }
-
-        function determinePriority(score, temperature) {
-            if (temperature === 'FIERBINTE' && score > 80) return 'URGENT';
-            if (score > 70) return 'ÎNALTĂ';
-            if (score > 40) return 'MEDIE';
-            return 'SCĂZUTĂ';
-        }
-
-        function calculateRiskLevel(client, complaints, daysSinceLastPurchase) {
-            let risk = 'SCĂZUT';
-            
-            const years = daysSinceLastPurchase / 365;
-            const hasSeveComplaints = complaints.some(c => c.severity >= 3);
-            const abandoned = checkIfAbandonedAfterComplaint(client, complaints);
-            
-            if ((years > 5) || (abandoned && hasSeveComplaints && years > 2)) {
-                risk = 'FOARTE MARE';
-            } else if ((years > 3) || (abandoned && years > 1)) {
-                risk = 'MARE';
-            } else if (years > 1.5 || complaints.length > 2) {
-                risk = 'MEDIU';
-            }
-            
-            return risk;
-        }
-
-        function updateStatistics() {
-            const lostCount = lostClients.length;
-            const complaintCount = lostClients.filter(c => c.complaints.length > 0).length;
-            const avgScore = lostClients.length > 0 ? 
-                Math.round(lostClients.reduce((sum, c) => sum + c.score, 0) / lostClients.length) : 0;
-            
-            document.getElementById('lostCount').textContent = lostCount.toLocaleString('ro-RO');
-            document.getElementById('complaintCount').textContent = complaintCount.toLocaleString('ro-RO');
-            document.getElementById('avgScore').textContent = avgScore;
-        }
-
-        // Funcții de filtrare
-        function showFilterLoading() {
-            document.getElementById('filterLoader').style.display = 'block';
-        }
-
-        function hideFilterLoading() {
-            document.getElementById('filterLoader').style.display = 'none';
-        }
-
-        async function applyFilters() {
-            showFilterLoading();
-            
-            // Simulare procesare
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            filteredClients = lostClients.filter(client => {
-                if (currentFilters.temperature && client.temperature !== currentFilters.temperature) {
-                    return false;
-                }
-                if (currentFilters.valueCategory && client.valueCategory !== currentFilters.valueCategory) {
-                    return false;
-                }
-                if (currentFilters.abandonedOnly && !client.abandonedAfterComplaint) {
-                    return false;
-                }
-                return true;
-            });
-            
-            displayedClients = 0;
-            document.getElementById('tableBody').innerHTML = '';
-            document.getElementById('displayedCount').textContent = '0';
-            
-            hideFilterLoading();
-            loadMoreClients();
-        }
-
-        function filterByTemperature(temp) {
-            currentFilters.temperature = currentFilters.temperature === temp ? null : temp;
-            applyFilters();
-        }
-
-        function filterByValueCategory(category) {
-            currentFilters.valueCategory = currentFilters.valueCategory === category ? null : category;
-            applyFilters();
-        }
-
-        function showAbandonedOnly() {
-            currentFilters.abandonedOnly = !currentFilters.abandonedOnly;
-            applyFilters();
-        }
-
-        function clearAllFilters() {
-            currentFilters = {
-                temperature: null,
-                valueCategory: null,
-                abandonedOnly: false
-            };
-            filteredClients = [...lostClients];
-            displayedClients = 0;
-            document.getElementById('tableBody').innerHTML = '';
-            loadMoreClients();
-        }
-
-        function loadMoreClients() {
-            if (isLoading) return;
-            
-            const clientsToShow = filteredClients.length > 0 ? filteredClients : lostClients;
-            if (displayedClients >= clientsToShow.length) return;
-            
-            isLoading = true;
-            
-            const loadingMoreElement = document.getElementById('loadingMore');
-            if (loadingMoreElement) loadingMoreElement.style.display = 'block';
-            
-            setTimeout(() => {
-                const tbody = document.getElementById('tableBody');
-                if (!tbody) return;
-                
-                const start = displayedClients;
-                const end = Math.min(start + itemsPerLoad, clientsToShow.length);
-                
-                for (let i = start; i < end; i++) {
-                    const client = clientsToShow[i];
-                    const globalIndex = i + 1;
-                    
-                    const row = createClientRow(client, globalIndex);
-                    tbody.innerHTML += row;
-                }
-                
-                displayedClients = end;
-                document.getElementById('displayedCount').textContent = displayedClients.toLocaleString('ro-RO');
-                
-                isLoading = false;
-                if (loadingMoreElement) {
-                    loadingMoreElement.style.display = displayedClients >= clientsToShow.length ? 'none' : 'block';
-                }
-            }, 100);
-        }
-
-        function createClientRow(client, index) {
-            const temperatureClass = {
-                'FIERBINTE': 'temp-fierbinte',
-                'CALDUT': 'temp-caldut', 
-                'RACIT': 'temp-racit',
-                'RECE': 'temp-rece',
-                'INGHETAT': 'temp-inghetat'
-            };
-
-            const temperatureEmoji = {
-                'FIERBINTE': '🔥',
-                'CALDUT': '🟡',
-                'RACIT': '🔵', 
-                'RECE': '❄️',
-                'INGHETAT': '💀'
-            };
-
-            const valueCategoryClass = {
-                'STANDARD': 'value-standard',
-                'BRONZE': 'value-bronze',
-                'SILVER': 'value-silver',
-                'GOLD': 'value-gold',
-                'VIP': 'value-vip'
-            };
-
-            const valueCategoryEmoji = {
-                'STANDARD': '🥉',
-                'BRONZE': '🟤',
-                'SILVER': '🥈',
-                'GOLD': '🥇',
-                'VIP': '👑'
-            };
-
-            const complaintsTooltip = client.complaints.length > 0 ? 
-                client.complaints.map(c => 
-                    `<strong>${c.reason}</strong><br>${c.description}<br><small>Responsabil: ${c.responsible}</small>`
-                ).join('<br><br>') : 
-                'Fără reclamații registrate';
-
-            const scoreColor = client.score > 70 ? 'text-green-600' : 
-                             client.score > 40 ? 'text-yellow-600' : 'text-red-600';
-
-            const rowClass = client.abandonedAfterComplaint ? 'abandoned-row' : '';
-
-            return `
-                <tr class="hover:bg-gray-50 transition-colors duration-200 ${rowClass}">
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                        ${String(index).padStart(3, '0')}
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center">
-                            <div>
-                                <div class="text-sm font-semibold text-gray-900">${client.name}</div>
-                                <div class="text-xs text-gray-500">ID: ${client.id}</div>
-                                <div class="text-xs text-blue-600">${client.magazine}</div>
-                                ${client.abandonedAfterComplaint ? '<div class="text-xs text-red-600 font-medium">⚠️ Abandon post-reclamație</div>' : ''}
-                            </div>
+                    </button>
+                    <button onclick="filterByTemperature('FIERBINTE')" 
+                            class="filter-btn bg-red-500 hover:bg-red-600 text-white tooltip">
+                        🔥 Fierbinte
+                        <div class="tooltip-content">
+                            <strong>🔥 Calcul Scoring - Client Fierbinte</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub 1/an: 5 puncte
+                            
+                            • Impact reclamații (15%)
+                              - Fără reclamații: 15 puncte
+                              - Severitate mică: 12 puncte
+                              - Severitate medie: 7 puncte
+                              - Severitate mare: 3 puncte
+                              - Abandon post-reclamație: 0 puncte
+                            
+                            • Bonus temperatură: +10 puncte
+                            
+                            TOTAL MAXIM: 110 puncte (limitat la 100)
                         </div>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="client-temperature ${temperatureClass[client.temperature]}">
-                            ${temperatureEmoji[client.temperature]} ${client.temperature}
-                        </span>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="client-value-category ${valueCategoryClass[client.valueCategory]}">
-                            ${valueCategoryEmoji[client.valueCategory]} ${client.valueCategory}
-                        </span>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">
-                            ${client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'Necunoscută'}
+                    </button>
+                    <button onclick="filterByTemperature('CALDUT')" 
+                            class="filter-btn bg-orange-500 hover:bg-orange-600 text-white tooltip">
+                        🟡 Călduț
+                        <div class="tooltip-content">
+                            <strong>🟡 Calcul Scoring - Client Călduț</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub 1/an: 5 puncte
+                            
+                            • Impact reclamații (15%)
+                              - Fără reclamații: 15 puncte
+                              - Severitate mică: 12 puncte
+                              - Severitate medie: 7 puncte
+                              - Severitate mare: 3 puncte
+                              - Abandon post-reclamație: 0 puncte
+                            
+                            • Bonus temperatură: +7 puncte
+                            
+                            TOTAL MAXIM: 107 puncte (limitat la 100)
                         </div>
-                        <div class="text-xs text-gray-500">
-                            ${Math.round(client.daysSinceLastPurchase)} zile în urmă
+                    </button>
+                    <button onclick="filterByTemperature('RACIT')" 
+                            class="filter-btn bg-blue-500 hover:bg-blue-600 text-white tooltip">
+                        🔵 Răcit
+                        <div class="tooltip-content">
+                            <strong>🔵 Calcul Scoring - Client Răcit</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub 1/an: 5 puncte
+                            
+                            • Impact reclamații (15%)
+                              - Fără reclamații: 15 puncte
+                              - Severitate mică: 12 puncte
+                              - Severitate medie: 7 puncte
+                              - Severitate mare: 3 puncte
+                              - Abandon post-reclamație: 0 puncte
+                            
+                            • Bonus temperatură: +5 puncte
+                            
+                            TOTAL MAXIM: 105 puncte (limitat la 100)
                         </div>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="text-sm font-bold text-gray-900">${formatCurrency(client.totalValue)}</div>
-                        <div class="text-xs text-gray-600">${client.totalOrders} comenzi</div>
-                        <div class="text-xs text-gray-500">${client.activeYears.toFixed(1)} ani activ</div>
-                        <div class="text-xs text-blue-600">${client.ordersPerYear.toFixed(1)} comenzi/an</div>
-                    </td>
-                    <td class="px-4 py-4">
-                        <div class="tooltip">
-                            <div class="flex items-center">
-                                <span class="text-sm font-medium ${client.complaints.length > 0 ? 'text-red-600' : 'text-green-600'}">
-                                    ${client.complaints.length}
-                                </span>
-                                <span class="ml-1 text-xs text-gray-500">reclamații</span>
-                            </div>
-                            <div class="tooltip-content">
-                                ${complaintsTooltip}
-                            </div>
+                    </button>
+                    <button onclick="filterByTemperature('RECE')" 
+                            class="filter-btn bg-indigo-500 hover:bg-indigo-600 text-white tooltip">
+                        ❄️ Rece
+                        <div class="tooltip-content">
+                            <strong>❄️ Calcul Scoring - Client Rece</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub 1/an: 5 puncte
+                            
+                            • Impact reclamații (15%)
+                              - Fără reclamații: 15 puncte
+                              - Severitate mică: 12 puncte
+                              - Severitate medie: 7 puncte
+                              - Severitate mare: 3 puncte
+                              - Abandon post-reclamație: 0 puncte
+                            
+                            • Bonus temperatură: +2 puncte
+                            
+                            TOTAL MAXIM: 102 puncte (limitat la 100)
                         </div>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-16">
-                                <div class="score-bar">
-                                    <div class="score-indicator" style="left: ${client.score}%"></div>
-                                </div>
-                            </div>
-                            <span class="text-sm font-bold ${scoreColor}">${client.score}</span>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }
-
-        // Funcții pentru charturile
-        function createCharts() {
-            createValueChart();
-            createTemperatureChart();
-        }
-
-        function createValueChart() {
-            const ctx = document.getElementById('valueChart');
-            if (!ctx) return;
-
-            const valueCategories = ['STANDARD', 'BRONZE', 'SILVER', 'GOLD', 'VIP'];
-            const valueCounts = valueCategories.map(category => 
-                lostClients.filter(client => client.valueCategory === category).length
-            );
-
-            if (valueChart) {
-                valueChart.destroy();
-            }
-
-            valueChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['🥉 Standard', '🟤 Bronze', '🥈 Silver', '🥇 Gold', '👑 VIP'],
-                    datasets: [{
-                        data: valueCounts,
-                        backgroundColor: [
-                            '#9ca3af',
-                            '#d97706', 
-                            '#6b7280',
-                            '#f59e0b',
-                            '#7c3aed'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((context.raw / total) * 100).toFixed(1);
-                                    return `${context.label}: ${context.raw} clienți (${percentage}%)`;
-                                }
-                            }
-                        }
-                    },
-                    onClick: function(event, elements) {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            const category = valueCategories[index];
-                            filterByValueCategory(category);
-                        }
-                    }
-                }
-            });
-        }
-
-        function createTemperatureChart() {
-            const ctx = document.getElementById('temperatureChart');
-            if (!ctx) return;
-
-            const temperatures = ['FIERBINTE', 'CALDUT', 'RACIT', 'RECE', 'INGHETAT'];
-            const tempCounts = temperatures.map(temp => 
-                lostClients.filter(client => client.temperature === temp).length
-            );
-
-            if (temperatureChart) {
-                temperatureChart.destroy();
-            }
-
-            temperatureChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['🔥 Fierbinte', '🟡 Călduț', '🔵 Răcit', '❄️ Rece', '💀 Înghețat'],
-                    datasets: [{
-                        data: tempCounts,
-                        backgroundColor: [
-                            '#ef4444',
-                            '#f59e0b',
-                            '#3b82f6',
-                            '#6366f1',
-                            '#6b7280'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((context.raw / total) * 100).toFixed(1);
-                                    return `${context.label}: ${context.raw} clienți (${percentage}%)`;
-                                }
-                            }
-                        }
-                    },
-                    onClick: function(event, elements) {
-                        if (elements.length > 0) {
-                            const index = elements[0].index;
-                            const temperature = temperatures[index];
-                            filterByTemperature(temperature);
-                        }
-                    }
-                }
-            });
-        }
-
-        // Infinite scroll optimizat
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                const clientsToShow = filteredClients.length > 0 ? filteredClients : lostClients;
-                if (isLoading || displayedClients >= clientsToShow.length) return;
-                if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-                    loadMoreClients();
-                }
-            }, 100);
-        });
-
-        // Export functions
-        function exportExcel() {
-            const exportData = lostClients.map((client, index) => ({
-                'Nr': index + 1,
-                'Client': client.name,
-                'ID Client': client.id,
-                'Magazin': client.magazine,
-                'Temperatura': client.temperature,
-                'Categoria Valorica': client.valueCategory,
-                'Ultima Comandă': client.lastPurchase ? client.lastPurchase.toLocaleDateString('ro-RO') : 'N/A',
-                'Zile Inactivitate': Math.round(client.daysSinceLastPurchase),
-                'Valoare Totală': client.totalValue,
-                'Număr Comenzi': client.totalOrders,
-                'Ani Activitate': client.activeYears.toFixed(1),
-                'Comenzi/An': client.ordersPerYear.toFixed(1),
-                'Reclamații': client.complaints.length,
-                'Severitate Medie': client.complaints.length > 0 ? 
-                    (client.complaints.reduce((sum, c) => sum + c.severity, 0) / client.complaints.length).toFixed(1) : 'N/A',
-                'Scoring': client.score,
-                'Prioritate': client.priority,
-                'Nivel Risc': client.riskLevel,
-                'Abandon Post-Reclamație': client.abandonedAfterComplaint ? 'Da' : 'Nu',
-                'Descrieri Reclamații': client.complaints.map(c => `${c.reason}: ${c.description}`).join(' | '),
-                'Responsabili': [...new Set(client.complaints.map(c => c.responsible))].filter(r => r).join(', ')
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Clienți Pierduți');
-            
-            // Statistici
-            const summary = [{
-                'Indicator': 'Total Clienți Pierduți',
-                'Valoare': lostClients.length
-            }, {
-                'Indicator': 'Clienți cu Reclamații',
-                'Valoare': lostClients.filter(c => c.complaints.length > 0).length
-            }, {
-                'Indicator': 'Abandon Post-Reclamație',
-                'Valoare': lostClients.filter(c => c.abandonedAfterComplaint).length
-            }, {
-                'Indicator': 'Scor Mediu Recuperare',
-                'Valoare': Math.round(lostClients.reduce((sum, c) => sum + c.score, 0) / lostClients.length)
-            }];
-            
-            const summarySheet = XLSX.utils.json_to_sheet(summary);
-            XLSX.utils.book_append_sheet(workbook, summarySheet, 'Statistici');
-            
-            XLSX.writeFile(workbook, `analiza_clienti_pierduti_${new Date().toISOString().split('T')[0]}.xlsx`);
-        }
-
-        async function exportPDF() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
-            
-            // Header
-            pdf.setFontSize(20);
-            pdf.text('CRM Mobexpert - Analiză Clienți Pierduți', 20, 25);
-            
-            pdf.setFontSize(12);
-            pdf.text(`Generat: ${new Date().toLocaleDateString('ro-RO')}`, 20, 35);
-            
-            // Statistici generale
-            const stats = [
-                `Total clienți pierduți: ${lostClients.length}`,
-                `Clienți cu reclamații: ${lostClients.filter(c => c.complaints.length > 0).length}`,
-                `Abandon post-reclamație: ${lostClients.filter(c => c.abandonedAfterComplaint).length}`,
-                `Scor mediu recuperare: ${Math.round(lostClients.reduce((sum, c) => sum + c.score, 0) / lostClients.length)}`
-            ];
-            
-            let yPos = 50;
-            stats.forEach(stat => {
-                pdf.text(stat, 20, yPos);
-                yPos += 8;
-            });
-            
-            // Capture charts
-            try {
-                yPos += 15;
-                
-                // Capture value chart
-                const valueCanvas = document.getElementById('valueChart');
-                if (valueCanvas) {
-                    const valueImgData = valueCanvas.toDataURL('image/png');
-                    pdf.text('Segmentare Valorică:', 20, yPos);
-                    pdf.addImage(valueImgData, 'PNG', 20, yPos + 5, 120, 80);
-                }
-                
-                // Capture temperature chart
-                const tempCanvas = document.getElementById('temperatureChart');
-                if (tempCanvas) {
-                    pdf.text('Clasificare Termică:', 160, yPos);
-                    pdf.addImage(tempCanvas.toDataURL('image/png'), 'PNG', 160, yPos + 5, 120, 80);
-                }
-                
-            } catch (error) {
-                console.error('Eroare la capturarea graficelor:', error);
-            }
-            
-            // Adaugă o nouă pagină pentru TOP 20 clienți
-            pdf.addPage();
-            pdf.setFontSize(16);
-            pdf.text('TOP 20 Clienți Prioritari pentru Recuperare', 20, 25);
-            
-            // Tabel cu TOP 20 clienți
-            const topClients = lostClients.slice(0, 20);
-            let tableY = 40;
-            
-            // Header tabel
-            pdf.setFontSize(10);
-            pdf.text('Nr', 20, tableY);
-            pdf.text('Client', 35, tableY);
-            pdf.text('Temp', 80, tableY);
-            pdf.text('Cat', 100, tableY);
-            pdf.text('Valoare', 120, tableY);
-            pdf.text('Scor', 150, tableY);
-            pdf.text('Prioritate', 170, tableY);
-            pdf.text('Abandon', 210, tableY);
-            
-            tableY += 10;
-            
-            topClients.forEach((client, index) => {
-                if (tableY > 180) { // Nouă pagină dacă e nevoie
-                    pdf.addPage();
-                    tableY = 25;
-                }
-                
-                pdf.text(`${index + 1}`, 20, tableY);
-                pdf.text(client.name.substring(0, 15), 35, tableY);
-                pdf.text(client.temperature.substring(0, 6), 80, tableY);
-                pdf.text(client.valueCategory, 100, tableY);
-                pdf.text(formatCurrency(client.totalValue), 120, tableY);
-                pdf.text(`${client.score}`, 150, tableY);
-                pdf.text(client.priority, 170, tableY);
-                pdf.text(client.abandonedAfterComplaint ? 'DA' : 'NU', 210, tableY);
-                
-                tableY += 8;
-            });
-            
-            pdf.save(`analiza_clienti_pierduti_${new Date().toISOString().split('T')[0]}.pdf`);
-        }
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('ro-RO', {
-                style: 'currency',
-                currency: 'RON',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(value);
-        }
-    </script>
-</body>
-</html>
+                    </button>
+                    <button onclick="filterByTemperature('INGHETAT')" 
+                            class="filter-btn bg-gray-600 hover:bg-gray-700 text-white tooltip">
+                        💀 Înghețat
+                        <div class="tooltip-content">
+                            <strong>💀 Calcul Scoring - Client Înghețat</strong>
+                            
+                            • Vechime și loialitate (35%)
+                              - 10+ ani: 35 puncte
+                              - 5-10 ani: 30 puncte
+                              - 3-5 ani: 25 puncte
+                              - 1-3 ani: 15 puncte
+                              - Sub 1 an: 10 puncte
+                            
+                            • Valoare client (30%)
+                              - Peste 100k RON: 30 puncte
+                              - 50k-100k RON: 25 puncte
+                              - 20k-50k RON: 20 puncte
+                              - 10k-20k RON: 15 puncte
+                              - Sub 10k RON: 10 puncte
+                            
+                            • Frecvența comenzilor (20%)
+                              - Peste 12/an: 20 puncte
+                              - 6-12/an: 15 puncte
+                              - 3-6/an: 12 puncte
+                              - 1-3/an: 8 puncte
+                              - Sub
