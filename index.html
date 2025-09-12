@@ -2,637 +2,1287 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8">
-  <title>Analiză Produse & Vânzări</title>
+  <title>Analiză Homedit - Produse & Vânzări</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script async defer src="https://apis.google.com/js/api.js"></script>
   <script async defer src="https://accounts.google.com/gsi/client"></script>
-  <script src="https://www.google.com/jsapi"></script>
+  <script async defer src="https://apis.google.com/js/api.js"></script>
   <style>
-    #matrixCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .login-content {
-      position: relative;
-      z-index: 10;
-    }
-    #processingMatrix {
+    /* Matrix Rain Styles */
+    .matrix-canvas {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 9999;
-      display: none;
-    }
-    #processingContent {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10000;
-      text-align: center;
-    }
-  </style>
-</head>
-<body class="bg-gray-100">
-
-<!-- Matrix Rain pentru procesare -->
-<div id="processingMatrix">
-  <canvas id="processingMatrixCanvas"></canvas>
-  <div id="processingContent">
-    <div class="bg-black/50 backdrop-blur-sm p-8 rounded-lg border border-green-500/30">
-      <h2 class="text-2xl font-bold text-green-400 mb-4 font-mono">PROCESARE DATE</h2>
-      <div class="w-64 bg-gray-800 rounded-full h-4 overflow-hidden border border-green-500/30">
-        <div id="processingProgress" class="h-4 bg-gradient-to-r from-green-600 to-green-400 w-0 transition-all duration-300"></div>
-      </div>
-      <p class="text-green-400 mt-4 font-mono text-sm" id="processingText">Inițializare...</p>
-    </div>
-  </div>
-</div>
-
-<!-- Ecran de logare cu Matrix Rain -->
-<div id="passwordOverlay" class="fixed inset-0 bg-black flex items-center justify-center z-50">
-  <canvas id="matrixCanvas"></canvas>
-  <div class="login-content bg-black/80 backdrop-blur-md p-8 rounded-lg shadow-2xl border border-green-500/30">
-    <h2 class="text-2xl font-bold mb-6 text-green-400 font-mono text-center">SISTEM SECURIZAT</h2>
-    <div class="space-y-4">
-      <input type="password" id="passwordInput" 
-        class="w-full p-3 bg-black/50 border border-green-500/50 rounded text-green-400 font-mono placeholder-green-600/50 focus:border-green-400 focus:outline-none"
-        placeholder="INTRODU CODUL">
-      <button onclick="checkPassword()" 
-        class="w-full bg-gradient-to-r from-green-600 to-green-500 text-black font-bold py-3 rounded font-mono hover:from-green-500 hover:to-green-400 transition-all duration-300 shadow-lg">
-        ACCESEAZĂ SISTEMUL
-      </button>
-    </div>
-    <div class="mt-4 text-center">
-      <p class="text-green-500/50 text-xs font-mono">SECURE CONNECTION ESTABLISHED</p>
-    </div>
-  </div>
-</div>
-
-<div class="flex flex-col h-screen hidden" id="mainContent">
-  <!-- Sidebar -->
-  <div class="w-full bg-gray-900 text-white flex flex-col">
-    <div class="p-2 text-xl font-bold border-b border-gray-700">
-      Analiză Produse
-    </div>
-    <div class="p-2 space-y-2 overflow-y-auto">
-      <!-- Căutare -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Caută Cod/Denumire</label>
-        <input type="text" id="searchInput" placeholder="Caută..." 
-          class="w-full p-1 bg-gray-800 border border-gray-600 rounded-lg text-xs text-white">
-      </div>
-      <!-- Upload Produse -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Fișier Produse</label>
-        <button id="pickProducts" class="w-full text-xs bg-blue-600 text-white py-1 px-2 rounded-lg hover:bg-blue-700">
-          Alege Produse din Google Drive
-        </button>
-      </div>
-      <!-- Upload Vânzări -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Fișier Vânzări</label>
-        <button id="pickSales" class="w-full text-xs bg-green-600 text-white py-1 px-2 rounded-lg hover:bg-green-700">
-          Alege Vânzări din Google Drive
-        </button>
-      </div>
-      <!-- Filtru An -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Filtru An</label>
-        <select id="filterYear" class="w-full p-1 bg-gray-800 border border-gray-600 rounded-lg text-xs"></select>
-      </div>
-      <!-- Filtru PM -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Filtru PM</label>
-        <select id="filterPM" class="w-full p-1 bg-gray-800 border border-gray-600 rounded-lg text-xs"></select>
-      </div>
-      <!-- Criteriu Top -->
-      <div>
-        <label class="block text-xs font-medium mb-1">Criteriu Top</label>
-        <select id="topCriteria" class="w-full p-1 bg-gray-800 border border-gray-600 rounded-lg text-xs">
-          <option value="valoare">Top Valoric</option>
-          <option value="cantitate">Top Cantitativ</option>
-          <option value="clienti">Top Nr. Clienți</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Zona principală -->
-  <div class="flex-1 flex flex-col">
-    <div class="p-2 bg-white border-b border-gray-200 flex items-center justify-between">
-      <h1 class="text-lg font-bold">Dashboard Analiză Produse</h1>
-      <div id="loadingBar" class="hidden w-64 bg-gray-200 rounded-full h-4 overflow-hidden">
-        <div id="loadingProgress" class="h-4 bg-blue-600 w-0"></div>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto p-2 space-y-4">
-      <!-- Tabel -->
-      <div class="bg-white rounded-lg shadow p-2">
-        <h2 class="text-base font-bold mb-1">Topuri Produse</h2>
-        <div class="overflow-x-auto">
-          <table id="topTable" class="min-w-full text-xs text-left text-gray-700">
-            <thead class="bg-gray-100 text-xs">
-              <tr>
-                <th class="px-2 py-1 w-16">#</th>
-                <th class="px-2 py-1 w-24">Cod Articol</th>
-                <th class="px-2 py-1 w-48">Denumire</th>
-                <th class="px-2 py-1 w-24">PM</th>
-                <th class="px-2 py-1 w-32">Valoare Facturată</th>
-                <th class="px-2 py-1 w-24">Cantitate</th>
-                <th class="px-2 py-1 w-24">Nr. Clienți</th>
-                <th class="px-2 py-1 w-32">Preț Vânzare</th>
-                <th class="px-2 py-1 w-32">Preț Achiziție</th>
-                <th class="px-2 py-1 w-32">Profit Brut (%)</th>
-                <th class="px-2 py-1 w-32">Furnizor Extern</th>
-                <th class="px-2 py-1 w-48">Imagine</th>
-              </tr>
-            </thead>
-            <tbody id="topTableBody"></tbody>
-          </table>
-        </div>
-        <div id="pagination" class="mt-2"></div>
-      </div>
-      <!-- Chart -->
-      <div class="bg-white rounded-lg shadow p-2">
-        <h2 class="text-base font-bold mb-1">Analiză Distribuție</h2>
-        <canvas id="pmChart" class="w-full h-80"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  // Configurare Google Drive
-  const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com'; // Înlocuiește cu Client ID din Google Cloud
-  const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno'; // Înlocuiește cu API Key din Google Cloud
-  const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
-  const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-  // Încarcă Google API
-  function initGoogleDrive() {
-    gapi.load('client:auth2:picker', () => {
-      gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        scope: SCOPES,
-        cookie_policy: 'single_host_origin'
-      }).then(() => {
-        console.log('Google API initialized successfully');
-        document.getElementById('pickProducts').addEventListener('click', () => pickFile('products'));
-        document.getElementById('pickSales').addEventListener('click', () => pickFile('sales'));
-      }).catch(err => {
-        console.error('Google API init failed:', err);
-        alert('Eroare Google API: ' + err.details);
-      });
-    });
-  }
-
-  // Deschide picker-ul Google Drive
-  function pickFile(type) {
-    if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-      gapi.auth2.getAuthInstance().signIn().then(() => showPicker(type));
-    } else {
-      showPicker(type);
-    }
-  }
-
-  // Afișează picker-ul pentru selectarea fișierelor
-  function showPicker(type) {
-    const picker = new google.picker.PickerBuilder()
-      .addView(new google.picker.DocsView()
-        .setParent(FOLDER_ID)
-        .setMimeTypes('text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
-      .setOAuthToken(gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token)
-      .setDeveloperKey(API_KEY)
-      .setCallback(data => pickerCallback(data, type))
-      .build();
-    picker.setVisible(true);
-  }
-
-  // Procesează fișierul selectat
-  function pickerCallback(data, type) {
-    if (data.action === google.picker.Action.PICKED) {
-      const fileId = data.docs[0].id;
-      gapi.client.drive.files.get({
-        fileId: fileId,
-        alt: 'media',
-      }, { responseType: 'arraybuffer' }).then(response => {
-        const blob = new Blob([response.body], { type: response.headers['content-type'] });
-        const file = new File([blob], data.docs[0].name, { type: response.headers['content-type'] });
-        handleFileUpload(file, type);
-      }).catch(err => alert('Eroare la descărcarea fișierului: ' + err.message));
-    }
-  }
-
-  // Pornește Google Drive la încărcarea paginii
-  window.onload = () => {
-    initGoogleDrive();
-  };
-
-  // Restul codului tău rămâne neschimbat
-  class MatrixRain {
-    constructor(canvasId) {
-      this.canvas = document.getElementById(canvasId);
-      this.ctx = this.canvas.getContext('2d');
-      this.fontSize = 14;
-      this.columns = 0;
-      this.drops = [];
-      this.chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      this.running = false;
-      
-      this.resize();
-      window.addEventListener('resize', () => this.resize());
+      pointer-events: none;
+      z-index: 9998;
     }
     
-    resize() {
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-      this.columns = Math.floor(this.canvas.width / this.fontSize);
-      this.drops = Array(this.columns).fill(1);
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #059669, #047857);
     }
     
-    start() {
-      this.running = true;
-      this.draw();
+    /* Gradient Animations */
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
     
-    stop() {
-      this.running = false;
+    .animated-gradient {
+      background: linear-gradient(-45deg, #10b981, #059669, #047857, #065f46);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
     }
     
-    draw() {
-      if (!this.running) return;
-      
-      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      
-      this.ctx.fillStyle = '#0F0';
-      this.ctx.font = this.fontSize + 'px monospace';
-      
-      for (let i = 0; i < this.drops.length; i++) {
-        const text = this.chars[Math.floor(Math.random() * this.chars.length)];
-        this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
-        
-        if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
-          this.drops[i] = 0;
-        }
-        this.drops[i]++;
-      }
-      
-      requestAnimationFrame(() => this.draw());
+    /* Glass Effect */
+    .glass {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
-  }
-
-  const loginMatrix = new MatrixRain('matrixCanvas');
-  loginMatrix.start();
-  
-  const processingMatrix = new MatrixRain('processingMatrixCanvas');
-
-  document.getElementById('passwordInput').focus();
-  
-  document.getElementById('passwordInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') checkPassword();
-  });
-
-  function checkPassword() {
-    const input = document.getElementById("passwordInput").value;
-    if (input === "333") {
-      const overlay = document.getElementById("passwordOverlay");
-      overlay.style.transition = "opacity 0.5s";
-      overlay.style.opacity = "0";
-      
-      setTimeout(() => {
-        loginMatrix.stop();
-        overlay.classList.add("hidden");
-        document.getElementById("mainContent").classList.remove("hidden");
-      }, 500);
-    } else {
-      const input = document.getElementById("passwordInput");
-      input.style.animation = "shake 0.5s";
-      input.style.borderColor = "#ef4444";
-      setTimeout(() => {
-        input.style.animation = "";
-        input.style.borderColor = "";
-        input.value = "";
-        input.focus();
-      }, 500);
+    
+    /* Range Slider Custom */
+    .range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
     }
-  }
-
-  const style = document.createElement('style');
-  style.textContent = `
+    
+    .range-slider::-webkit-slider-track {
+      background: linear-gradient(to right, #ef4444, #eab308, #10b981);
+      height: 6px;
+      border-radius: 3px;
+    }
+    
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #10b981;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    
+    .range-slider::-moz-range-track {
+      background: linear-gradient(to right, #ef4444, #eab308, #10b981);
+      height: 6px;
+      border-radius: 3px;
+    }
+    
+    .range-slider::-moz-range-thumb {
+      background: #10b981;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      cursor: pointer;
+    }
+    
+    /* Shake Animation */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-10px); }
       75% { transform: translateX(10px); }
     }
-  `;
-  document.head.appendChild(style);
-
-  let productsData = [];
-  let productsMap = {};
-  let salesData = [];
-  let mergedData = [];
-  let pmChart = null;
-  let currentPage = 1;
-  const rowsPerPage = 100;
-  let hasFirstFile = false;
-
-  function normalizeValue(val) {
-    if (val === null || val === undefined || val === "" || val === "#null") {
-      return "nu e disponibil";
-    }
-    return val;
-  }
-
-  function updateLoading(progress) {
-    const bar = document.getElementById("loadingBar");
-    const prog = document.getElementById("loadingProgress");
-    bar.classList.remove("hidden");
-    prog.style.width = progress + "%";
-    if (progress >= 100) {
-      setTimeout(() => bar.classList.add("hidden"), 800);
-    }
-  }
-
-  function showProcessingMatrix(progress, text = "Procesare...") {
-    const container = document.getElementById("processingMatrix");
-    const progressBar = document.getElementById("processingProgress");
-    const progressText = document.getElementById("processingText");
     
-    container.style.display = "block";
-    progressBar.style.width = progress + "%";
-    progressText.textContent = text;
-    
-    if (!processingMatrix.running) {
-      processingMatrix.start();
+    .shake {
+      animation: shake 0.5s;
     }
     
-    if (progress >= 100) {
-      setTimeout(() => {
-        container.style.display = "none";
-        processingMatrix.stop();
-      }, 1000);
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid rgba(16, 185, 129, 0.1);
+      border-radius: 50%;
+      border-top: 3px solid #10b981;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
     }
-  }
-
-  async function loadImage(img) {
-    if (!img.dataset.url || img.dataset.url === "nu e disponibil") {
-      img.alt = "nu e disponibil";
-      return;
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
-    try {
-      const res = await fetch(img.dataset.url);
-      const html = await res.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const ogImage = doc.querySelector('meta[property="og:image"]')?.content;
-      if (ogImage) {
-        img.src = ogImage;
-        img.dataset.loaded = ogImage;
-      } else {
-        img.alt = "no image";
-      }
-    } catch (e) {
-      console.error(e);
-      img.alt = "error";
+    
+    /* Image Lazy Loading */
+    .lazy-image {
+      filter: blur(5px);
+      transition: filter 0.3s;
     }
-  }
-
-  function getFilteredData() {
-    const yearFilter = document.getElementById("filterYear").value;
-    const pmFilter = document.getElementById("filterPM").value;
-    const criteria = document.getElementById("topCriteria").value;
-    const searchQuery = document.getElementById("searchInput").value.toLowerCase();
-
-    let data = mergedData;
-    if (yearFilter !== "all") data = data.filter(d => d.AN == yearFilter);
-    if (pmFilter !== "all") data = data.filter(d => d.PM == pmFilter);
-    if (searchQuery) {
-      data = data.filter(d => 
-        d.COD.toLowerCase().includes(searchQuery) || 
-        d.DENUMIRE.toLowerCase().includes(searchQuery)
-      );
+    
+    .lazy-image.loaded {
+      filter: blur(0);
     }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
 
-    if (criteria === "valoare") data.sort((a, b) => b.VALOARE - a.VALOARE);
-    else if (criteria === "cantitate") data.sort((a, b) => b.CANTITATE - a.CANTITATE);
-    else if (criteria === "clienti") data.sort((a, b) => b.CLIENTI - a.CLIENTI);
+<!-- Matrix Rain Canvas (Hidden initially) -->
+<canvas id="matrixCanvas" class="matrix-canvas" style="display: none;"></canvas>
 
-    return data;
-  }
+<!-- Processing Overlay with Matrix -->
+<div id="processingOverlay" class="fixed inset-0 bg-black/90 z-50 hidden">
+  <canvas id="processingMatrixCanvas" class="matrix-canvas"></canvas>
+  <div class="absolute inset-0 flex items-center justify-center z-50">
+    <div class="glass p-8 rounded-2xl max-w-md w-full mx-4">
+      <h2 class="text-2xl font-bold text-green-400 mb-6 font-mono text-center">PROCESARE DATE</h2>
+      <div class="space-y-4">
+        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+          <div id="processingProgress" class="h-3 bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="processingText" class="text-green-400 text-center font-mono text-sm">Inițializare...</p>
+        <div id="processingDetails" class="text-green-300 text-xs font-mono space-y-1"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  function handleFileUpload(file, type) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+<!-- Login Screen -->
+<div id="loginScreen" class="fixed inset-0 bg-black flex items-center justify-center z-50">
+  <canvas id="loginMatrixCanvas" class="matrix-canvas"></canvas>
+  <div class="glass p-8 rounded-2xl max-w-md w-full mx-4 relative z-10">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-green-400 font-mono mb-2">SISTEM SECURIZAT</h1>
+      <p class="text-green-500/70 text-sm">Analiză Homedit - Dashboard</p>
+    </div>
+    <div class="space-y-4">
+      <input type="password" id="passwordInput" 
+        class="w-full p-4 bg-black/50 border border-green-500/50 rounded-lg text-green-400 font-mono placeholder-green-600/50 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400/20"
+        placeholder="INTRODU CODUL">
+      <button onclick="checkPassword()" 
+        class="w-full animated-gradient text-black font-bold py-4 rounded-lg font-mono hover:scale-105 transition-transform duration-200 shadow-lg">
+        ACCESEAZĂ SISTEMUL
+      </button>
+    </div>
+    <div class="mt-6 text-center">
+      <p class="text-green-500/50 text-xs font-mono">SECURE CONNECTION ESTABLISHED</p>
+      <p class="text-green-500/30 text-xs font-mono mt-1">v2.0.1 | HOMEDIT ANALYSIS ENGINE</p>
+    </div>
+  </div>
+</div>
 
-      if (type === "products") {
-        productsData = json.map(row => ({
-          PM: normalizeValue(row["PM"]),
-          COD: normalizeValue(row["COD ARTICOL"]),
-          DENUMIRE: normalizeValue(row["DENUMIRE ARTICOL"]),
-          FURNIZOR: normalizeValue(row["FURNIZOR"]),
-          COST: normalizeValue(row["Cost Achizitie Furnizor (ultimul Document_cronologic)"]),
-          FURNIZOR_EXT: normalizeValue(row["FURNIZOR EXT"]),
-          URL: normalizeValue(row["URL ONLINE"]),
-          NR_ART: normalizeValue(row["NR ART"]),
-          PRET_VANZARE: normalizeValue(row["Pret Vanzare cu TVA (magazin _client final)"])
-        }));
-        productsMap = {};
-        productsData.forEach(p => { productsMap[p.COD] = p; });
-        hasFirstFile = true;
-      } else {
-        salesData = json.map(row => ({
-          AN: normalizeValue(row["AN"]),
-          COD: normalizeValue(row["COD ARTICOL"]),
-          DENUMIRE: normalizeValue(row["DENUMIRE ARTICOL"]),
-          PM: normalizeValue(row["PM"]),
-          VALOARE: parseFloat(row["VALOARE FACTURATA"] || 0),
-          CANTITATE: parseFloat(row["CANTITATE FACTURATA"] || 0),
-          CLIENTI: parseFloat(row["NR CLIENTI"] || 0)
-        }));
-      }
-
-      if (productsData.length && salesData.length) {
-        mergeDatasets();
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  function mergeDatasets() {
-    showProcessingMatrix(0, "Inițializare sistem...");
-
-    let temp = {};
-    let idx = 0;
-    let batchSize = 10000;
-
-    function processBatch() {
-      const end = Math.min(idx + batchSize, salesData.length);
-      for (; idx < end; idx++) {
-        const s = salesData[idx];
-        if (!temp[s.COD]) {
-          temp[s.COD] = {
-            COD: s.COD,
-            DENUMIRE: s.DENUMIRE,
-            PM: s.PM,
-            VALOARE: 0,
-            CANTITATE: 0,
-            CLIENTI: 0,
-            AN: s.AN
-          };
-        }
-        temp[s.COD].VALOARE += s.VALOARE;
-        temp[s.COD].CANTITATE += s.CANTITATE;
-        temp[s.COD].CLIENTI += s.CLIENTI;
-      }
-
-      const progress = Math.floor((idx / salesData.length) * 90);
-      showProcessingMatrix(progress, `Procesare date: ${idx} / ${salesData.length} înregistrări`);
-
-      if (idx < salesData.length) {
-        setTimeout(processBatch, 0);
-      } else {
-        showProcessingMatrix(95, "Finalizare calcule...");
+<!-- Main Dashboard -->
+<div id="mainDashboard" class="hidden">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="w-80 glass border-r border-green-500/20 flex flex-col">
+      <div class="p-4 border-b border-green-500/20">
+        <h2 class="text-xl font-bold text-green-400 font-mono">CONTROL PANEL</h2>
+        <p class="text-xs text-green-500/70 mt-1">Analiză Homedit</p>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- File Upload Section -->
+        <div class="glass p-4 rounded-lg">
+          <h3 class="text-sm font-bold text-green-400 mb-3">ÎNCĂRCARE DATE</h3>
+          
+          <!-- Products Upload -->
+          <div class="mb-3">
+            <label class="block text-xs text-green-300 mb-2">Fișier Produse</label>
+            <button id="uploadProducts" class="w-full text-xs bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2 px-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all duration-200">
+              <span class="flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Alege Produse
+              </span>
+            </button>
+            <input type="file" id="localProductsFile" accept=".csv,.xlsx" class="hidden">
+          </div>
+          
+          <!-- Sales Upload -->
+          <div>
+            <label class="block text-xs text-green-300 mb-2">Fișier Vânzări</label>
+            <button id="uploadSales" class="w-full text-xs bg-gradient-to-r from-green-600 to-green-500 text-white py-2 px-3 rounded-lg hover:from-green-500 hover:to-green-400 transition-all duration-200">
+              <span class="flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Alege Vânzări
+              </span>
+            </button>
+            <input type="file" id="localSalesFile" accept=".csv,.xlsx" class="hidden">
+          </div>
+        </div>
         
-        mergedData = Object.values(temp).map(item => {
-          const p = productsMap[item.COD] || {};
-          const pretVanzare = p.PRET_VANZARE !== "nu e disponibil" && p.PRET_VANZARE ? parseFloat(p.PRET_VANZARE) : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
-          const cost = p.COST !== "nu e disponibil" && p.COST ? parseFloat(p.COST) : 0;
-          const profitBrut = (pretVanzare > 0 && cost > 0) ? ((pretVanzare - cost) / pretVanzare * 100).toFixed(2) : "nu e disponibil";
-          return {
-            ...item,
-            PRET_VANZARE: pretVanzare > 0 ? pretVanzare.toFixed(2) : "nu e disponibil",
-            URL: p.URL || "nu e disponibil",
-            COST: cost > 0 ? cost.toFixed(2) : "nu e disponibil",
-            FURNIZOR_EXT: p.FURNIZOR_EXT || "nu e disponibil",
-            PROFIT_BRUT: profitBrut
-          };
-        });
+        <!-- Search Section -->
+        <div class="glass p-4 rounded-lg">
+          <h3 class="text-sm font-bold text-green-400 mb-3">CĂUTARE</h3>
+          <input type="text" id="searchInput" 
+            placeholder="Caută în toate câmpurile..." 
+            class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300 placeholder-green-600/50 focus:border-green-400 focus:outline-none">
+        </div>
+        
+        <!-- Filters Section -->
+        <div class="glass p-4 rounded-lg">
+          <h3 class="text-sm font-bold text-green-400 mb-3">FILTRE</h3>
+          
+          <!-- Year Filter -->
+          <div class="mb-3">
+            <label class="block text-xs text-green-300 mb-1">An</label>
+            <select id="filterYear" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
+              <option value="all">Toate</option>
+            </select>
+          </div>
+          
+          <!-- PM Filter -->
+          <div class="mb-3">
+            <label class="block text-xs text-green-300 mb-1">Product Manager</label>
+            <select id="filterPM" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
+              <option value="all">Toate</option>
+            </select>
+          </div>
+          
+          <!-- Profitability Filter -->
+          <div class="mb-3">
+            <label class="block text-xs text-green-300 mb-2">
+              Profitabilitate: <span id="profitRange" class="text-green-400">0% - 100%</span>
+            </label>
+            <div class="space-y-2">
+              <input type="range" id="profitMin" min="0" max="100" value="0" class="range-slider w-full">
+              <input type="range" id="profitMax" min="0" max="100" value="100" class="range-slider w-full">
+            </div>
+          </div>
+          
+          <!-- Sort Criteria -->
+          <div>
+            <label class="block text-xs text-green-300 mb-1">Criteriu Sortare</label>
+            <select id="topCriteria" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
+              <option value="valoare">Top Valoric</option>
+              <option value="cantitate">Top Cantitativ</option>
+              <option value="clienti">Top Nr. Clienți</option>
+              <option value="profit">Top Profitabilitate</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Stats Section -->
+        <div class="glass p-4 rounded-lg">
+          <h3 class="text-sm font-bold text-green-400 mb-3">STATISTICI</h3>
+          <div id="stats" class="space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-green-300">Total Produse:</span>
+              <span id="statTotal" class="text-green-400 font-mono">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-green-300">Valoare Totală:</span>
+              <span id="statValue" class="text-green-400 font-mono">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-green-300">Profit Mediu:</span>
+              <span id="statProfit" class="text-green-400 font-mono">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col">
+      <!-- Header -->
+      <div class="glass border-b border-green-500/20 p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-green-400 font-mono">HOMEDIT ANALYSIS DASHBOARD</h1>
+            <p class="text-sm text-green-500/70 mt-1">Sistem Avansat de Analiză Produse</p>
+          </div>
+          <div id="loadingIndicator" class="hidden">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Content Area -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Data Table -->
+        <div class="glass rounded-xl p-4">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-green-400">ANALIZA PRODUSE</h2>
+            <div id="tableInfo" class="text-sm text-green-300"></div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-green-500/20">
+                  <th class="text-left p-2 text-green-400">#</th>
+                  <th class="text-left p-2 text-green-400">Cod</th>
+                  <th class="text-left p-2 text-green-400">Denumire</th>
+                  <th class="text-left p-2 text-green-400">PM</th>
+                  <th class="text-right p-2 text-green-400">Valoare</th>
+                  <th class="text-right p-2 text-green-400">Cantitate</th>
+                  <th class="text-right p-2 text-green-400">Clienți</th>
+                  <th class="text-right p-2 text-green-400">Preț Vânzare</th>
+                  <th class="text-right p-2 text-green-400">Cost</th>
+                  <th class="text-right p-2 text-green-400">Profit %</th>
+                  <th class="text-left p-2 text-green-400">Furnizor</th>
+                  <th class="text-center p-2 text-green-400">Imagine</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div id="pagination" class="mt-4 flex items-center justify-between">
+            <button id="prevPage" class="px-4 py-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              ← Anterior
+            </button>
+            <span id="pageInfo" class="text-green-300"></span>
+            <button id="nextPage" class="px-4 py-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              Următor →
+            </button>
+          </div>
+        </div>
+        
+        <!-- Charts Container -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Distribution Chart -->
+          <div class="glass rounded-xl p-4">
+            <h2 class="text-lg font-bold text-green-400 mb-4">DISTRIBUȚIE VALOARE</h2>
+            <canvas id="distributionChart"></canvas>
+          </div>
+          
+          <!-- Profitability Chart -->
+          <div class="glass rounded-xl p-4">
+            <h2 class="text-lg font-bold text-green-400 mb-4">ANALIZĂ PROFITABILITATE</h2>
+            <canvas id="profitabilityChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-        showProcessingMatrix(100, "Procesare completă!");
-        populateFilters();
-        renderTopTable();
+<!-- Upload Source Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
+  <div class="glass p-6 rounded-xl max-w-md w-full mx-4">
+    <h3 class="text-lg font-bold text-green-400 mb-4">Alege Sursa Fișierului</h3>
+    <div class="space-y-3">
+      <button id="chooseGoogleDrive" class="w-full p-3 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors">
+        <span class="flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.71 3.5L1.15 15l3.43 6h11.84l3.43-6L13.29 3.5H7.71zm6.36 1l5.72 10H8.21L13.93 4.5h.14zM4.58 16l2.86-5 2.86 5H4.58z"/>
+          </svg>
+          Google Drive
+        </span>
+      </button>
+      <button id="chooseLocal" class="w-full p-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors">
+        <span class="flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+          </svg>
+          Computer Local
+        </span>
+      </button>
+      <button id="cancelUpload" class="w-full p-3 bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors">
+        Anulează
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Configuration
+const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno';
+const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+// Global variables
+let tokenClient;
+let accessToken = null;
+let productsData = [];
+let salesData = [];
+let mergedData = [];
+let filteredData = [];
+let currentPage = 1;
+const rowsPerPage = 100;
+let distributionChart = null;
+let profitabilityChart = null;
+let currentUploadType = null;
+let imageCache = new Map();
+let matrixInstances = {};
+
+// Matrix Rain Class
+class MatrixRain {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.fontSize = 14;
+    this.columns = 0;
+    this.drops = [];
+    this.chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+    this.running = false;
+    
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+  
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.columns = Math.floor(this.canvas.width / this.fontSize);
+    this.drops = Array(this.columns).fill(1);
+  }
+  
+  start() {
+    this.running = true;
+    this.animate();
+  }
+  
+  stop() {
+    this.running = false;
+  }
+  
+  animate() {
+    if (!this.running) return;
+    
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    this.ctx.fillStyle = '#0F0';
+    this.ctx.font = this.fontSize + 'px monospace';
+    
+    for (let i = 0; i < this.drops.length; i++) {
+      const text = this.chars[Math.floor(Math.random() * this.chars.length)];
+      this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
+      
+      if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
+        this.drops[i] = 0;
       }
+      this.drops[i]++;
     }
-
-    processBatch();
+    
+    requestAnimationFrame(() => this.animate());
   }
+}
 
-  function populateFilters() {
-    const yearSelect = document.getElementById("filterYear");
-    const pmSelect = document.getElementById("filterPM");
+// Initialize Matrix on login
+matrixInstances.login = new MatrixRain('loginMatrixCanvas');
+matrixInstances.login.start();
 
-    const years = [...new Set(salesData.map(s => s.AN))];
-    yearSelect.innerHTML = '<option value="all">Toate</option>';
-    years.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
+matrixInstances.processing = new MatrixRain('processingMatrixCanvas');
+matrixInstances.main = new MatrixRain('matrixCanvas');
 
-    const pms = [...new Set(productsData.map(p => p.PM))];
-    pmSelect.innerHTML = '<option value="all">Toate</option>';
-    pms.forEach(pm => pmSelect.innerHTML += `<option value="${pm}">${pm}</option>`);
+// Password check
+function checkPassword() {
+  const input = document.getElementById('passwordInput');
+  if (input.value === '333') {
+    document.getElementById('loginScreen').style.opacity = '0';
+    setTimeout(() => {
+      matrixInstances.login.stop();
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainDashboard').classList.remove('hidden');
+      initializeApp();
+    }, 500);
+  } else {
+    input.classList.add('shake');
+    input.style.borderColor = '#ef4444';
+    setTimeout(() => {
+      input.classList.remove('shake');
+      input.style.borderColor = '';
+      input.value = '';
+      input.focus();
+    }, 500);
   }
+}
 
-  document.getElementById("filterYear").addEventListener("change", () => { currentPage = 1; renderTopTable(); });
-  document.getElementById("filterPM").addEventListener("change", () => { currentPage = 1; renderTopTable(); });
-  document.getElementById("topCriteria").addEventListener("change", () => { currentPage = 1; renderTopTable(); });
-  document.getElementById("searchInput").addEventListener("input", () => { currentPage = 1; renderTopTable(); });
+// Enter key handler
+document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') checkPassword();
+});
+document.getElementById('passwordInput').focus();
 
-  function renderTopTable() {
-    const yearFilter = document.getElementById("filterYear").value;
-    const pmFilter = document.getElementById("filterPM").value;
-    const criteria = document.getElementById("topCriteria").value;
+// Initialize App
+function initializeApp() {
+  initializeGoogleAPI();
+  setupEventListeners();
+  setupFilters();
+}
 
-    let data = getFilteredData();
-    const totalPages = Math.ceil(data.length / rowsPerPage);
-    const start = (currentPage - 1) * rowsPerPage;
-    const pagedData = data.slice(start, start + rowsPerPage);
+// Initialize Google API with new GIS
+function initializeGoogleAPI() {
+  // Load Google API
+  gapi.load('client:picker', async () => {
+    await gapi.client.init({
+      apiKey: API_KEY,
+    });
+    
+    await gapi.client.load('drive', 'v3');
+    
+    // Initialize GIS token client
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (response) => {
+        accessToken = response.access_token;
+      },
+    });
+  });
+}
 
-    const tbody = document.getElementById("topTableBody");
-    tbody.innerHTML = pagedData.map((d, idx) => `
-      <tr class="border-b hover:bg-gray-50 text-xs">
-        <td class="px-2 py-3 w-16">${start + idx + 1}</td>
-        <td class="px-2 py-3 w-24">${d.COD}</td>
-        <td class="px-2 py-3 w-48">${d.DENUMIRE}</td>
-        <td class="px-2 py-3 w-24">${d.PM}</td>
-        <td class="px-2 py-3 w-32 font-semibold">${d.VALOARE.toFixed(0)}</td>
-        <td class="px-2 py-3 w-24">${d.CANTITATE.toFixed(0)}</td>
-        <td class="px-2 py-3 w-24">${d.CLIENTI}</td>
-        <td class="px-2 py-3 w-32">${d.PRET_VANZARE}</td>
-        <td class="px-2 py-3 w-32">${d.COST}</td>
-        <td class="px-2 py-3 w-32">${d.PROFIT_BRUT}%</td>
-        <td class="px-2 py-3 w-32">${d.FURNIZOR_EXT}</td>
-        <td class="px-2 py-3 w-48">
-          ${d.URL && d.URL !== "nu e disponibil"
-            ? `<a href="${d.URL}" target="_blank">
-                 <img data-url="${d.URL}" class="w-64 h-64 object-contain rounded-lg shadow border">
-               </a>`
-            : "nu e disponibil"}
-        </td>
-      </tr>`).join("");
+// Setup Event Listeners
+function setupEventListeners() {
+  // Upload buttons
+  document.getElementById('uploadProducts').addEventListener('click', () => openUploadModal('products'));
+  document.getElementById('uploadSales').addEventListener('click', () => openUploadModal('sales'));
+  
+  // Modal buttons
+  document.getElementById('chooseGoogleDrive').addEventListener('click', () => handleGoogleDrive());
+  document.getElementById('chooseLocal').addEventListener('click', () => handleLocalUpload());
+  document.getElementById('cancelUpload').addEventListener('click', closeUploadModal);
+  
+  // Local file inputs
+  document.getElementById('localProductsFile').addEventListener('change', (e) => processLocalFile(e, 'products'));
+  document.getElementById('localSalesFile').addEventListener('change', (e) => processLocalFile(e, 'sales'));
+  
+  // Filters
+  document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 300));
+  document.getElementById('filterYear').addEventListener('change', applyFilters);
+  document.getElementById('filterPM').addEventListener('change', applyFilters);
+  document.getElementById('topCriteria').addEventListener('change', applyFilters);
+  
+  // Profit range sliders
+  document.getElementById('profitMin').addEventListener('input', updateProfitRange);
+  document.getElementById('profitMax').addEventListener('input', updateProfitRange);
+  
+  // Pagination
+  document.getElementById('prevPage').addEventListener('click', () => changePage(-1));
+  document.getElementById('nextPage').addEventListener('click', () => changePage(1));
+}
 
-    const images = document.querySelectorAll('#topTableBody img');
-    Promise.all(Array.from(images).map(img => loadImage(img).then(() => new Promise(res => img.onload = res))));
+// Setup Filters
+function setupFilters() {
+  // Will be populated when data is loaded
+}
 
-    const pagination = document.getElementById("pagination");
-    pagination.innerHTML = `
-      <div class="flex justify-between items-center text-xs mt-2">
-        <button ${currentPage === 1 ? "disabled" : ""} 
-          onclick="prevPage()" 
-          class="px-2 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">Prev</button>
-        <span class="font-medium">Pagina ${currentPage} din ${totalPages}</span>
-        <button ${currentPage === totalPages ? "disabled" : ""} 
-          onclick="nextPage(${totalPages})" 
-          class="px-2 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">Next</button>
-      </div>`;
+// Upload Modal Management
+function openUploadModal(type) {
+  currentUploadType = type;
+  document.getElementById('uploadModal').classList.remove('hidden');
+}
 
-    renderChart(data);
+function closeUploadModal() {
+  document.getElementById('uploadModal').classList.add('hidden');
+  currentUploadType = null;
+}
+
+// Google Drive Handler
+function handleGoogleDrive() {
+  closeUploadModal();
+  
+  if (!accessToken) {
+    tokenClient.requestAccessToken();
+    tokenClient.callback = (response) => {
+      accessToken = response.access_token;
+      showGooglePicker();
+    };
+  } else {
+    showGooglePicker();
   }
+}
 
-  function nextPage(total) {
-    if (currentPage < total) { currentPage++; renderTopTable(); }
+function showGooglePicker() {
+  const picker = new google.picker.PickerBuilder()
+    .addView(
+      new google.picker.DocsView()
+        .setParent(FOLDER_ID)
+        .setIncludeFolders(false)
+        .setMimeTypes('text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    )
+    .setOAuthToken(accessToken)
+    .setDeveloperKey(API_KEY)
+    .setCallback(pickerCallback)
+    .build();
+  
+  picker.setVisible(true);
+}
+
+async function pickerCallback(data) {
+  if (data.action === google.picker.Action.PICKED) {
+    const file = data.docs[0];
+    showProcessing(0, 'Descărcare fișier din Google Drive...');
+    
+    try {
+      const response = await gapi.client.drive.files.get({
+        fileId: file.id,
+        alt: 'media'
+      });
+      
+      const blob = new Blob([response.body]);
+      const fileObj = new File([blob], file.name, { type: file.mimeType });
+      
+      processFile(fileObj, currentUploadType);
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      alert('Eroare la descărcarea fișierului: ' + error.message);
+      hideProcessing();
+    }
   }
-  function prevPage() {
-    if (currentPage > 1) { currentPage--; renderTopTable(); }
+}
+
+// Local Upload Handler
+function handleLocalUpload() {
+  closeUploadModal();
+  if (currentUploadType === 'products') {
+    document.getElementById('localProductsFile').click();
+  } else {
+    document.getElementById('localSalesFile').click();
   }
+}
 
-  function renderChart(data) {
-    const pmFilter = document.getElementById("filterPM").value;
+function processLocalFile(event, type) {
+  const file = event.target.files[0];
+  if (file) {
+    processFile(file, type);
+  }
+  event.target.value = ''; // Reset input
+}
 
-    if (pmChart) pmChart.destroy();
-    const ctx = document.getElementById("pmChart").getContext("2d");
+// File Processing
+async function processFile(file, type) {
+  // Show matrix rain immediately when upload starts
+  document.getElementById('matrixCanvas').style.display = 'block';
+  matrixInstances.main.start();
+  
+  showProcessing(0, `Încărcare ${type === 'products' ? 'produse' : 'vânzări'}...`);
+  
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    showProcessing(20, 'Parsare date...');
+    
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      
+      showProcessing(40, 'Procesare câmpuri...');
+      
+      if (type === 'products') {
+        await processProducts(jsonData);
+      } else {
+        await processSales(jsonData);
+      }
+      
+      // Check if both datasets are loaded
+      if (productsData.length > 0 && salesData.length > 0) {
+        await mergeData();
+      } else {
+        hideProcessing();
+        // Stop matrix rain after processing
+        matrixInstances.main.stop();
+        document.getElementById('matrixCanvas').style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Error processing file:', error);
+      alert('Eroare la procesarea fișierului: ' + error.message);
+      hideProcessing();
+      matrixInstances.main.stop();
+      document.getElementById('matrixCanvas').style.display = 'none';
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+}
 
-    if (pmFilter === "all") {
-      const pmGroups = {};
-      data.forEach(d => { pmGroups[d.PM] = (pmGroups[d.PM] || 0) + d.VALOARE; });
-      pmChart = new Chart(ctx, {
-        type: "pie",
-        data: { labels: Object.keys(pmGroups), datasets: [{ data: Object.values(pmGroups) }] },
-        options: { responsive: true, plugins: { legend: { position: "right" } } }
+// Process Products Data
+async function processProducts(data) {
+  showProcessing(50, 'Procesare produse...');
+  
+  productsData = data.map((row, index) => {
+    if (index % 1000 === 0) {
+      const progress = 50 + (index / data.length) * 20;
+      showProcessing(progress, `Procesare produse: ${index}/${data.length}`);
+    }
+    
+    return {
+      PM: normalizeValue(row['PM']),
+      COD: normalizeValue(row['COD ARTICOL']),
+      DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL']),
+      FURNIZOR: normalizeValue(row['FURNIZOR']),
+      COST: parseFloat(row['Cost Achizitie Furnizor (ultimul Document_cronologic)']) || 0,
+      FURNIZOR_EXT: normalizeValue(row['FURNIZOR EXT']),
+      URL: normalizeValue(row['URL ONLINE']),
+      NR_ART: normalizeValue(row['NR ART']),
+      PRET_VANZARE: parseFloat(row['Pret Vanzare cu TVA (magazin _client final)']) || 0
+    };
+  });
+  
+  showProcessing(70, 'Produse procesate cu succes!');
+}
+
+// Process Sales Data
+async function processSales(data) {
+  showProcessing(50, 'Procesare vânzări...');
+  
+  salesData = data.map((row, index) => {
+    if (index % 1000 === 0) {
+      const progress = 50 + (index / data.length) * 20;
+      showProcessing(progress, `Procesare vânzări: ${index}/${data.length}`);
+    }
+    
+    return {
+      AN: normalizeValue(row['AN']),
+      COD: normalizeValue(row['COD ARTICOL']),
+      DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL']),
+      PM: normalizeValue(row['PM']),
+      VALOARE: parseFloat(row['VALOARE FACTURATA']) || 0,
+      CANTITATE: parseFloat(row['CANTITATE FACTURATA']) || 0,
+      CLIENTI: parseInt(row['NR CLIENTI']) || 0
+    };
+  });
+  
+  showProcessing(70, 'Vânzări procesate cu succes!');
+}
+
+// Merge Data
+async function mergeData() {
+  showProcessing(75, 'Combinare date produse și vânzări...');
+  
+  const productsMap = new Map();
+  productsData.forEach(p => productsMap.set(p.COD, p));
+  
+  const mergedMap = new Map();
+  let processed = 0;
+  const total = salesData.length;
+  
+  for (const sale of salesData) {
+    if (processed % 5000 === 0) {
+      const progress = 75 + (processed / total) * 20;
+      showProcessing(progress, `Combinare date: ${processed}/${total}`);
+      await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+    }
+    
+    const key = `${sale.COD}_${sale.AN}`;
+    
+    if (!mergedMap.has(key)) {
+      const product = productsMap.get(sale.COD) || {};
+      const pretVanzare = product.PRET_VANZARE || (sale.CANTITATE > 0 ? sale.VALOARE / sale.CANTITATE : 0);
+      const cost = product.COST || 0;
+      const profitBrut = pretVanzare > 0 && cost > 0 ? ((pretVanzare - cost) / pretVanzare * 100) : 0;
+      
+      mergedMap.set(key, {
+        COD: sale.COD,
+        DENUMIRE: sale.DENUMIRE,
+        PM: sale.PM,
+        AN: sale.AN,
+        VALOARE: sale.VALOARE,
+        CANTITATE: sale.CANTITATE,
+        CLIENTI: sale.CLIENTI,
+        PRET_VANZARE: pretVanzare,
+        COST: cost,
+        PROFIT_BRUT: profitBrut,
+        URL: product.URL || 'nu e disponibil',
+        FURNIZOR_EXT: product.FURNIZOR_EXT || 'nu e disponibil'
       });
     } else {
-      const topData = [...data].filter(d => d.PM === pmFilter).sort((a, b) => b.VALOARE - a.VALOARE).slice(0, 100);
-      pmChart = new Chart(ctx, {
-        type: "bar",
-        data: { labels: topData.map(d => d.COD), datasets: [{ label: "Valoare Facturată", data: topData.map(d => d.VALOARE), backgroundColor: "#2563eb" }] },
-        options: { responsive: true, indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } }
+      const existing = mergedMap.get(key);
+      existing.VALOARE += sale.VALOARE;
+      existing.CANTITATE += sale.CANTITATE;
+      existing.CLIENTI = Math.max(existing.CLIENTI, sale.CLIENTI);
+    }
+    
+    processed++;
+  }
+  
+  mergedData = Array.from(mergedMap.values());
+  
+  showProcessing(95, 'Finalizare procesare...');
+  
+  // Populate filters
+  populateFilters();
+  
+  // Apply initial filters and render
+  applyFilters();
+  
+  showProcessing(100, 'Procesare completă!');
+  
+  setTimeout(() => {
+    hideProcessing();
+    // Stop matrix rain after all processing is complete
+    matrixInstances.main.stop();
+    document.getElementById('matrixCanvas').style.display = 'none';
+  }, 1000);
+}
+
+// Normalize Value Helper
+function normalizeValue(val) {
+  if (val === null || val === undefined || val === '' || val === '#null' || val === 'null') {
+    return 'nu e disponibil';
+  }
+  return String(val).trim();
+}
+
+// Populate Filters
+function populateFilters() {
+  // Year filter
+  const years = [...new Set(mergedData.map(d => d.AN))].sort();
+  const yearSelect = document.getElementById('filterYear');
+  yearSelect.innerHTML = '<option value="all">Toate</option>';
+  years.forEach(year => {
+    yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+  });
+  
+  // PM filter
+  const pms = [...new Set(mergedData.map(d => d.PM))].sort();
+  const pmSelect = document.getElementById('filterPM');
+  pmSelect.innerHTML = '<option value="all">Toate</option>';
+  pms.forEach(pm => {
+    pmSelect.innerHTML += `<option value="${pm}">${pm}</option>`;
+  });
+}
+
+// Apply Filters
+function applyFilters() {
+  const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+  const yearFilter = document.getElementById('filterYear').value;
+  const pmFilter = document.getElementById('filterPM').value;
+  const profitMin = parseFloat(document.getElementById('profitMin').value);
+  const profitMax = parseFloat(document.getElementById('profitMax').value);
+  const sortCriteria = document.getElementById('topCriteria').value;
+  
+  // Filter data
+  filteredData = mergedData.filter(item => {
+    // Search filter (searches all fields)
+    if (searchQuery) {
+      const searchableText = `
+        ${item.COD} 
+        ${item.DENUMIRE} 
+        ${item.PM} 
+        ${item.FURNIZOR_EXT}
+      `.toLowerCase();
+      
+      if (!searchableText.includes(searchQuery)) {
+        return false;
+      }
+    }
+    
+    // Year filter
+    if (yearFilter !== 'all' && item.AN !== yearFilter) {
+      return false;
+    }
+    
+    // PM filter
+    if (pmFilter !== 'all' && item.PM !== pmFilter) {
+      return false;
+    }
+    
+    // Profit filter (exclude 'nu e disponibil' from profit filtering)
+    if (item.PROFIT_BRUT !== 'nu e disponibil') {
+      const profit = parseFloat(item.PROFIT_BRUT);
+      if (profit < profitMin || profit > profitMax) {
+        return false;
+      }
+    } else if (profitMin > 0) {
+      // Exclude items with no profit data if minimum profit is set
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Sort data
+  switch (sortCriteria) {
+    case 'valoare':
+      filteredData.sort((a, b) => b.VALOARE - a.VALOARE);
+      break;
+    case 'cantitate':
+      filteredData.sort((a, b) => b.CANTITATE - a.CANTITATE);
+      break;
+    case 'clienti':
+      filteredData.sort((a, b) => b.CLIENTI - a.CLIENTI);
+      break;
+    case 'profit':
+      filteredData.sort((a, b) => {
+        const profitA = a.PROFIT_BRUT === 'nu e disponibil' ? -1 : parseFloat(a.PROFIT_BRUT);
+        const profitB = b.PROFIT_BRUT === 'nu e disponibil' ? -1 : parseFloat(b.PROFIT_BRUT);
+        return profitB - profitA;
       });
+      break;
+  }
+  
+  // Reset to first page
+  currentPage = 1;
+  
+  // Update display
+  renderTable();
+  renderCharts();
+  updateStats();
+}
+
+// Update Profit Range Display
+function updateProfitRange() {
+  const min = document.getElementById('profitMin').value;
+  const max = document.getElementById('profitMax').value;
+  document.getElementById('profitRange').textContent = `${min}% - ${max}%`;
+  
+  // Apply filters with debounce
+  debounce(applyFilters, 300)();
+}
+
+// Render Table
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const pageData = filteredData.slice(startIndex, endIndex);
+  
+  tbody.innerHTML = '';
+  
+  pageData.forEach((item, index) => {
+    const row = document.createElement('tr');
+    row.className = 'border-b border-green-500/10 hover:bg-green-500/5 transition-colors';
+    
+    const profitClass = item.PROFIT_BRUT === 'nu e disponibil' ? 'text-gray-500' :
+                       item.PROFIT_BRUT > 30 ? 'text-green-400' :
+                       item.PROFIT_BRUT > 20 ? 'text-yellow-400' : 'text-red-400';
+    
+    row.innerHTML = `
+      <td class="p-2 text-green-300">${startIndex + index + 1}</td>
+      <td class="p-2 text-green-200 font-mono">${item.COD}</td>
+      <td class="p-2 text-green-100">${item.DENUMIRE}</td>
+      <td class="p-2 text-green-300">${item.PM}</td>
+      <td class="p-2 text-right text-green-400 font-mono">${formatNumber(item.VALOARE)}</td>
+      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.CANTITATE, 0)}</td>
+      <td class="p-2 text-right text-green-300 font-mono">${item.CLIENTI}</td>
+      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.PRET_VANZARE)}</td>
+      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.COST)}</td>
+      <td class="p-2 text-right ${profitClass} font-mono font-bold">
+        ${item.PROFIT_BRUT === 'nu e disponibil' ? 'N/A' : item.PROFIT_BRUT.toFixed(2) + '%'}
+      </td>
+      <td class="p-2 text-green-200">${item.FURNIZOR_EXT}</td>
+      <td class="p-2 text-center">
+        ${item.URL && item.URL !== 'nu e disponibil' ? 
+          `<img data-url="${item.URL}" 
+                class="lazy-image w-16 h-16 object-contain rounded cursor-pointer hover:scale-150 transition-transform" 
+                onclick="window.open('${item.URL}', '_blank')"
+                alt="Loading...">` : 
+          '<span class="text-gray-500">N/A</span>'}
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+  
+  // Lazy load images
+  lazyLoadImages();
+  
+  // Update pagination
+  updatePagination();
+  
+  // Update table info
+  document.getElementById('tableInfo').textContent = `Afișare ${startIndex + 1}-${Math.min(endIndex, filteredData.length)} din ${filteredData.length}`;
+}
+
+// Lazy Load Images
+async function lazyLoadImages() {
+  const images = document.querySelectorAll('.lazy-image[data-url]');
+  
+  for (const img of images) {
+    const url = img.dataset.url;
+    
+    // Check cache first
+    if (imageCache.has(url)) {
+      img.src = imageCache.get(url);
+      img.classList.add('loaded');
+      continue;
+    }
+    
+    // Load image
+    try {
+      const response = await fetch(url);
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const ogImage = doc.querySelector('meta[property="og:image"]')?.content;
+      
+      if (ogImage) {
+        imageCache.set(url, ogImage);
+        img.src = ogImage;
+        img.classList.add('loaded');
+      } else {
+        img.alt = 'No image';
+        img.classList.add('loaded');
+      }
+    } catch (error) {
+      img.alt = 'Error';
+      img.classList.add('loaded');
     }
   }
+}
+
+// Update Pagination
+function updatePagination() {
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  
+  document.getElementById('pageInfo').textContent = `Pagina ${currentPage} din ${totalPages}`;
+  
+  document.getElementById('prevPage').disabled = currentPage === 1;
+  document.getElementById('nextPage').disabled = currentPage === totalPages;
+}
+
+// Change Page
+function changePage(direction) {
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const newPage = currentPage + direction;
+  
+  if (newPage >= 1 && newPage <= totalPages) {
+    currentPage = newPage;
+    renderTable();
+  }
+}
+
+// Render Charts
+function renderCharts() {
+  renderDistributionChart();
+  renderProfitabilityChart();
+}
+
+// Distribution Chart
+function renderDistributionChart() {
+  const ctx = document.getElementById('distributionChart').getContext('2d');
+  
+  if (distributionChart) {
+    distributionChart.destroy();
+  }
+  
+  const pmFilter = document.getElementById('filterPM').value;
+  
+  if (pmFilter === 'all') {
+    // Pie chart for PM distribution
+    const pmData = {};
+    filteredData.forEach(item => {
+      pmData[item.PM] = (pmData[item.PM] || 0) + item.VALOARE;
+    });
+    
+    distributionChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(pmData),
+        datasets: [{
+          data: Object.values(pmData),
+          backgroundColor: [
+            '#10b981', '#059669', '#047857', '#065f46',
+            '#064e3b', '#14b8a6', '#0d9488', '#0f766e'
+          ],
+          borderColor: '#111827',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#10b981',
+              font: {
+                family: 'monospace'
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
+    // Bar chart for top products
+    const topProducts = filteredData.slice(0, 10);
+    
+    distributionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topProducts.map(p => p.COD),
+        datasets: [{
+          label: 'Valoare',
+          data: topProducts.map(p => p.VALOARE),
+          backgroundColor: 'rgba(16, 185, 129, 0.5)',
+          borderColor: '#10b981',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: { color: '#10b981' },
+            grid: { color: 'rgba(16, 185, 129, 0.1)' }
+          },
+          y: {
+            ticks: { color: '#10b981' },
+            grid: { color: 'rgba(16, 185, 129, 0.1)' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#10b981' }
+          }
+        }
+      }
+    });
+  }
+}
+
+// Profitability Chart
+function renderProfitabilityChart() {
+  const ctx = document.getElementById('profitabilityChart').getContext('2d');
+  
+  if (profitabilityChart) {
+    profitabilityChart.destroy();
+  }
+  
+  // Group products by profit ranges
+  const profitRanges = {
+    '< 0%': 0,
+    '0-10%': 0,
+    '10-20%': 0,
+    '20-30%': 0,
+    '> 30%': 0,
+    'N/A': 0
+  };
+  
+  filteredData.forEach(item => {
+    if (item.PROFIT_BRUT === 'nu e disponibil') {
+      profitRanges['N/A']++;
+    } else {
+      const profit = parseFloat(item.PROFIT_BRUT);
+      if (profit < 0) profitRanges['< 0%']++;
+      else if (profit <= 10) profitRanges['0-10%']++;
+      else if (profit <= 20) profitRanges['10-20%']++;
+      else if (profit <= 30) profitRanges['20-30%']++;
+      else profitRanges['> 30%']++;
+    }
+  });
+  
+  profitabilityChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(profitRanges),
+      datasets: [{
+        label: 'Număr Produse',
+        data: Object.values(profitRanges),
+        backgroundColor: [
+          '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981', '#6b7280'
+        ],
+        borderColor: '#111827',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          ticks: { color: '#10b981' },
+          grid: { color: 'rgba(16, 185, 129, 0.1)' }
+        },
+        y: {
+          ticks: { color: '#10b981' },
+          grid: { color: 'rgba(16, 185, 129, 0.1)' }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: '#10b981' }
+        }
+      }
+    }
+  });
+}
+
+// Update Statistics
+function updateStats() {
+  const totalProducts = filteredData.length;
+  const totalValue = filteredData.reduce((sum, item) => sum + item.VALOARE, 0);
+  
+  const validProfits = filteredData
+    .filter(item => item.PROFIT_BRUT !== 'nu e disponibil')
+    .map(item => parseFloat(item.PROFIT_BRUT));
+  
+  const avgProfit = validProfits.length > 0 ? 
+    validProfits.reduce((sum, p) => sum + p, 0) / validProfits.length : 0;
+  
+  document.getElementById('statTotal').textContent = formatNumber(totalProducts, 0);
+  document.getElementById('statValue').textContent = formatNumber(totalValue);
+  document.getElementById('statProfit').textContent = avgProfit.toFixed(2) + '%';
+}
+
+// Format Number Helper
+function formatNumber(num, decimals = 2) {
+  if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+  return num.toLocaleString('ro-RO', { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
+}
+
+// Debounce Helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Processing Overlay
+function showProcessing(progress, text) {
+  const overlay = document.getElementById('processingOverlay');
+  const progressBar = document.getElementById('processingProgress');
+  const progressText = document.getElementById('processingText');
+  const details = document.getElementById('processingDetails');
+  
+  overlay.classList.remove('hidden');
+  
+  if (!matrixInstances.processing.running) {
+    matrixInstances.processing.start();
+  }
+  
+  progressBar.style.width = `${progress}%`;
+  progressText.textContent = text;
+  
+  // Add details
+  if (progress < 100) {
+    details.innerHTML = `
+      <div>› Progress: ${progress.toFixed(0)}%</div>
+      <div>› Status: ${text}</div>
+      <div>› Time: ${new Date().toLocaleTimeString('ro-RO')}</div>
+    `;
+  }
+}
+
+function hideProcessing() {
+  setTimeout(() => {
+    document.getElementById('processingOverlay').classList.add('hidden');
+    matrixInstances.processing.stop();
+  }, 500);
+}
 </script>
 
 </body>
