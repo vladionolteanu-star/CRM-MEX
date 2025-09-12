@@ -15,7 +15,6 @@
   <script async defer src="https://apis.google.com/js/api.js"></script>
 
   <style>
-    /* Matrix Rain Styles */
     .matrix-canvas {
       position: fixed;
       top: 0;
@@ -26,7 +25,6 @@
       z-index: 9998;
     }
 
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: #1f2937; }
     ::-webkit-scrollbar-thumb {
@@ -37,7 +35,6 @@
       background: linear-gradient(135deg, #059669, #047857);
     }
 
-    /* Gradient Animations */
     @keyframes gradient {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
@@ -50,14 +47,12 @@
       animation: gradient 15s ease infinite;
     }
 
-    /* Glass Effect */
     .glass {
       background: rgba(17, 24, 39, 0.7);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
-    /* Range Slider Custom */
     .range-slider {
       -webkit-appearance: none;
       appearance: none;
@@ -96,7 +91,6 @@
       cursor: pointer;
     }
 
-    /* Shake Animation */
     @keyframes shake {
       0%,100% { transform: translateX(0); }
       25% { transform: translateX(-10px); }
@@ -104,7 +98,6 @@
     }
     .shake { animation: shake 0.5s; }
 
-    /* Loading Spinner */
     .spinner {
       border: 3px solid rgba(16,185,129,0.1);
       border-radius: 50%;
@@ -118,7 +111,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Image Lazy Loading */
     .lazy-image {
       filter: blur(5px);
       transition: filter 0.3s;
@@ -129,7 +121,6 @@
       opacity: 1;
     }
 
-    /* Responsive tweaks */
     @media (max-width: 900px) {
       .w-80 { width: 100% !important; position: relative; z-index: 20; }
     }
@@ -403,15 +394,12 @@
 </div>
 
 <script>
-/* ====================
-   Config & Globals
-   ==================== */
+/* Config & Globals */
 const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno';
 const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-/* Global state */
 let tokenClient;
 let accessToken = null;
 let productsData = [];
@@ -426,10 +414,9 @@ let currentUploadType = null;
 let imageCache = new Map();
 let matrixInstances = {};
 let debouncedApplyFilters;
+let isProcessing = false;
 
-/* ====================
-   Matrix Rain Class
-   ==================== */
+/* Matrix Rain Class */
 class MatrixRain {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
@@ -493,13 +480,9 @@ class MatrixRain {
 matrixInstances.login = new MatrixRain('loginMatrixCanvas');
 matrixInstances.processing = new MatrixRain('processingMatrixCanvas');
 matrixInstances.main = new MatrixRain('matrixCanvas');
-
-/* Start login matrix immediately */
 matrixInstances.login?.start();
 
-/* ====================
-   Password / Login
-   ==================== */
+/* Password / Login */
 function checkPassword() {
   const input = document.getElementById('passwordInput');
   if (!input) return;
@@ -530,9 +513,7 @@ document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
 document.getElementById('loginBtn')?.addEventListener('click', checkPassword);
 document.getElementById('passwordInput')?.focus();
 
-/* ====================
-   Initialize App
-   ==================== */
+/* Initialize App */
 function initializeApp() {
   console.info('Initializing app...');
   initializeGoogleAPI();
@@ -541,9 +522,7 @@ function initializeApp() {
   debouncedApplyFilters = debounce(applyFilters, 300);
 }
 
-/* ====================
-   Initialize Google API
-   ==================== */
+/* Initialize Google API */
 function initializeGoogleAPI() {
   try {
     gapi.load('client:picker', async () => {
@@ -568,10 +547,15 @@ function initializeGoogleAPI() {
   }
 }
 
-/* ====================
-   Event Listeners Setup
-   ==================== */
+/* Event Listeners Setup */
 function setupEventListeners() {
+  const debouncedProcessLocalFile = debounce((event, type) => {
+    if (isProcessing) return;
+    const file = event.target.files[0];
+    if (file) processFile(file, type);
+    event.target.value = '';
+  }, 300);
+
   document.getElementById('uploadProducts')?.addEventListener('click', () => openUploadModal('products'));
   document.getElementById('uploadSales')?.addEventListener('click', () => openUploadModal('sales'));
 
@@ -579,8 +563,8 @@ function setupEventListeners() {
   document.getElementById('chooseLocal')?.addEventListener('click', handleLocalUpload);
   document.getElementById('cancelUpload')?.addEventListener('click', closeUploadModal);
 
-  document.getElementById('localProductsFile')?.addEventListener('change', (e) => processLocalFile(e, 'products'));
-  document.getElementById('localSalesFile')?.addEventListener('change', (e) => processLocalFile(e, 'sales'));
+  document.getElementById('localProductsFile')?.addEventListener('change', (e) => debouncedProcessLocalFile(e, 'products'));
+  document.getElementById('localSalesFile')?.addEventListener('change', (e) => debouncedProcessLocalFile(e, 'sales'));
 
   document.getElementById('searchInput')?.addEventListener('input', debouncedApplyFilters);
   document.getElementById('filterYear')?.addEventListener('change', debouncedApplyFilters);
@@ -594,17 +578,14 @@ function setupEventListeners() {
   document.getElementById('nextPage')?.addEventListener('click', () => changePage(1));
 }
 
-/* ====================
-   Filters Initialization
-   ==================== */
+/* Filters Initialization */
 function setupFilters() {
   // Populated when data is loaded
 }
 
-/* ====================
-   Upload Modal Management
-   ==================== */
+/* Upload Modal Management */
 function openUploadModal(type) {
+  if (isProcessing) return;
   currentUploadType = type;
   document.getElementById('uploadModal')?.classList.remove('hidden');
 }
@@ -614,10 +595,9 @@ function closeUploadModal() {
   currentUploadType = null;
 }
 
-/* ====================
-   Google Drive Handler
-   ==================== */
+/* Google Drive Handler */
 function handleGoogleDrive() {
+  if (isProcessing) return;
   closeUploadModal();
   if (!tokenClient) initializeGoogleAPI();
 
@@ -700,10 +680,9 @@ async function pickerCallback(data) {
   }
 }
 
-/* ====================
-   Local Upload Handlers
-   ==================== */
+/* Local Upload Handlers */
 function handleLocalUpload() {
+  if (isProcessing) return;
   closeUploadModal();
   if (currentUploadType === 'products') {
     document.getElementById('localProductsFile')?.click();
@@ -712,20 +691,21 @@ function handleLocalUpload() {
   }
 }
 
-function processLocalFile(event, type) {
-  const file = event.target.files[0];
-  if (file) processFile(file, type);
-  event.target.value = '';
-}
-
-/* ====================
-   File Processing
-   ==================== */
+/* File Processing */
 async function processFile(file, type) {
+  if (isProcessing) {
+    console.warn(`Processing already in progress, ignoring ${file.name}`);
+    return;
+  }
+  isProcessing = true;
   try {
+    console.log(`Processing file: ${file.name}, type: ${type}`);
     document.getElementById('matrixCanvas').style.display = 'block';
     matrixInstances.main?.start();
     showProcessing(0, `Încărcare ${type === 'products' ? 'produse' : 'vânzări'}...`);
+
+    if (type === 'products') productsData = [];
+    else salesData = [];
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -767,6 +747,8 @@ async function processFile(file, type) {
         hideProcessing();
         matrixInstances.main?.stop();
         document.getElementById('matrixCanvas').style.display = 'none';
+      } finally {
+        isProcessing = false;
       }
     };
 
@@ -777,12 +759,11 @@ async function processFile(file, type) {
     hideProcessing();
     matrixInstances.main?.stop();
     document.getElementById('matrixCanvas').style.display = 'none';
+    isProcessing = false;
   }
 }
 
-/* ====================
-   Process Products Data
-   ==================== */
+/* Process Products Data */
 async function processProducts(data) {
   showProcessing(50, 'Procesare produse...');
   productsData = [];
@@ -816,9 +797,7 @@ async function processProducts(data) {
   }
 }
 
-/* ====================
-   Process Sales Data
-   ==================== */
+/* Process Sales Data */
 async function processSales(data) {
   showProcessing(50, 'Procesare vânzări...');
   salesData = [];
@@ -849,12 +828,11 @@ async function processSales(data) {
   }
 }
 
-/* ====================
-   Merge Data
-   ==================== */
+/* Merge Data */
 async function mergeData() {
   showProcessing(75, 'Combinare date produse și vânzări...');
   try {
+    console.log('Merging data... Products:', productsData.length, 'Sales:', salesData.length);
     const productsMap = new Map(productsData.map(p => [String(p.COD).trim(), p]));
     const mergedMap = new Map();
     let processed = 0;
@@ -902,6 +880,7 @@ async function mergeData() {
     }
 
     mergedData = Array.from(mergedMap.values());
+    console.log('Merged data:', mergedData.length, 'records');
     showProcessing(95, 'Finalizare procesare...');
 
     populateFilters();
@@ -923,9 +902,7 @@ async function mergeData() {
   }
 }
 
-/* ====================
-   Helpers + UI Logic
-   ==================== */
+/* Helpers + UI Logic */
 function normalizeValue(val) {
   if (val == null || String(val).toLowerCase() === '#null' || String(val).toLowerCase() === 'null' || String(val).trim() === '') {
     return 'nu e disponibil';
@@ -949,6 +926,8 @@ function populateFilters() {
 
   const pms = Array.from(pmSet).sort();
   pmSelect.innerHTML = '<option value="all">Toate</option>' + pms.map(pm => `<option value="${pm}">${pm}</option>`).join('');
+
+  console.log('Filters populated:', years.length, 'years,', pms.length, 'PMs');
 }
 
 function applyFilters() {
@@ -985,6 +964,7 @@ function applyFilters() {
       }
     });
 
+    console.log('Filtered data:', filteredData.length, 'records');
     currentPage = 1;
     renderTable();
     renderCharts();
@@ -1003,11 +983,16 @@ function updateProfitRange() {
 
 function renderTable() {
   const tbody = document.getElementById('tableBody');
-  if (!tbody) return;
+  if (!tbody) {
+    console.error('Table body not found');
+    return;
+  }
 
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const pageData = filteredData.slice(startIndex, endIndex);
+
+  console.log('Rendering table with', pageData.length, 'rows for page', currentPage);
 
   tbody.innerHTML = pageData.map((item, index) => {
     const profitClass = item.PROFIT_BRUT === 'nu e disponibil' ? 'text-gray-500' :
@@ -1253,6 +1238,7 @@ function hideProcessing() {
   setTimeout(() => {
     document.getElementById('processingOverlay')?.classList.add('hidden');
     matrixInstances.processing?.stop();
+    isProcessing = false;
   }, 300);
 }
 
