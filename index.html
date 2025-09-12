@@ -6,14 +6,73 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #matrixCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .login-content {
+      position: relative;
+      z-index: 10;
+    }
+    #processingMatrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      display: none;
+    }
+    #processingContent {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+      text-align: center;
+    }
+  </style>
 </head>
 <body class="bg-gray-100">
 
-<div id="passwordOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-lg shadow-lg">
-    <h2 class="text-lg font-bold mb-4">Introdu Parola</h2>
-    <input type="password" id="passwordInput" class="w-full p-2 border border-gray-300 rounded mb-4">
-    <button onclick="checkPassword()" class="w-full bg-blue-600 text-white py-2 rounded">Accesează</button>
+<!-- Matrix Rain pentru procesare -->
+<div id="processingMatrix">
+  <canvas id="processingMatrixCanvas"></canvas>
+  <div id="processingContent">
+    <div class="bg-black/50 backdrop-blur-sm p-8 rounded-lg border border-green-500/30">
+      <h2 class="text-2xl font-bold text-green-400 mb-4 font-mono">PROCESARE DATE</h2>
+      <div class="w-64 bg-gray-800 rounded-full h-4 overflow-hidden border border-green-500/30">
+        <div id="processingProgress" class="h-4 bg-gradient-to-r from-green-600 to-green-400 w-0 transition-all duration-300"></div>
+      </div>
+      <p class="text-green-400 mt-4 font-mono text-sm" id="processingText">Inițializare...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Ecran de logare cu Matrix Rain -->
+<div id="passwordOverlay" class="fixed inset-0 bg-black flex items-center justify-center z-50">
+  <canvas id="matrixCanvas"></canvas>
+  <div class="login-content bg-black/80 backdrop-blur-md p-8 rounded-lg shadow-2xl border border-green-500/30">
+    <h2 class="text-2xl font-bold mb-6 text-green-400 font-mono text-center">SISTEM SECURIZAT</h2>
+    <div class="space-y-4">
+      <input type="password" id="passwordInput" 
+        class="w-full p-3 bg-black/50 border border-green-500/50 rounded text-green-400 font-mono placeholder-green-600/50 focus:border-green-400 focus:outline-none"
+        placeholder="INTRODU CODUL">
+      <button onclick="checkPassword()" 
+        class="w-full bg-gradient-to-r from-green-600 to-green-500 text-black font-bold py-3 rounded font-mono hover:from-green-500 hover:to-green-400 transition-all duration-300 shadow-lg">
+        ACCESEAZĂ SISTEMUL
+      </button>
+    </div>
+    <div class="mt-4 text-center">
+      <p class="text-green-500/50 text-xs font-mono">SECURE CONNECTION ESTABLISHED</p>
+    </div>
   </div>
 </div>
 
@@ -113,15 +172,112 @@
 </div>
 
 <script>
+  // ===================== MATRIX RAIN EFFECT =====================
+  class MatrixRain {
+    constructor(canvasId) {
+      this.canvas = document.getElementById(canvasId);
+      this.ctx = this.canvas.getContext('2d');
+      this.fontSize = 14;
+      this.columns = 0;
+      this.drops = [];
+      this.chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+      this.running = false;
+      
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    }
+    
+    resize() {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+      this.columns = Math.floor(this.canvas.width / this.fontSize);
+      this.drops = Array(this.columns).fill(1);
+    }
+    
+    start() {
+      this.running = true;
+      this.draw();
+    }
+    
+    stop() {
+      this.running = false;
+    }
+    
+    draw() {
+      if (!this.running) return;
+      
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      
+      this.ctx.fillStyle = '#0F0';
+      this.ctx.font = this.fontSize + 'px monospace';
+      
+      for (let i = 0; i < this.drops.length; i++) {
+        const text = this.chars[Math.floor(Math.random() * this.chars.length)];
+        this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
+        
+        if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
+          this.drops[i] = 0;
+        }
+        this.drops[i]++;
+      }
+      
+      requestAnimationFrame(() => this.draw());
+    }
+  }
+
+  // Inițializare Matrix Rain pentru login
+  const loginMatrix = new MatrixRain('matrixCanvas');
+  loginMatrix.start();
+  
+  // Matrix Rain pentru procesare
+  const processingMatrix = new MatrixRain('processingMatrixCanvas');
+
+  // Focus automat pe input parolă
+  document.getElementById('passwordInput').focus();
+  
+  // Enter key pentru submit
+  document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') checkPassword();
+  });
+
   function checkPassword() {
     const input = document.getElementById("passwordInput").value;
     if (input === "333") {
-      document.getElementById("passwordOverlay").classList.add("hidden");
-      document.getElementById("mainContent").classList.remove("hidden");
+      // Efect de fade out pentru Matrix
+      const overlay = document.getElementById("passwordOverlay");
+      overlay.style.transition = "opacity 0.5s";
+      overlay.style.opacity = "0";
+      
+      setTimeout(() => {
+        loginMatrix.stop();
+        overlay.classList.add("hidden");
+        document.getElementById("mainContent").classList.remove("hidden");
+      }, 500);
     } else {
-      alert("Parolă greșită!");
+      // Efect de shake pentru input greșit
+      const input = document.getElementById("passwordInput");
+      input.style.animation = "shake 0.5s";
+      input.style.borderColor = "#ef4444";
+      setTimeout(() => {
+        input.style.animation = "";
+        input.style.borderColor = "";
+        input.value = "";
+        input.focus();
+      }, 500);
     }
   }
+
+  // Animație shake
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+  `;
+  document.head.appendChild(style);
 
   // ===================== VARIABILE GLOBALE =====================
   let productsData = [];
@@ -131,6 +287,7 @@
   let pmChart = null;
   let currentPage = 1;
   const rowsPerPage = 100;
+  let hasFirstFile = false;
 
   // ===================== UTILE =====================
   function normalizeValue(val) {
@@ -147,6 +304,27 @@
     prog.style.width = progress + "%";
     if (progress >= 100) {
       setTimeout(() => bar.classList.add("hidden"), 800);
+    }
+  }
+
+  function showProcessingMatrix(progress, text = "Procesare...") {
+    const container = document.getElementById("processingMatrix");
+    const progressBar = document.getElementById("processingProgress");
+    const progressText = document.getElementById("processingText");
+    
+    container.style.display = "block";
+    progressBar.style.width = progress + "%";
+    progressText.textContent = text;
+    
+    if (!processingMatrix.running) {
+      processingMatrix.start();
+    }
+    
+    if (progress >= 100) {
+      setTimeout(() => {
+        container.style.display = "none";
+        processingMatrix.stop();
+      }, 1000);
     }
   }
 
@@ -226,6 +404,7 @@
         }));
         productsMap = {};
         productsData.forEach(p => { productsMap[p.COD] = p; });
+        hasFirstFile = true;
       } else {
         salesData = json.map(row => ({
           AN: normalizeValue(row["AN"]),
@@ -247,7 +426,8 @@
 
   // ===================== MERGE DATASETS =====================
   function mergeDatasets() {
-    updateLoading(0);
+    // Arată Matrix Rain pentru procesare
+    showProcessingMatrix(0, "Inițializare sistem...");
 
     let temp = {};
     let idx = 0;
@@ -273,11 +453,14 @@
         temp[s.COD].CLIENTI += s.CLIENTI;
       }
 
-      updateLoading(Math.floor((idx / salesData.length) * 90));
+      const progress = Math.floor((idx / salesData.length) * 90);
+      showProcessingMatrix(progress, `Procesare date: ${idx} / ${salesData.length} înregistrări`);
 
       if (idx < salesData.length) {
         setTimeout(processBatch, 0);
       } else {
+        showProcessingMatrix(95, "Finalizare calcule...");
+        
         mergedData = Object.values(temp).map(item => {
           const p = productsMap[item.COD] || {};
           const pretVanzare = p.PRET_VANZARE !== "nu e disponibil" && p.PRET_VANZARE ? parseFloat(p.PRET_VANZARE) : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
@@ -293,7 +476,7 @@
           };
         });
 
-        updateLoading(100);
+        showProcessingMatrix(100, "Procesare completă!");
         populateFilters();
         renderTopTable();
       }
