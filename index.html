@@ -5,133 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Analiză Homedit - Produse & Vânzări</title>
 
-  <!-- UI / styles -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- XLSX (parsing .xlsx / .csv), Chart.js, Google APIs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script async defer src="https://apis.google.com/js/api.js"></script>
 
   <style>
-    .matrix-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 9998;
-    }
-
+    .matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; }
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: #1f2937; }
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, #10b981, #059669);
-      border-radius: 5px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(135deg, #059669, #047857);
-    }
-
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .animated-gradient {
-      background: linear-gradient(-45deg, #10b981, #059669, #047857, #065f46);
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite;
-    }
-
-    .glass {
-      background: rgba(17, 24, 39, 0.7);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .range-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-      cursor: pointer;
-      width: 100%;
-    }
-    .range-slider::-webkit-slider-runnable-track {
-      background: linear-gradient(to right, #ef4444, #eab308, #10b981);
-      height: 6px;
-      border-radius: 3px;
-    }
-    .range-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      background: #10b981;
-      height: 20px;
-      width: 20px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      box-shadow: 0 0 10px rgba(16,185,129,0.5);
-      margin-top: -7px;
-    }
-    .range-slider::-moz-range-track {
-      background: linear-gradient(to right, #ef4444, #eab308, #10b981);
-      height: 6px;
-      border-radius: 3px;
-    }
-    .range-slider::-moz-range-thumb {
-      background: #10b981;
-      height: 20px;
-      width: 20px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      box-shadow: 0 0 10px rgba(16,185,129,0.5);
-      cursor: pointer;
-    }
-
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #10b981, #059669); border-radius: 5px; }
+    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, #059669, #047857); }
+    @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .animated-gradient { background: linear-gradient(-45deg, #10b981, #059669, #047857, #065f46); background-size: 400% 400%; animation: gradient 15s ease infinite; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .range-slider { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; width: 100%; }
+    .range-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, #ef4444, #eab308, #10b981); height: 6px; border-radius: 3px; }
+    .range-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; background: #10b981; height: 20px; width: 20px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(16,185,129,0.5); margin-top: -7px; }
+    .range-slider::-moz-range-track { background: linear-gradient(to right, #ef4444, #eab308, #10b981); height: 6px; border-radius: 3px; }
+    .range-slider::-moz-range-thumb { background: #10b981; height: 20px; width: 20px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(16,185,129,0.5); cursor: pointer; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
     .shake { animation: shake 0.5s; }
-
-    .spinner {
-      border: 3px solid rgba(16,185,129,0.1);
-      border-radius: 50%;
-      border-top: 3px solid #10b981;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .lazy-image {
-      filter: blur(5px);
-      transition: filter 0.3s;
-      opacity: 0.9;
-    }
-    .lazy-image.loaded {
-      filter: blur(0);
-      opacity: 1;
-    }
-
-    @media (max-width: 900px) {
-      .w-80 { width: 100% !important; position: relative; z-index: 20; }
-    }
+    .spinner { border: 3px solid rgba(16,185,129,0.1); border-radius: 50%; border-top: 3px solid #10b981; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .lazy-image { filter: blur(5px); transition: filter 0.3s; opacity: 0.9; }
+    .lazy-image.loaded { filter: blur(0); opacity: 1; }
+    @media (max-width: 900px) { .w-80 { width: 100% !important; position: relative; z-index: 20; } }
   </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
 
-<!-- Matrix Rain Canvas (Hidden initially) -->
 <canvas id="matrixCanvas" class="matrix-canvas" style="display: none;"></canvas>
 
-<!-- Processing Overlay with Matrix -->
 <div id="processingOverlay" class="fixed inset-0 bg-black/90 z-50 hidden">
   <canvas id="processingMatrixCanvas" class="matrix-canvas"></canvas>
   <div class="absolute inset-0 flex items-center justify-center z-50">
@@ -148,7 +54,6 @@
   </div>
 </div>
 
-<!-- Login Screen -->
 <div id="loginScreen" class="fixed inset-0 bg-black flex items-center justify-center z-50">
   <canvas id="loginMatrixCanvas" class="matrix-canvas"></canvas>
   <div class="glass p-8 rounded-2xl max-w-md w-full mx-4 relative z-10">
@@ -172,22 +77,16 @@
   </div>
 </div>
 
-<!-- Main Dashboard -->
 <div id="mainDashboard" class="hidden">
   <div class="flex h-screen">
-    <!-- Sidebar -->
     <div class="w-80 glass border-r border-green-500/20 flex flex-col">
       <div class="p-4 border-b border-green-500/20">
         <h2 class="text-xl font-bold text-green-400 font-mono">CONTROL PANEL</h2>
         <p class="text-xs text-green-500/70 mt-1">Analiză Homedit</p>
       </div>
-
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <!-- File Upload Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">ÎNCĂRCARE DATE</h3>
-
-          <!-- Products Upload -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-2">Fișier Produse</label>
             <button id="uploadProducts" class="w-full text-xs bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2 px-3 rounded-lg hover:from-blue-500 hover:to-blue-400 transition-all duration-200">
@@ -200,8 +99,6 @@
             </button>
             <input type="file" id="localProductsFile" accept=".csv,.xlsx" class="hidden">
           </div>
-
-          <!-- Sales Upload -->
           <div>
             <label class="block text-xs text-green-300 mb-2">Fișier Vânzări</label>
             <button id="uploadSales" class="w-full text-xs bg-gradient-to-r from-green-600 to-green-500 text-white py-2 px-3 rounded-lg hover:from-green-500 hover:to-green-400 transition-all duration-200">
@@ -215,36 +112,26 @@
             <input type="file" id="localSalesFile" accept=".csv,.xlsx" class="hidden">
           </div>
         </div>
-
-        <!-- Search Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">CĂUTARE</h3>
           <input type="text" id="searchInput"
             placeholder="Caută în toate câmpurile..."
             class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300 placeholder-green-600/50 focus:border-green-400 focus:outline-none">
         </div>
-
-        <!-- Filters Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">FILTRE</h3>
-
-          <!-- Year Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-1">An</label>
             <select id="filterYear" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
               <option value="all">Toate</option>
             </select>
           </div>
-
-          <!-- PM Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-1">Product Manager</label>
             <select id="filterPM" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
               <option value="all">Toate</option>
             </select>
           </div>
-
-          <!-- Profitability Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-2">
               Profitabilitate: <span id="profitRange" class="text-green-400">0% - 100%</span>
@@ -254,8 +141,6 @@
               <input type="range" id="profitMax" min="0" max="100" value="100" class="range-slider w-full">
             </div>
           </div>
-
-          <!-- Sort Criteria -->
           <div>
             <label class="block text-xs text-green-300 mb-1">Criteriu Sortare</label>
             <select id="topCriteria" class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300">
@@ -266,8 +151,6 @@
             </select>
           </div>
         </div>
-
-        <!-- Stats Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">STATISTICI</h3>
           <div id="stats" class="space-y-2 text-xs">
@@ -287,10 +170,7 @@
         </div>
       </div>
     </div>
-
-    <!-- Main Content -->
     <div class="flex-1 flex flex-col">
-      <!-- Header -->
       <div class="glass border-b border-green-500/20 p-4">
         <div class="flex items-center justify-between">
           <div>
@@ -302,16 +182,12 @@
           </div>
         </div>
       </div>
-
-      <!-- Content Area -->
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <!-- Data Table -->
         <div class="glass rounded-xl p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-green-400">ANALIZA PRODUSE</h2>
             <div id="tableInfo" class="text-sm text-green-300"></div>
           </div>
-
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -333,8 +209,6 @@
               <tbody id="tableBody"></tbody>
             </table>
           </div>
-
-          <!-- Pagination -->
           <div id="pagination" class="mt-4 flex items-center justify-between">
             <button id="prevPage" class="px-4 py-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               ← Anterior
@@ -345,18 +219,13 @@
             </button>
           </div>
         </div>
-
-        <!-- Charts Container -->
         <div class="grid grid-cols-2 gap-4">
-          <!-- Distribution Chart -->
           <div class="glass rounded-xl p-4">
             <h2 class="text-lg font-bold text-green-400 mb-4">DISTRIBUȚIE VALOARE</h2>
             <div style="height:300px">
               <canvas id="distributionChart"></canvas>
             </div>
           </div>
-
-          <!-- Profitability Chart -->
           <div class="glass rounded-xl p-4">
             <h2 class="text-lg font-bold text-green-400 mb-4">ANALIZĂ PROFITABILITATE</h2>
             <div style="height:300px">
@@ -369,7 +238,6 @@
   </div>
 </div>
 
-<!-- Upload Source Modal -->
 <div id="uploadModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
   <div class="glass p-6 rounded-xl max-w-md w-full mx-4">
     <h3 class="text-lg font-bold text-green-400 mb-4">Alege Sursa Fișierului</h3>
@@ -394,7 +262,6 @@
 </div>
 
 <script>
-/* Config & Globals */
 const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno';
 const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
@@ -416,25 +283,19 @@ let matrixInstances = {};
 let debouncedApplyFilters;
 let isProcessing = false;
 
-/* Matrix Rain Class */
 class MatrixRain {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
-    if (!this.canvas) {
-      console.warn('Canvas not found:', canvasId);
-      return;
-    }
+    if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     this.fontSize = 14;
     this.columns = 0;
     this.drops = [];
     this.chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
     this.running = false;
-
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
-
   resize() {
     if (!this.canvas) return;
     this.canvas.width = window.innerWidth;
@@ -442,47 +303,35 @@ class MatrixRain {
     this.columns = Math.floor(this.canvas.width / this.fontSize);
     this.drops = Array(this.columns).fill(1);
   }
-
   start() {
     if (!this.canvas || this.running) return;
     this.running = true;
     this.animate();
   }
-
-  stop() {
-    this.running = false;
-  }
-
+  stop() { this.running = false; }
   animate() {
     if (!this.running || !this.ctx) return;
-
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
     this.ctx.fillStyle = '#0F0';
     this.ctx.font = this.fontSize + 'px monospace';
-
     for (let i = 0; i < this.drops.length; i++) {
       const text = this.chars.charAt(Math.floor(Math.random() * this.chars.length));
       this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
-
       if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
         this.drops[i] = 0;
       }
       this.drops[i]++;
     }
-
     requestAnimationFrame(() => this.animate());
   }
 }
 
-/* Initialize Matrix instances */
 matrixInstances.login = new MatrixRain('loginMatrixCanvas');
 matrixInstances.processing = new MatrixRain('processingMatrixCanvas');
 matrixInstances.main = new MatrixRain('matrixCanvas');
 matrixInstances.login?.start();
 
-/* Password / Login */
 function checkPassword() {
   const input = document.getElementById('passwordInput');
   if (!input) return;
@@ -513,7 +362,6 @@ document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
 document.getElementById('loginBtn')?.addEventListener('click', checkPassword);
 document.getElementById('passwordInput')?.focus();
 
-/* Initialize App */
 function initializeApp() {
   console.info('Initializing app...');
   initializeGoogleAPI();
@@ -522,7 +370,6 @@ function initializeApp() {
   debouncedApplyFilters = debounce(applyFilters, 300);
 }
 
-/* Initialize Google API */
 function initializeGoogleAPI() {
   try {
     gapi.load('client:picker', async () => {
@@ -547,45 +394,54 @@ function initializeGoogleAPI() {
   }
 }
 
-/* Event Listeners Setup */
 function setupEventListeners() {
   const debouncedProcessLocalFile = debounce((event, type) => {
-    if (isProcessing) return;
+    if (isProcessing) {
+      console.warn(`Processing in progress, ignoring ${event.target.files[0]?.name}`);
+      return;
+    }
     const file = event.target.files[0];
     if (file) processFile(file, type);
     event.target.value = '';
   }, 300);
 
-  document.getElementById('uploadProducts')?.addEventListener('click', () => openUploadModal('products'));
-  document.getElementById('uploadSales')?.addEventListener('click', () => openUploadModal('sales'));
+  const toggleUploadButtons = (disable) => {
+    document.getElementById('uploadProducts').disabled = disable;
+    document.getElementById('uploadSales').disabled = disable;
+    document.getElementById('chooseGoogleDrive').disabled = disable;
+    document.getElementById('chooseLocal').disabled = disable;
+  };
 
-  document.getElementById('chooseGoogleDrive')?.addEventListener('click', handleGoogleDrive);
-  document.getElementById('chooseLocal')?.addEventListener('click', handleLocalUpload);
+  document.getElementById('uploadProducts')?.addEventListener('click', () => {
+    if (!isProcessing) openUploadModal('products');
+  });
+  document.getElementById('uploadSales')?.addEventListener('click', () => {
+    if (!isProcessing) openUploadModal('sales');
+  });
+  document.getElementById('chooseGoogleDrive')?.addEventListener('click', () => {
+    if (!isProcessing) handleGoogleDrive();
+  });
+  document.getElementById('chooseLocal')?.addEventListener('click', () => {
+    if (!isProcessing) handleLocalUpload();
+  });
   document.getElementById('cancelUpload')?.addEventListener('click', closeUploadModal);
-
   document.getElementById('localProductsFile')?.addEventListener('change', (e) => debouncedProcessLocalFile(e, 'products'));
   document.getElementById('localSalesFile')?.addEventListener('change', (e) => debouncedProcessLocalFile(e, 'sales'));
-
   document.getElementById('searchInput')?.addEventListener('input', debouncedApplyFilters);
   document.getElementById('filterYear')?.addEventListener('change', debouncedApplyFilters);
   document.getElementById('filterPM')?.addEventListener('change', debouncedApplyFilters);
   document.getElementById('topCriteria')?.addEventListener('change', debouncedApplyFilters);
-
   document.getElementById('profitMin')?.addEventListener('input', updateProfitRange);
   document.getElementById('profitMax')?.addEventListener('input', updateProfitRange);
-
   document.getElementById('prevPage')?.addEventListener('click', () => changePage(-1));
   document.getElementById('nextPage')?.addEventListener('click', () => changePage(1));
+
+  window.toggleUploadButtons = toggleUploadButtons;
 }
 
-/* Filters Initialization */
-function setupFilters() {
-  // Populated when data is loaded
-}
+function setupFilters() {}
 
-/* Upload Modal Management */
 function openUploadModal(type) {
-  if (isProcessing) return;
   currentUploadType = type;
   document.getElementById('uploadModal')?.classList.remove('hidden');
 }
@@ -595,12 +451,9 @@ function closeUploadModal() {
   currentUploadType = null;
 }
 
-/* Google Drive Handler */
 function handleGoogleDrive() {
-  if (isProcessing) return;
   closeUploadModal();
   if (!tokenClient) initializeGoogleAPI();
-
   if (!accessToken) {
     const prevCallback = tokenClient.callback;
     tokenClient.callback = (response) => {
@@ -626,21 +479,18 @@ function showGooglePicker() {
   } else {
     buildPicker();
   }
-
   function buildPicker() {
     try {
       const view = new google.picker.DocsView()
         .setParent(FOLDER_ID)
         .setIncludeFolders(false)
         .setMimeTypes('text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-
       const picker = new google.picker.PickerBuilder()
         .addView(view)
         .setOAuthToken(accessToken)
         .setDeveloperKey(API_KEY)
         .setCallback(pickerCallback)
         .build();
-
       picker.setVisible(true);
     } catch (err) {
       console.warn('Error building picker:', err);
@@ -658,7 +508,6 @@ async function pickerCallback(data) {
         fileId: file.id,
         alt: 'media'
       });
-
       let blob;
       if (response.body instanceof Blob) {
         blob = response.body;
@@ -667,7 +516,6 @@ async function pickerCallback(data) {
       } else {
         blob = new Blob([JSON.stringify(response.body)]);
       }
-
       const fileObj = new File([blob], file.name, { type: file.mimeType || 'text/csv' });
       processFile(fileObj, currentUploadType);
     } catch (error) {
@@ -680,9 +528,7 @@ async function pickerCallback(data) {
   }
 }
 
-/* Local Upload Handlers */
 function handleLocalUpload() {
-  if (isProcessing) return;
   closeUploadModal();
   if (currentUploadType === 'products') {
     document.getElementById('localProductsFile')?.click();
@@ -691,13 +537,13 @@ function handleLocalUpload() {
   }
 }
 
-/* File Processing */
 async function processFile(file, type) {
   if (isProcessing) {
-    console.warn(`Processing already in progress, ignoring ${file.name}`);
+    console.warn(`Processing in progress, ignoring ${file.name}`);
     return;
   }
   isProcessing = true;
+  window.toggleUploadButtons(true);
   try {
     console.log(`Processing file: ${file.name}, type: ${type}`);
     document.getElementById('matrixCanvas').style.display = 'block';
@@ -719,13 +565,12 @@ async function processFile(file, type) {
           const text = new TextDecoder('utf-8').decode(e.target.result);
           workbook = XLSX.read(text, { type: 'string' });
         }
-
         if (!workbook?.SheetNames?.length) {
           throw new Error('Fișierul nu conține foi valide.');
         }
-
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        console.log(`Parsed ${type} data:`, jsonData.length, 'rows', jsonData[0]);
 
         showProcessing(40, 'Procesare câmpuri...');
         if (type === 'products') {
@@ -737,6 +582,7 @@ async function processFile(file, type) {
         if (productsData.length > 0 && salesData.length > 0) {
           await mergeData();
         } else {
+          console.log('Waiting for both files. Products:', productsData.length, 'Sales:', salesData.length);
           hideProcessing();
           matrixInstances.main?.stop();
           document.getElementById('matrixCanvas').style.display = 'none';
@@ -749,9 +595,9 @@ async function processFile(file, type) {
         document.getElementById('matrixCanvas').style.display = 'none';
       } finally {
         isProcessing = false;
+        window.toggleUploadButtons(false);
       }
     };
-
     reader.readAsArrayBuffer(file);
   } catch (err) {
     console.error('processFile failed:', err);
@@ -760,10 +606,10 @@ async function processFile(file, type) {
     matrixInstances.main?.stop();
     document.getElementById('matrixCanvas').style.display = 'none';
     isProcessing = false;
+    window.toggleUploadButtons(false);
   }
 }
 
-/* Process Products Data */
 async function processProducts(data) {
   showProcessing(50, 'Procesare produse...');
   productsData = [];
@@ -775,8 +621,8 @@ async function processProducts(data) {
         showProcessing(progress, `Procesare produse: ${index}/${data.length}`);
         await new Promise(resolve => setTimeout(resolve, 0));
       }
-
       const cod = normalizeValue(row['COD ARTICOL'] || row['COD'] || row['COD_ARTICOL']);
+      if (!cod || cod === 'nu e disponibil') continue;
       productsData.push({
         PM: normalizeValue(row['PM'] || row['Product Manager'] || row['PM_NAME']),
         COD: cod,
@@ -790,14 +636,13 @@ async function processProducts(data) {
       });
     }
     showProcessing(70, 'Produse procesate cu succes!');
-    console.info(`Produse procesate: ${productsData.length}`);
+    console.info(`Produse procesate: ${productsData.length}`, productsData[0]);
   } catch (err) {
     console.error('processProducts failed:', err);
     throw err;
   }
 }
 
-/* Process Sales Data */
 async function processSales(data) {
   showProcessing(50, 'Procesare vânzări...');
   salesData = [];
@@ -809,10 +654,11 @@ async function processSales(data) {
         showProcessing(progress, `Procesare vânzări: ${index}/${data.length}`);
         await new Promise(resolve => setTimeout(resolve, 0));
       }
-
+      const cod = normalizeValue(row['COD ARTICOL'] || row['COD'] || row['COD_ARTICOL']);
+      if (!cod || cod === 'nu e disponibil') continue;
       salesData.push({
         AN: normalizeValue(row['AN'] || row['An'] || row['Year']),
-        COD: normalizeValue(row['COD ARTICOL'] || row['COD'] || row['COD_ARTICOL']),
+        COD: cod,
         DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL'] || row['DENUMIRE']),
         PM: normalizeValue(row['PM'] || row['Product Manager']),
         VALOARE: parseFloat(row['VALOARE FACTURATA'] || row['VALOARE'] || row['VAL']) || 0,
@@ -821,14 +667,13 @@ async function processSales(data) {
       });
     }
     showProcessing(70, 'Vânzări procesate cu succes!');
-    console.info(`Vânzări procesate: ${salesData.length}`);
+    console.info(`Vânzări procesate: ${salesData.length}`, salesData[0]);
   } catch (err) {
     console.error('processSales failed:', err);
     throw err;
   }
 }
 
-/* Merge Data */
 async function mergeData() {
   showProcessing(75, 'Combinare date produse și vânzări...');
   try {
@@ -844,17 +689,14 @@ async function mergeData() {
         showProcessing(progress, `Combinare date: ${processed}/${total}`);
         await new Promise(resolve => setTimeout(resolve, 0));
       }
-
       const saleCode = String(sale.COD).trim();
       const saleYear = String(sale.AN).trim();
       const key = `${saleCode}_${saleYear}`;
-
       if (!mergedMap.has(key)) {
         const product = productsMap.get(saleCode) || {};
         const pretVanzare = product.PRET_VANZARE || (sale.CANTITATE > 0 ? sale.VALOARE / sale.CANTITATE : 0);
         const cost = product.COST || 0;
         const profitBrut = pretVanzare > 0 ? ((pretVanzare - cost) / pretVanzare * 100) : (cost === 0 ? 100 : 0);
-
         mergedMap.set(key, {
           COD: sale.COD,
           DENUMIRE: sale.DENUMIRE || product.DENUMIRE || 'nu e disponibil',
@@ -875,25 +717,20 @@ async function mergeData() {
         existing.CANTITATE += sale.CANTITATE || 0;
         existing.CLIENTI = Math.max(existing.CLIENTI, sale.CLIENTI || 0);
       }
-
       processed++;
     }
-
     mergedData = Array.from(mergedMap.values());
-    console.log('Merged data:', mergedData.length, 'records');
+    console.log('Merged data:', mergedData.length, 'records', mergedData[0]);
     showProcessing(95, 'Finalizare procesare...');
-
     populateFilters();
     applyFilters();
-
     showProcessing(100, 'Procesare completă!');
     setTimeout(() => {
       hideProcessing();
       matrixInstances.main?.stop();
       document.getElementById('matrixCanvas').style.display = 'none';
     }, 1000);
-
-    console.info('Merge complet. Total produse: ', mergedData.length);
+    console.info('Merge complet. Total produse:', mergedData.length);
   } catch (err) {
     console.error('mergeData failed:', err);
     hideProcessing();
@@ -902,7 +739,6 @@ async function mergeData() {
   }
 }
 
-/* Helpers + UI Logic */
 function normalizeValue(val) {
   if (val == null || String(val).toLowerCase() === '#null' || String(val).toLowerCase() === 'null' || String(val).trim() === '') {
     return 'nu e disponibil';
@@ -913,20 +749,15 @@ function normalizeValue(val) {
 function populateFilters() {
   const yearSelect = document.getElementById('filterYear');
   const pmSelect = document.getElementById('filterPM');
-
   const yearsSet = new Set(mergedData.map(d => d.AN).filter(y => y !== 'nu e disponibil'));
   const pmSet = new Set(mergedData.map(d => d.PM).filter(pm => pm !== 'nu e disponibil'));
-
   const years = Array.from(yearsSet).sort((a, b) => {
     const na = parseInt(a), nb = parseInt(b);
     return isNaN(na) || isNaN(nb) ? String(b).localeCompare(String(a)) : nb - na;
   });
-
   yearSelect.innerHTML = '<option value="all">Toate</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
-
   const pms = Array.from(pmSet).sort();
   pmSelect.innerHTML = '<option value="all">Toate</option>' + pms.map(pm => `<option value="${pm}">${pm}</option>`).join('');
-
   console.log('Filters populated:', years.length, 'years,', pms.length, 'PMs');
 }
 
@@ -945,7 +776,6 @@ function applyFilters() {
       }
       if (yearFilter !== 'all' && String(item.AN) !== String(yearFilter)) return false;
       if (pmFilter !== 'all' && String(item.PM) !== String(pmFilter)) return false;
-
       const profitVal = item.PROFIT_BRUT === 'nu e disponibil' ? null : parseFloat(item.PROFIT_BRUT);
       if (profitVal == null) return profitMin <= 0;
       return profitVal >= profitMin && profitVal <= profitMax;
@@ -964,7 +794,7 @@ function applyFilters() {
       }
     });
 
-    console.log('Filtered data:', filteredData.length, 'records');
+    console.log('Filtered data:', filteredData.length, 'records', filteredData[0]);
     currentPage = 1;
     renderTable();
     renderCharts();
@@ -987,24 +817,18 @@ function renderTable() {
     console.error('Table body not found');
     return;
   }
-
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const pageData = filteredData.slice(startIndex, endIndex);
-
-  console.log('Rendering table with', pageData.length, 'rows for page', currentPage);
-
+  console.log('Rendering table with', pageData.length, 'rows for page', currentPage, pageData[0]);
   tbody.innerHTML = pageData.map((item, index) => {
     const profitClass = item.PROFIT_BRUT === 'nu e disponibil' ? 'text-gray-500' :
       item.PROFIT_BRUT > 30 ? 'text-green-400' :
       item.PROFIT_BRUT > 20 ? 'text-yellow-400' : 'text-red-400';
-
     const profitText = item.PROFIT_BRUT === 'nu e disponibil' ? 'N/A' : Number.isFinite(item.PROFIT_BRUT) ? item.PROFIT_BRUT.toFixed(2) + '%' : 'N/A';
-
     const imageCell = item.URL && item.URL !== 'nu e disponibil' ?
       `<img data-url="${escapeHtml(item.URL)}" class="lazy-image w-16 h-16 object-contain rounded cursor-pointer hover:scale-150 transition-transform" onclick="window.open('${escapeJs(item.URL)}', '_blank')" alt="Loading...">` :
       '<span class="text-gray-500">N/A</span>';
-
     return `
       <tr class="border-b border-green-500/10 hover:bg-green-500/5 transition-colors">
         <td class="p-2 text-green-300">${startIndex + index + 1}</td>
@@ -1022,7 +846,6 @@ function renderTable() {
       </tr>
     `;
   }).join('');
-
   lazyLoadImages();
   updatePagination();
   document.getElementById('tableInfo').textContent = filteredData.length > 0 ?
@@ -1050,7 +873,6 @@ async function lazyLoadImages() {
       img.classList.add('loaded');
       continue;
     }
-
     img.onload = () => {
       imageCache.set(url, img.src);
       img.classList.add('loaded');
@@ -1059,7 +881,6 @@ async function lazyLoadImages() {
       img.alt = 'No image';
       img.classList.add('loaded');
     };
-
     try {
       img.src = url;
     } catch (err) {
@@ -1095,7 +916,6 @@ function renderDistributionChart() {
   const ctx = document.getElementById('distributionChart')?.getContext('2d');
   if (!ctx) return;
   if (distributionChart) distributionChart.destroy();
-
   const pmFilter = document.getElementById('filterPM')?.value || 'all';
   if (pmFilter === 'all') {
     const pmData = {};
@@ -1103,7 +923,6 @@ function renderDistributionChart() {
       const key = item.PM || 'Altele';
       pmData[key] = (pmData[key] || 0) + (item.VALOARE || 0);
     });
-
     distributionChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -1152,7 +971,6 @@ function renderProfitabilityChart() {
   const ctx = document.getElementById('profitabilityChart')?.getContext('2d');
   if (!ctx) return;
   if (profitabilityChart) profitabilityChart.destroy();
-
   const profitRanges = { '< 0%': 0, '0-10%': 0, '10-20%': 0, '20-30%': 0, '> 30%': 0, 'N/A': 0 };
   filteredData.forEach(item => {
     const p = item.PROFIT_BRUT === 'nu e disponibil' ? null : parseFloat(item.PROFIT_BRUT);
@@ -1163,7 +981,6 @@ function renderProfitabilityChart() {
     else if (p <= 30) profitRanges['20-30%']++;
     else profitRanges['> 30%']++;
   });
-
   profitabilityChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -1195,7 +1012,6 @@ function updateStats() {
     .filter(item => item.PROFIT_BRUT !== 'nu e disponibil' && Number.isFinite(parseFloat(item.PROFIT_BRUT)))
     .map(item => parseFloat(item.PROFIT_BRUT));
   const avgProfit = validProfits.length ? validProfits.reduce((s, p) => s + p, 0) / validProfits.length : 0;
-
   document.getElementById('statTotal').textContent = formatNumber(totalProducts, 0);
   document.getElementById('statValue').textContent = formatNumber(totalValue);
   document.getElementById('statProfit').textContent = formatNumber(avgProfit, 2) + '%';
@@ -1218,12 +1034,9 @@ function showProcessing(progress, text) {
   const progressBar = document.getElementById('processingProgress');
   const progressText = document.getElementById('processingText');
   const details = document.getElementById('processingDetails');
-
   if (!overlay || !progressBar || !progressText || !details) return;
-
   overlay.classList.remove('hidden');
   matrixInstances.processing?.start();
-
   const p = Math.max(0, Math.min(100, Number(progress) || 0));
   progressBar.style.width = `${p}%`;
   progressText.textContent = text || '';
@@ -1239,6 +1052,7 @@ function hideProcessing() {
     document.getElementById('processingOverlay')?.classList.add('hidden');
     matrixInstances.processing?.stop();
     isProcessing = false;
+    window.toggleUploadButtons(false);
   }, 300);
 }
 
