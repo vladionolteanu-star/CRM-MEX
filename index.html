@@ -6,6 +6,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script async defer src="https://apis.google.com/js/api.js"></script>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <script src="https://www.google.com/jsapi"></script>
   <style>
     #matrixCanvas {
       position: absolute;
@@ -92,18 +95,16 @@
       <!-- Upload Produse -->
       <div>
         <label class="block text-xs font-medium mb-1">Fișier Produse</label>
-        <input type="file" id="uploadProducts" accept=".xlsx,.csv" 
-          class="w-full text-xs text-gray-300 
-          file:mr-1 file:py-0.5 file:px-2 file:rounded-lg file:border-0 
-          file:text-xs file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+        <button id="pickProducts" class="w-full text-xs bg-blue-600 text-white py-1 px-2 rounded-lg hover:bg-blue-700">
+          Alege Produse din Google Drive
+        </button>
       </div>
       <!-- Upload Vânzări -->
       <div>
         <label class="block text-xs font-medium mb-1">Fișier Vânzări</label>
-        <input type="file" id="uploadSales" accept=".xlsx,.csv" 
-          class="w-full text-xs text-gray-300 
-          file:mr-1 file:py-0.5 file:px-2 file:rounded-lg file:border-0 
-          file:text-xs file:bg-green-600 file:text-white hover:file:bg-green-700">
+        <button id="pickSales" class="w-full text-xs bg-green-600 text-white py-1 px-2 rounded-lg hover:bg-green-700">
+          Alege Vânzări din Google Drive
+        </button>
       </div>
       <!-- Filtru An -->
       <div>
@@ -172,7 +173,74 @@
 </div>
 
 <script>
-  // ===================== MATRIX RAIN EFFECT =====================
+  // Configurare Google Drive
+  const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com'; // Înlocuiește cu Client ID din Google Cloud
+  const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno'; // Înlocuiește cu API Key din Google Cloud
+  const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
+  const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+  // Încarcă Google API
+  function initGoogleDrive() {
+    gapi.load('client:auth2:picker', () => {
+      gapi.client.init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        scope: SCOPES,
+        cookie_policy: 'single_host_origin'
+      }).then(() => {
+        console.log('Google API initialized successfully');
+        document.getElementById('pickProducts').addEventListener('click', () => pickFile('products'));
+        document.getElementById('pickSales').addEventListener('click', () => pickFile('sales'));
+      }).catch(err => {
+        console.error('Google API init failed:', err);
+        alert('Eroare Google API: ' + err.details);
+      });
+    });
+  }
+
+  // Deschide picker-ul Google Drive
+  function pickFile(type) {
+    if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+      gapi.auth2.getAuthInstance().signIn().then(() => showPicker(type));
+    } else {
+      showPicker(type);
+    }
+  }
+
+  // Afișează picker-ul pentru selectarea fișierelor
+  function showPicker(type) {
+    const picker = new google.picker.PickerBuilder()
+      .addView(new google.picker.DocsView()
+        .setParent(FOLDER_ID)
+        .setMimeTypes('text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
+      .setOAuthToken(gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token)
+      .setDeveloperKey(API_KEY)
+      .setCallback(data => pickerCallback(data, type))
+      .build();
+    picker.setVisible(true);
+  }
+
+  // Procesează fișierul selectat
+  function pickerCallback(data, type) {
+    if (data.action === google.picker.Action.PICKED) {
+      const fileId = data.docs[0].id;
+      gapi.client.drive.files.get({
+        fileId: fileId,
+        alt: 'media',
+      }, { responseType: 'arraybuffer' }).then(response => {
+        const blob = new Blob([response.body], { type: response.headers['content-type'] });
+        const file = new File([blob], data.docs[0].name, { type: response.headers['content-type'] });
+        handleFileUpload(file, type);
+      }).catch(err => alert('Eroare la descărcarea fișierului: ' + err.message));
+    }
+  }
+
+  // Pornește Google Drive la încărcarea paginii
+  window.onload = () => {
+    initGoogleDrive();
+  };
+
+  // Restul codului tău rămâne neschimbat
   class MatrixRain {
     constructor(canvasId) {
       this.canvas = document.getElementById(canvasId);
@@ -226,17 +294,13 @@
     }
   }
 
-  // Inițializare Matrix Rain pentru login
   const loginMatrix = new MatrixRain('matrixCanvas');
   loginMatrix.start();
   
-  // Matrix Rain pentru procesare
   const processingMatrix = new MatrixRain('processingMatrixCanvas');
 
-  // Focus automat pe input parolă
   document.getElementById('passwordInput').focus();
   
-  // Enter key pentru submit
   document.getElementById('passwordInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') checkPassword();
   });
@@ -244,7 +308,6 @@
   function checkPassword() {
     const input = document.getElementById("passwordInput").value;
     if (input === "333") {
-      // Efect de fade out pentru Matrix
       const overlay = document.getElementById("passwordOverlay");
       overlay.style.transition = "opacity 0.5s";
       overlay.style.opacity = "0";
@@ -255,7 +318,6 @@
         document.getElementById("mainContent").classList.remove("hidden");
       }, 500);
     } else {
-      // Efect de shake pentru input greșit
       const input = document.getElementById("passwordInput");
       input.style.animation = "shake 0.5s";
       input.style.borderColor = "#ef4444";
@@ -268,7 +330,6 @@
     }
   }
 
-  // Animație shake
   const style = document.createElement('style');
   style.textContent = `
     @keyframes shake {
@@ -279,7 +340,6 @@
   `;
   document.head.appendChild(style);
 
-  // ===================== VARIABILE GLOBALE =====================
   let productsData = [];
   let productsMap = {};
   let salesData = [];
@@ -289,7 +349,6 @@
   const rowsPerPage = 100;
   let hasFirstFile = false;
 
-  // ===================== UTILE =====================
   function normalizeValue(val) {
     if (val === null || val === undefined || val === "" || val === "#null") {
       return "nu e disponibil";
@@ -374,14 +433,6 @@
     return data;
   }
 
-  // ===================== UPLOAD =====================
-  document.getElementById("uploadProducts").addEventListener("change", e => {
-    handleFileUpload(e.target.files[0], "products");
-  });
-  document.getElementById("uploadSales").addEventListener("change", e => {
-    handleFileUpload(e.target.files[0], "sales");
-  });
-
   function handleFileUpload(file, type) {
     const reader = new FileReader();
     reader.onload = e => {
@@ -424,9 +475,7 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // ===================== MERGE DATASETS =====================
   function mergeDatasets() {
-    // Arată Matrix Rain pentru procesare
     showProcessingMatrix(0, "Inițializare sistem...");
 
     let temp = {};
@@ -485,7 +534,6 @@
     processBatch();
   }
 
-  // ===================== FILTRE & SEARCH =====================
   function populateFilters() {
     const yearSelect = document.getElementById("filterYear");
     const pmSelect = document.getElementById("filterPM");
@@ -504,7 +552,6 @@
   document.getElementById("topCriteria").addEventListener("change", () => { currentPage = 1; renderTopTable(); });
   document.getElementById("searchInput").addEventListener("input", () => { currentPage = 1; renderTopTable(); });
 
-  // ===================== TABEL CU PAGINARE =====================
   function renderTopTable() {
     const yearFilter = document.getElementById("filterYear").value;
     const pmFilter = document.getElementById("filterPM").value;
@@ -563,7 +610,6 @@
     if (currentPage > 1) { currentPage--; renderTopTable(); }
   }
 
-  // ===================== CHART (Pie + Bar) =====================
   function renderChart(data) {
     const pmFilter = document.getElementById("filterPM").value;
 
