@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Analiză Homedit - Produse & Vânzări</title>
+
+  <!-- UI / styles -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- XLSX (parsing .xlsx / .csv), Chart.js, Google APIs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script async defer src="https://accounts.google.com/gsi/client"></script>
   <script async defer src="https://apis.google.com/js/api.js"></script>
+
   <style>
     /* Matrix Rain Styles */
     .matrix-canvas {
@@ -19,15 +25,10 @@
       pointer-events: none;
       z-index: 9998;
     }
-    
+
     /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #1f2937;
-    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #1f2937; }
     ::-webkit-scrollbar-thumb {
       background: linear-gradient(135deg, #10b981, #059669);
       border-radius: 5px;
@@ -35,41 +36,40 @@
     ::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(135deg, #059669, #047857);
     }
-    
+
     /* Gradient Animations */
     @keyframes gradient {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-    
+
     .animated-gradient {
       background: linear-gradient(-45deg, #10b981, #059669, #047857, #065f46);
       background-size: 400% 400%;
       animation: gradient 15s ease infinite;
     }
-    
+
     /* Glass Effect */
     .glass {
       background: rgba(17, 24, 39, 0.7);
       backdrop-filter: blur(10px);
       border: 1px solid rgba(16, 185, 129, 0.2);
     }
-    
+
     /* Range Slider Custom */
     .range-slider {
       -webkit-appearance: none;
       appearance: none;
       background: transparent;
       cursor: pointer;
+      width: 100%;
     }
-    
-    .range-slider::-webkit-slider-track {
+    .range-slider::-webkit-slider-runnable-track {
       background: linear-gradient(to right, #ef4444, #eab308, #10b981);
       height: 6px;
       border-radius: 3px;
     }
-    
     .range-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
@@ -78,59 +78,60 @@
       width: 20px;
       border-radius: 50%;
       border: 2px solid #fff;
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 10px rgba(16,185,129,0.5);
+      margin-top: -7px;
     }
-    
     .range-slider::-moz-range-track {
       background: linear-gradient(to right, #ef4444, #eab308, #10b981);
       height: 6px;
       border-radius: 3px;
     }
-    
     .range-slider::-moz-range-thumb {
       background: #10b981;
       height: 20px;
       width: 20px;
       border-radius: 50%;
       border: 2px solid #fff;
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 10px rgba(16,185,129,0.5);
       cursor: pointer;
     }
-    
+
     /* Shake Animation */
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
+      0%,100% { transform: translateX(0); }
       25% { transform: translateX(-10px); }
       75% { transform: translateX(10px); }
     }
-    
-    .shake {
-      animation: shake 0.5s;
-    }
-    
+    .shake { animation: shake 0.5s; }
+
     /* Loading Spinner */
     .spinner {
-      border: 3px solid rgba(16, 185, 129, 0.1);
+      border: 3px solid rgba(16,185,129,0.1);
       border-radius: 50%;
       border-top: 3px solid #10b981;
       width: 40px;
       height: 40px;
       animation: spin 1s linear infinite;
     }
-    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
+
     /* Image Lazy Loading */
     .lazy-image {
       filter: blur(5px);
       transition: filter 0.3s;
+      opacity: 0.9;
     }
-    
     .lazy-image.loaded {
       filter: blur(0);
+      opacity: 1;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      .w-80 { width: 100% !important; position: relative; z-index: 20; }
     }
   </style>
 </head>
@@ -168,7 +169,7 @@
       <input type="password" id="passwordInput" 
         class="w-full p-4 bg-black/50 border border-green-500/50 rounded-lg text-green-400 font-mono placeholder-green-600/50 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400/20"
         placeholder="INTRODU CODUL">
-      <button onclick="checkPassword()" 
+      <button id="loginBtn"
         class="w-full animated-gradient text-black font-bold py-4 rounded-lg font-mono hover:scale-105 transition-transform duration-200 shadow-lg">
         ACCESEAZĂ SISTEMUL
       </button>
@@ -189,12 +190,12 @@
         <h2 class="text-xl font-bold text-green-400 font-mono">CONTROL PANEL</h2>
         <p class="text-xs text-green-500/70 mt-1">Analiză Homedit</p>
       </div>
-      
+
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
         <!-- File Upload Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">ÎNCĂRCARE DATE</h3>
-          
+
           <!-- Products Upload -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-2">Fișier Produse</label>
@@ -208,7 +209,7 @@
             </button>
             <input type="file" id="localProductsFile" accept=".csv,.xlsx" class="hidden">
           </div>
-          
+
           <!-- Sales Upload -->
           <div>
             <label class="block text-xs text-green-300 mb-2">Fișier Vânzări</label>
@@ -223,19 +224,19 @@
             <input type="file" id="localSalesFile" accept=".csv,.xlsx" class="hidden">
           </div>
         </div>
-        
+
         <!-- Search Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">CĂUTARE</h3>
-          <input type="text" id="searchInput" 
-            placeholder="Caută în toate câmpurile..." 
+          <input type="text" id="searchInput"
+            placeholder="Caută în toate câmpurile..."
             class="w-full p-2 bg-black/50 border border-green-500/30 rounded-lg text-sm text-green-300 placeholder-green-600/50 focus:border-green-400 focus:outline-none">
         </div>
-        
+
         <!-- Filters Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">FILTRE</h3>
-          
+
           <!-- Year Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-1">An</label>
@@ -243,7 +244,7 @@
               <option value="all">Toate</option>
             </select>
           </div>
-          
+
           <!-- PM Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-1">Product Manager</label>
@@ -251,7 +252,7 @@
               <option value="all">Toate</option>
             </select>
           </div>
-          
+
           <!-- Profitability Filter -->
           <div class="mb-3">
             <label class="block text-xs text-green-300 mb-2">
@@ -262,7 +263,7 @@
               <input type="range" id="profitMax" min="0" max="100" value="100" class="range-slider w-full">
             </div>
           </div>
-          
+
           <!-- Sort Criteria -->
           <div>
             <label class="block text-xs text-green-300 mb-1">Criteriu Sortare</label>
@@ -274,7 +275,7 @@
             </select>
           </div>
         </div>
-        
+
         <!-- Stats Section -->
         <div class="glass p-4 rounded-lg">
           <h3 class="text-sm font-bold text-green-400 mb-3">STATISTICI</h3>
@@ -295,7 +296,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Main Content -->
     <div class="flex-1 flex flex-col">
       <!-- Header -->
@@ -310,7 +311,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Content Area -->
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
         <!-- Data Table -->
@@ -319,7 +320,7 @@
             <h2 class="text-lg font-bold text-green-400">ANALIZA PRODUSE</h2>
             <div id="tableInfo" class="text-sm text-green-300"></div>
           </div>
-          
+
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -341,7 +342,7 @@
               <tbody id="tableBody"></tbody>
             </table>
           </div>
-          
+
           <!-- Pagination -->
           <div id="pagination" class="mt-4 flex items-center justify-between">
             <button id="prevPage" class="px-4 py-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -353,19 +354,23 @@
             </button>
           </div>
         </div>
-        
+
         <!-- Charts Container -->
         <div class="grid grid-cols-2 gap-4">
           <!-- Distribution Chart -->
           <div class="glass rounded-xl p-4">
             <h2 class="text-lg font-bold text-green-400 mb-4">DISTRIBUȚIE VALOARE</h2>
-            <canvas id="distributionChart"></canvas>
+            <div style="height:300px">
+              <canvas id="distributionChart"></canvas>
+            </div>
           </div>
-          
+
           <!-- Profitability Chart -->
           <div class="glass rounded-xl p-4">
             <h2 class="text-lg font-bold text-green-400 mb-4">ANALIZĂ PROFITABILITATE</h2>
-            <canvas id="profitabilityChart"></canvas>
+            <div style="height:300px">
+              <canvas id="profitabilityChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -380,17 +385,13 @@
     <div class="space-y-3">
       <button id="chooseGoogleDrive" class="w-full p-3 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors">
         <span class="flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7.71 3.5L1.15 15l3.43 6h11.84l3.43-6L13.29 3.5H7.71zm6.36 1l5.72 10H8.21L13.93 4.5h.14zM4.58 16l2.86-5 2.86 5H4.58z"/>
-          </svg>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7.71 3.5L1.15 15l3.43 6h11.84l3.43-6L13.29 3.5H7.71zm6.36 1l5.72 10H8.21L13.93 4.5h.14zM4.58 16l2.86-5 2.86 5H4.58z"/></svg>
           Google Drive
         </span>
       </button>
       <button id="chooseLocal" class="w-full p-3 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors">
         <span class="flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-          </svg>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
           Computer Local
         </span>
       </button>
@@ -402,13 +403,15 @@
 </div>
 
 <script>
-// Configuration
+/* ====================
+   Config & Globals
+   ==================== */
 const CLIENT_ID = '296028267382-3qdejeu466lj4c3i1h7ivurpbad7elh9.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyDFbkQ_Hpkl5tVfUBaSYpBRojAWlf-zpno';
 const FOLDER_ID = '1qHcPsvnrAjccEE1d8Z7h_hlHg0dERN2p';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Global variables
+/* Global state */
 let tokenClient;
 let accessToken = null;
 let productsData = [];
@@ -422,75 +425,89 @@ let profitabilityChart = null;
 let currentUploadType = null;
 let imageCache = new Map();
 let matrixInstances = {};
+let debouncedApplyFilters;
 
-// Matrix Rain Class
+/* ====================
+   Matrix Rain Class
+   ==================== */
 class MatrixRain {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
+    if (!this.canvas) {
+      console.warn('Canvas not found:', canvasId);
+      return;
+    }
     this.ctx = this.canvas.getContext('2d');
     this.fontSize = 14;
     this.columns = 0;
     this.drops = [];
     this.chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
     this.running = false;
-    
+
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
-  
+
   resize() {
+    if (!this.canvas) return;
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
     this.columns = Math.floor(this.canvas.width / this.fontSize);
     this.drops = Array(this.columns).fill(1);
   }
-  
+
   start() {
+    if (!this.canvas || this.running) return;
     this.running = true;
     this.animate();
   }
-  
+
   stop() {
     this.running = false;
   }
-  
+
   animate() {
-    if (!this.running) return;
-    
+    if (!this.running || !this.ctx) return;
+
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    
+
     this.ctx.fillStyle = '#0F0';
     this.ctx.font = this.fontSize + 'px monospace';
-    
+
     for (let i = 0; i < this.drops.length; i++) {
-      const text = this.chars[Math.floor(Math.random() * this.chars.length)];
+      const text = this.chars.charAt(Math.floor(Math.random() * this.chars.length));
       this.ctx.fillText(text, i * this.fontSize, this.drops[i] * this.fontSize);
-      
+
       if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
         this.drops[i] = 0;
       }
       this.drops[i]++;
     }
-    
+
     requestAnimationFrame(() => this.animate());
   }
 }
 
-// Initialize Matrix on login
+/* Initialize Matrix instances */
 matrixInstances.login = new MatrixRain('loginMatrixCanvas');
-matrixInstances.login.start();
-
 matrixInstances.processing = new MatrixRain('processingMatrixCanvas');
 matrixInstances.main = new MatrixRain('matrixCanvas');
 
-// Password check
+/* Start login matrix immediately */
+matrixInstances.login?.start();
+
+/* ====================
+   Password / Login
+   ==================== */
 function checkPassword() {
   const input = document.getElementById('passwordInput');
+  if (!input) return;
   if (input.value === '333') {
+    document.getElementById('loginScreen').style.transition = 'opacity 0.5s';
     document.getElementById('loginScreen').style.opacity = '0';
     setTimeout(() => {
-      matrixInstances.login.stop();
+      matrixInstances.login?.stop();
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('mainDashboard').classList.remove('hidden');
       initializeApp();
@@ -507,585 +524,608 @@ function checkPassword() {
   }
 }
 
-// Enter key handler
-document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') checkPassword();
 });
-document.getElementById('passwordInput').focus();
+document.getElementById('loginBtn')?.addEventListener('click', checkPassword);
+document.getElementById('passwordInput')?.focus();
 
-// Initialize App
+/* ====================
+   Initialize App
+   ==================== */
 function initializeApp() {
+  console.info('Initializing app...');
   initializeGoogleAPI();
   setupEventListeners();
   setupFilters();
+  debouncedApplyFilters = debounce(applyFilters, 300);
 }
 
-// Initialize Google API with new GIS
+/* ====================
+   Initialize Google API
+   ==================== */
 function initializeGoogleAPI() {
-  // Load Google API
-  gapi.load('client:picker', async () => {
-    await gapi.client.init({
-      apiKey: API_KEY,
+  try {
+    gapi.load('client:picker', async () => {
+      try {
+        await gapi.client.init({ apiKey: API_KEY });
+        await gapi.client.load('drive', 'v3');
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          callback: (resp) => {
+            accessToken = resp?.access_token || null;
+            if (!accessToken) console.warn('No access token received', resp);
+          }
+        });
+        console.info('Google API initialized');
+      } catch (err) {
+        console.warn('Error initializing gapi client:', err);
+      }
     });
-    
-    await gapi.client.load('drive', 'v3');
-    
-    // Initialize GIS token client
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (response) => {
-        accessToken = response.access_token;
-      },
-    });
-  });
+  } catch (err) {
+    console.warn('gapi not available:', err);
+  }
 }
 
-// Setup Event Listeners
+/* ====================
+   Event Listeners Setup
+   ==================== */
 function setupEventListeners() {
-  // Upload buttons
-  document.getElementById('uploadProducts').addEventListener('click', () => openUploadModal('products'));
-  document.getElementById('uploadSales').addEventListener('click', () => openUploadModal('sales'));
-  
-  // Modal buttons
-  document.getElementById('chooseGoogleDrive').addEventListener('click', () => handleGoogleDrive());
-  document.getElementById('chooseLocal').addEventListener('click', () => handleLocalUpload());
-  document.getElementById('cancelUpload').addEventListener('click', closeUploadModal);
-  
-  // Local file inputs
-  document.getElementById('localProductsFile').addEventListener('change', (e) => processLocalFile(e, 'products'));
-  document.getElementById('localSalesFile').addEventListener('change', (e) => processLocalFile(e, 'sales'));
-  
-  // Filters
-  document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 300));
-  document.getElementById('filterYear').addEventListener('change', applyFilters);
-  document.getElementById('filterPM').addEventListener('change', applyFilters);
-  document.getElementById('topCriteria').addEventListener('change', applyFilters);
-  
-  // Profit range sliders
-  document.getElementById('profitMin').addEventListener('input', updateProfitRange);
-  document.getElementById('profitMax').addEventListener('input', updateProfitRange);
-  
-  // Pagination
-  document.getElementById('prevPage').addEventListener('click', () => changePage(-1));
-  document.getElementById('nextPage').addEventListener('click', () => changePage(1));
+  document.getElementById('uploadProducts')?.addEventListener('click', () => openUploadModal('products'));
+  document.getElementById('uploadSales')?.addEventListener('click', () => openUploadModal('sales'));
+
+  document.getElementById('chooseGoogleDrive')?.addEventListener('click', handleGoogleDrive);
+  document.getElementById('chooseLocal')?.addEventListener('click', handleLocalUpload);
+  document.getElementById('cancelUpload')?.addEventListener('click', closeUploadModal);
+
+  document.getElementById('localProductsFile')?.addEventListener('change', (e) => processLocalFile(e, 'products'));
+  document.getElementById('localSalesFile')?.addEventListener('change', (e) => processLocalFile(e, 'sales'));
+
+  document.getElementById('searchInput')?.addEventListener('input', debouncedApplyFilters);
+  document.getElementById('filterYear')?.addEventListener('change', debouncedApplyFilters);
+  document.getElementById('filterPM')?.addEventListener('change', debouncedApplyFilters);
+  document.getElementById('topCriteria')?.addEventListener('change', debouncedApplyFilters);
+
+  document.getElementById('profitMin')?.addEventListener('input', updateProfitRange);
+  document.getElementById('profitMax')?.addEventListener('input', updateProfitRange);
+
+  document.getElementById('prevPage')?.addEventListener('click', () => changePage(-1));
+  document.getElementById('nextPage')?.addEventListener('click', () => changePage(1));
 }
 
-// Setup Filters
+/* ====================
+   Filters Initialization
+   ==================== */
 function setupFilters() {
-  // Will be populated when data is loaded
+  // Populated when data is loaded
 }
 
-// Upload Modal Management
+/* ====================
+   Upload Modal Management
+   ==================== */
 function openUploadModal(type) {
   currentUploadType = type;
-  document.getElementById('uploadModal').classList.remove('hidden');
+  document.getElementById('uploadModal')?.classList.remove('hidden');
 }
 
 function closeUploadModal() {
-  document.getElementById('uploadModal').classList.add('hidden');
+  document.getElementById('uploadModal')?.classList.add('hidden');
   currentUploadType = null;
 }
 
-// Google Drive Handler
+/* ====================
+   Google Drive Handler
+   ==================== */
 function handleGoogleDrive() {
   closeUploadModal();
-  
+  if (!tokenClient) initializeGoogleAPI();
+
   if (!accessToken) {
-    tokenClient.requestAccessToken();
+    const prevCallback = tokenClient.callback;
     tokenClient.callback = (response) => {
-      accessToken = response.access_token;
-      showGooglePicker();
+      accessToken = response?.access_token || null;
+      if (accessToken) showGooglePicker();
+      else console.warn('No access token received');
+      tokenClient.callback = prevCallback;
     };
+    tokenClient.requestAccessToken({ prompt: 'consent' });
   } else {
     showGooglePicker();
   }
 }
 
 function showGooglePicker() {
-  const picker = new google.picker.PickerBuilder()
-    .addView(
-      new google.picker.DocsView()
+  if (typeof google === 'undefined' || !google.picker) {
+    try {
+      gapi.load('picker', { callback: buildPicker });
+    } catch (err) {
+      console.warn('google.picker not ready:', err);
+      alert('Google Picker indisponibil. Folosește upload local.');
+    }
+  } else {
+    buildPicker();
+  }
+
+  function buildPicker() {
+    try {
+      const view = new google.picker.DocsView()
         .setParent(FOLDER_ID)
         .setIncludeFolders(false)
-        .setMimeTypes('text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    )
-    .setOAuthToken(accessToken)
-    .setDeveloperKey(API_KEY)
-    .setCallback(pickerCallback)
-    .build();
-  
-  picker.setVisible(true);
+        .setMimeTypes('text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      const picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(accessToken)
+        .setDeveloperKey(API_KEY)
+        .setCallback(pickerCallback)
+        .build();
+
+      picker.setVisible(true);
+    } catch (err) {
+      console.warn('Error building picker:', err);
+      alert('Eroare Google Picker. Folosește upload local.');
+    }
+  }
 }
 
 async function pickerCallback(data) {
   if (data.action === google.picker.Action.PICKED) {
     const file = data.docs[0];
     showProcessing(0, 'Descărcare fișier din Google Drive...');
-    
     try {
       const response = await gapi.client.drive.files.get({
         fileId: file.id,
         alt: 'media'
       });
-      
-      const blob = new Blob([response.body]);
-      const fileObj = new File([blob], file.name, { type: file.mimeType });
-      
+
+      let blob;
+      if (response.body instanceof Blob) {
+        blob = response.body;
+      } else if (typeof response.body === 'string') {
+        blob = new Blob([response.body], { type: file.mimeType || 'text/csv' });
+      } else {
+        blob = new Blob([JSON.stringify(response.body)]);
+      }
+
+      const fileObj = new File([blob], file.name, { type: file.mimeType || 'text/csv' });
       processFile(fileObj, currentUploadType);
     } catch (error) {
       console.error('Error fetching file:', error);
-      alert('Eroare la descărcarea fișierului: ' + error.message);
+      alert('Eroare descărcare fișier: ' + (error.message || 'Eroare necunoscută'));
       hideProcessing();
     }
+  } else if (data.action === google.picker.Action.CANCEL) {
+    closeUploadModal();
   }
 }
 
-// Local Upload Handler
+/* ====================
+   Local Upload Handlers
+   ==================== */
 function handleLocalUpload() {
   closeUploadModal();
   if (currentUploadType === 'products') {
-    document.getElementById('localProductsFile').click();
+    document.getElementById('localProductsFile')?.click();
   } else {
-    document.getElementById('localSalesFile').click();
+    document.getElementById('localSalesFile')?.click();
   }
 }
 
 function processLocalFile(event, type) {
   const file = event.target.files[0];
-  if (file) {
-    processFile(file, type);
-  }
-  event.target.value = ''; // Reset input
+  if (file) processFile(file, type);
+  event.target.value = '';
 }
 
-// File Processing
+/* ====================
+   File Processing
+   ==================== */
 async function processFile(file, type) {
-  // Show matrix rain immediately when upload starts
-  document.getElementById('matrixCanvas').style.display = 'block';
-  matrixInstances.main.start();
-  
-  showProcessing(0, `Încărcare ${type === 'products' ? 'produse' : 'vânzări'}...`);
-  
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    showProcessing(20, 'Parsare date...');
-    
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      
-      showProcessing(40, 'Procesare câmpuri...');
-      
-      if (type === 'products') {
-        await processProducts(jsonData);
-      } else {
-        await processSales(jsonData);
-      }
-      
-      // Check if both datasets are loaded
-      if (productsData.length > 0 && salesData.length > 0) {
-        await mergeData();
-      } else {
+  try {
+    document.getElementById('matrixCanvas').style.display = 'block';
+    matrixInstances.main?.start();
+    showProcessing(0, `Încărcare ${type === 'products' ? 'produse' : 'vânzări'}...`);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      showProcessing(20, 'Parsare date...');
+      try {
+        let workbook;
+        try {
+          const data = new Uint8Array(e.target.result);
+          workbook = XLSX.read(data, { type: 'array' });
+        } catch (err) {
+          const text = new TextDecoder('utf-8').decode(e.target.result);
+          workbook = XLSX.read(text, { type: 'string' });
+        }
+
+        if (!workbook?.SheetNames?.length) {
+          throw new Error('Fișierul nu conține foi valide.');
+        }
+
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        showProcessing(40, 'Procesare câmpuri...');
+        if (type === 'products') {
+          await processProducts(jsonData);
+        } else {
+          await processSales(jsonData);
+        }
+
+        if (productsData.length > 0 && salesData.length > 0) {
+          await mergeData();
+        } else {
+          hideProcessing();
+          matrixInstances.main?.stop();
+          document.getElementById('matrixCanvas').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert('Eroare procesare fișier: ' + (error.message || 'Eroare necunoscută'));
         hideProcessing();
-        // Stop matrix rain after processing
-        matrixInstances.main.stop();
+        matrixInstances.main?.stop();
         document.getElementById('matrixCanvas').style.display = 'none';
       }
-    } catch (error) {
-      console.error('Error processing file:', error);
-      alert('Eroare la procesarea fișierului: ' + error.message);
-      hideProcessing();
-      matrixInstances.main.stop();
-      document.getElementById('matrixCanvas').style.display = 'none';
-    }
-  };
-  
-  reader.readAsArrayBuffer(file);
+    };
+
+    reader.readAsArrayBuffer(file);
+  } catch (err) {
+    console.error('processFile failed:', err);
+    alert('Eroare inițializare procesare fișier.');
+    hideProcessing();
+    matrixInstances.main?.stop();
+    document.getElementById('matrixCanvas').style.display = 'none';
+  }
 }
 
-// Process Products Data
+/* ====================
+   Process Products Data
+   ==================== */
 async function processProducts(data) {
   showProcessing(50, 'Procesare produse...');
-  
-  productsData = data.map((row, index) => {
-    if (index % 1000 === 0) {
-      const progress = 50 + (index / data.length) * 20;
-      showProcessing(progress, `Procesare produse: ${index}/${data.length}`);
+  productsData = [];
+  try {
+    for (let index = 0; index < data.length; index++) {
+      const row = data[index];
+      if (index % 1000 === 0) {
+        const progress = 50 + (index / Math.max(1, data.length)) * 20;
+        showProcessing(progress, `Procesare produse: ${index}/${data.length}`);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      const cod = normalizeValue(row['COD ARTICOL'] || row['COD'] || row['COD_ARTICOL']);
+      productsData.push({
+        PM: normalizeValue(row['PM'] || row['Product Manager'] || row['PM_NAME']),
+        COD: cod,
+        DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL'] || row['DENUMIRE'] || row['Denumire']),
+        FURNIZOR: normalizeValue(row['FURNIZOR'] || row['Furnizor']),
+        COST: parseFloat(row['Cost Achizitie Furnizor (ultimul Document_cronologic)'] || row['Cost'] || row['COST']) || 0,
+        FURNIZOR_EXT: normalizeValue(row['FURNIZOR EXT'] || row['FURNIZOR_EXT']),
+        URL: normalizeValue(row['URL ONLINE'] || row['URL']),
+        NR_ART: normalizeValue(row['NR ART'] || row['NR_ART']),
+        PRET_VANZARE: parseFloat(row['Pret Vanzare cu TVA (magazin _client final)'] || row['Pret Vanzare'] || row['PRET_VANZARE']) || 0
+      });
     }
-    
-    return {
-      PM: normalizeValue(row['PM']),
-      COD: normalizeValue(row['COD ARTICOL']),
-      DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL']),
-      FURNIZOR: normalizeValue(row['FURNIZOR']),
-      COST: parseFloat(row['Cost Achizitie Furnizor (ultimul Document_cronologic)']) || 0,
-      FURNIZOR_EXT: normalizeValue(row['FURNIZOR EXT']),
-      URL: normalizeValue(row['URL ONLINE']),
-      NR_ART: normalizeValue(row['NR ART']),
-      PRET_VANZARE: parseFloat(row['Pret Vanzare cu TVA (magazin _client final)']) || 0
-    };
-  });
-  
-  showProcessing(70, 'Produse procesate cu succes!');
+    showProcessing(70, 'Produse procesate cu succes!');
+    console.info(`Produse procesate: ${productsData.length}`);
+  } catch (err) {
+    console.error('processProducts failed:', err);
+    throw err;
+  }
 }
 
-// Process Sales Data
+/* ====================
+   Process Sales Data
+   ==================== */
 async function processSales(data) {
   showProcessing(50, 'Procesare vânzări...');
-  
-  salesData = data.map((row, index) => {
-    if (index % 1000 === 0) {
-      const progress = 50 + (index / data.length) * 20;
-      showProcessing(progress, `Procesare vânzări: ${index}/${data.length}`);
+  salesData = [];
+  try {
+    for (let index = 0; index < data.length; index++) {
+      const row = data[index];
+      if (index % 1000 === 0) {
+        const progress = 50 + (index / Math.max(1, data.length)) * 20;
+        showProcessing(progress, `Procesare vânzări: ${index}/${data.length}`);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      salesData.push({
+        AN: normalizeValue(row['AN'] || row['An'] || row['Year']),
+        COD: normalizeValue(row['COD ARTICOL'] || row['COD'] || row['COD_ARTICOL']),
+        DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL'] || row['DENUMIRE']),
+        PM: normalizeValue(row['PM'] || row['Product Manager']),
+        VALOARE: parseFloat(row['VALOARE FACTURATA'] || row['VALOARE'] || row['VAL']) || 0,
+        CANTITATE: parseFloat(row['CANTITATE FACTURATA'] || row['CANTITATE'] || row['QTY']) || 0,
+        CLIENTI: parseInt(row['NR CLIENTI'] || row['CLIENTI'] || row['NR_CLIENTI']) || 0
+      });
     }
-    
-    return {
-      AN: normalizeValue(row['AN']),
-      COD: normalizeValue(row['COD ARTICOL']),
-      DENUMIRE: normalizeValue(row['DENUMIRE ARTICOL']),
-      PM: normalizeValue(row['PM']),
-      VALOARE: parseFloat(row['VALOARE FACTURATA']) || 0,
-      CANTITATE: parseFloat(row['CANTITATE FACTURATA']) || 0,
-      CLIENTI: parseInt(row['NR CLIENTI']) || 0
-    };
-  });
-  
-  showProcessing(70, 'Vânzări procesate cu succes!');
+    showProcessing(70, 'Vânzări procesate cu succes!');
+    console.info(`Vânzări procesate: ${salesData.length}`);
+  } catch (err) {
+    console.error('processSales failed:', err);
+    throw err;
+  }
 }
 
-// Merge Data
+/* ====================
+   Merge Data
+   ==================== */
 async function mergeData() {
   showProcessing(75, 'Combinare date produse și vânzări...');
-  
-  const productsMap = new Map();
-  productsData.forEach(p => productsMap.set(p.COD, p));
-  
-  const mergedMap = new Map();
-  let processed = 0;
-  const total = salesData.length;
-  
-  for (const sale of salesData) {
-    if (processed % 5000 === 0) {
-      const progress = 75 + (processed / total) * 20;
-      showProcessing(progress, `Combinare date: ${processed}/${total}`);
-      await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI update
+  try {
+    const productsMap = new Map(productsData.map(p => [String(p.COD).trim(), p]));
+    const mergedMap = new Map();
+    let processed = 0;
+    const total = Math.max(1, salesData.length);
+
+    for (const sale of salesData) {
+      if (processed % 5000 === 0) {
+        const progress = 75 + (processed / total) * 20;
+        showProcessing(progress, `Combinare date: ${processed}/${total}`);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      const saleCode = String(sale.COD).trim();
+      const saleYear = String(sale.AN).trim();
+      const key = `${saleCode}_${saleYear}`;
+
+      if (!mergedMap.has(key)) {
+        const product = productsMap.get(saleCode) || {};
+        const pretVanzare = product.PRET_VANZARE || (sale.CANTITATE > 0 ? sale.VALOARE / sale.CANTITATE : 0);
+        const cost = product.COST || 0;
+        const profitBrut = pretVanzare > 0 ? ((pretVanzare - cost) / pretVanzare * 100) : (cost === 0 ? 100 : 0);
+
+        mergedMap.set(key, {
+          COD: sale.COD,
+          DENUMIRE: sale.DENUMIRE || product.DENUMIRE || 'nu e disponibil',
+          PM: sale.PM || product.PM || 'nu e disponibil',
+          AN: sale.AN || 'nu e disponibil',
+          VALOARE: sale.VALOARE || 0,
+          CANTITATE: sale.CANTITATE || 0,
+          CLIENTI: sale.CLIENTI || 0,
+          PRET_VANZARE: pretVanzare,
+          COST: cost,
+          PROFIT_BRUT: Number.isFinite(profitBrut) ? profitBrut : 'nu e disponibil',
+          URL: product.URL || 'nu e disponibil',
+          FURNIZOR_EXT: product.FURNIZOR_EXT || 'nu e disponibil'
+        });
+      } else {
+        const existing = mergedMap.get(key);
+        existing.VALOARE += sale.VALOARE || 0;
+        existing.CANTITATE += sale.CANTITATE || 0;
+        existing.CLIENTI = Math.max(existing.CLIENTI, sale.CLIENTI || 0);
+      }
+
+      processed++;
     }
-    
-    const key = `${sale.COD}_${sale.AN}`;
-    
-    if (!mergedMap.has(key)) {
-      const product = productsMap.get(sale.COD) || {};
-      const pretVanzare = product.PRET_VANZARE || (sale.CANTITATE > 0 ? sale.VALOARE / sale.CANTITATE : 0);
-      const cost = product.COST || 0;
-      const profitBrut = pretVanzare > 0 && cost > 0 ? ((pretVanzare - cost) / pretVanzare * 100) : 0;
-      
-      mergedMap.set(key, {
-        COD: sale.COD,
-        DENUMIRE: sale.DENUMIRE,
-        PM: sale.PM,
-        AN: sale.AN,
-        VALOARE: sale.VALOARE,
-        CANTITATE: sale.CANTITATE,
-        CLIENTI: sale.CLIENTI,
-        PRET_VANZARE: pretVanzare,
-        COST: cost,
-        PROFIT_BRUT: profitBrut,
-        URL: product.URL || 'nu e disponibil',
-        FURNIZOR_EXT: product.FURNIZOR_EXT || 'nu e disponibil'
-      });
-    } else {
-      const existing = mergedMap.get(key);
-      existing.VALOARE += sale.VALOARE;
-      existing.CANTITATE += sale.CANTITATE;
-      existing.CLIENTI = Math.max(existing.CLIENTI, sale.CLIENTI);
-    }
-    
-    processed++;
-  }
-  
-  mergedData = Array.from(mergedMap.values());
-  
-  showProcessing(95, 'Finalizare procesare...');
-  
-  // Populate filters
-  populateFilters();
-  
-  // Apply initial filters and render
-  applyFilters();
-  
-  showProcessing(100, 'Procesare completă!');
-  
-  setTimeout(() => {
+
+    mergedData = Array.from(mergedMap.values());
+    showProcessing(95, 'Finalizare procesare...');
+
+    populateFilters();
+    applyFilters();
+
+    showProcessing(100, 'Procesare completă!');
+    setTimeout(() => {
+      hideProcessing();
+      matrixInstances.main?.stop();
+      document.getElementById('matrixCanvas').style.display = 'none';
+    }, 1000);
+
+    console.info('Merge complet. Total produse: ', mergedData.length);
+  } catch (err) {
+    console.error('mergeData failed:', err);
     hideProcessing();
-    // Stop matrix rain after all processing is complete
-    matrixInstances.main.stop();
+    matrixInstances.main?.stop();
     document.getElementById('matrixCanvas').style.display = 'none';
-  }, 1000);
+  }
 }
 
-// Normalize Value Helper
+/* ====================
+   Helpers + UI Logic
+   ==================== */
 function normalizeValue(val) {
-  if (val === null || val === undefined || val === '' || val === '#null' || val === 'null') {
+  if (val == null || String(val).toLowerCase() === '#null' || String(val).toLowerCase() === 'null' || String(val).trim() === '') {
     return 'nu e disponibil';
   }
   return String(val).trim();
 }
 
-// Populate Filters
 function populateFilters() {
-  // Year filter
-  const years = [...new Set(mergedData.map(d => d.AN))].sort();
   const yearSelect = document.getElementById('filterYear');
-  yearSelect.innerHTML = '<option value="all">Toate</option>';
-  years.forEach(year => {
-    yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
-  });
-  
-  // PM filter
-  const pms = [...new Set(mergedData.map(d => d.PM))].sort();
   const pmSelect = document.getElementById('filterPM');
-  pmSelect.innerHTML = '<option value="all">Toate</option>';
-  pms.forEach(pm => {
-    pmSelect.innerHTML += `<option value="${pm}">${pm}</option>`;
+
+  const yearsSet = new Set(mergedData.map(d => d.AN).filter(y => y !== 'nu e disponibil'));
+  const pmSet = new Set(mergedData.map(d => d.PM).filter(pm => pm !== 'nu e disponibil'));
+
+  const years = Array.from(yearsSet).sort((a, b) => {
+    const na = parseInt(a), nb = parseInt(b);
+    return isNaN(na) || isNaN(nb) ? String(b).localeCompare(String(a)) : nb - na;
   });
+
+  yearSelect.innerHTML = '<option value="all">Toate</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+  const pms = Array.from(pmSet).sort();
+  pmSelect.innerHTML = '<option value="all">Toate</option>' + pms.map(pm => `<option value="${pm}">${pm}</option>`).join('');
 }
 
-// Apply Filters
 function applyFilters() {
-  const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-  const yearFilter = document.getElementById('filterYear').value;
-  const pmFilter = document.getElementById('filterPM').value;
-  const profitMin = parseFloat(document.getElementById('profitMin').value);
-  const profitMax = parseFloat(document.getElementById('profitMax').value);
-  const sortCriteria = document.getElementById('topCriteria').value;
-  
-  // Filter data
-  filteredData = mergedData.filter(item => {
-    // Search filter (searches all fields)
-    if (searchQuery) {
-      const searchableText = `
-        ${item.COD} 
-        ${item.DENUMIRE} 
-        ${item.PM} 
-        ${item.FURNIZOR_EXT}
-      `.toLowerCase();
-      
-      if (!searchableText.includes(searchQuery)) {
+  try {
+    const searchQuery = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const yearFilter = document.getElementById('filterYear')?.value || 'all';
+    const pmFilter = document.getElementById('filterPM')?.value || 'all';
+    const profitMin = parseFloat(document.getElementById('profitMin')?.value || 0);
+    const profitMax = parseFloat(document.getElementById('profitMax')?.value || 100);
+    const sortCriteria = document.getElementById('topCriteria')?.value || 'valoare';
+
+    filteredData = mergedData.filter(item => {
+      if (searchQuery && !`${item.COD || ''} ${item.DENUMIRE || ''} ${item.PM || ''} ${item.FURNIZOR_EXT || ''}`.toLowerCase().includes(searchQuery)) {
         return false;
       }
-    }
-    
-    // Year filter
-    if (yearFilter !== 'all' && item.AN !== yearFilter) {
-      return false;
-    }
-    
-    // PM filter
-    if (pmFilter !== 'all' && item.PM !== pmFilter) {
-      return false;
-    }
-    
-    // Profit filter (exclude 'nu e disponibil' from profit filtering)
-    if (item.PROFIT_BRUT !== 'nu e disponibil') {
-      const profit = parseFloat(item.PROFIT_BRUT);
-      if (profit < profitMin || profit > profitMax) {
-        return false;
+      if (yearFilter !== 'all' && String(item.AN) !== String(yearFilter)) return false;
+      if (pmFilter !== 'all' && String(item.PM) !== String(pmFilter)) return false;
+
+      const profitVal = item.PROFIT_BRUT === 'nu e disponibil' ? null : parseFloat(item.PROFIT_BRUT);
+      if (profitVal == null) return profitMin <= 0;
+      return profitVal >= profitMin && profitVal <= profitMax;
+    });
+
+    filteredData.sort((a, b) => {
+      switch (sortCriteria) {
+        case 'valoare': return (b.VALOARE || 0) - (a.VALOARE || 0);
+        case 'cantitate': return (b.CANTITATE || 0) - (a.CANTITATE || 0);
+        case 'clienti': return (b.CLIENTI || 0) - (a.CLIENTI || 0);
+        case 'profit':
+          const profitA = a.PROFIT_BRUT === 'nu e disponibil' ? -Infinity : parseFloat(a.PROFIT_BRUT);
+          const profitB = b.PROFIT_BRUT === 'nu e disponibil' ? -Infinity : parseFloat(b.PROFIT_BRUT);
+          return profitB - profitA;
+        default: return 0;
       }
-    } else if (profitMin > 0) {
-      // Exclude items with no profit data if minimum profit is set
-      return false;
-    }
-    
-    return true;
-  });
-  
-  // Sort data
-  switch (sortCriteria) {
-    case 'valoare':
-      filteredData.sort((a, b) => b.VALOARE - a.VALOARE);
-      break;
-    case 'cantitate':
-      filteredData.sort((a, b) => b.CANTITATE - a.CANTITATE);
-      break;
-    case 'clienti':
-      filteredData.sort((a, b) => b.CLIENTI - a.CLIENTI);
-      break;
-    case 'profit':
-      filteredData.sort((a, b) => {
-        const profitA = a.PROFIT_BRUT === 'nu e disponibil' ? -1 : parseFloat(a.PROFIT_BRUT);
-        const profitB = b.PROFIT_BRUT === 'nu e disponibil' ? -1 : parseFloat(b.PROFIT_BRUT);
-        return profitB - profitA;
-      });
-      break;
+    });
+
+    currentPage = 1;
+    renderTable();
+    renderCharts();
+    updateStats();
+  } catch (err) {
+    console.error('applyFilters failed:', err);
   }
-  
-  // Reset to first page
-  currentPage = 1;
-  
-  // Update display
-  renderTable();
-  renderCharts();
-  updateStats();
 }
 
-// Update Profit Range Display
 function updateProfitRange() {
-  const min = document.getElementById('profitMin').value;
-  const max = document.getElementById('profitMax').value;
+  const min = document.getElementById('profitMin')?.value || 0;
+  const max = document.getElementById('profitMax')?.value || 100;
   document.getElementById('profitRange').textContent = `${min}% - ${max}%`;
-  
-  // Apply filters with debounce
-  debounce(applyFilters, 300)();
+  debouncedApplyFilters();
 }
 
-// Render Table
 function renderTable() {
   const tbody = document.getElementById('tableBody');
+  if (!tbody) return;
+
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const pageData = filteredData.slice(startIndex, endIndex);
-  
-  tbody.innerHTML = '';
-  
-  pageData.forEach((item, index) => {
-    const row = document.createElement('tr');
-    row.className = 'border-b border-green-500/10 hover:bg-green-500/5 transition-colors';
-    
+
+  tbody.innerHTML = pageData.map((item, index) => {
     const profitClass = item.PROFIT_BRUT === 'nu e disponibil' ? 'text-gray-500' :
-                       item.PROFIT_BRUT > 30 ? 'text-green-400' :
-                       item.PROFIT_BRUT > 20 ? 'text-yellow-400' : 'text-red-400';
-    
-    row.innerHTML = `
-      <td class="p-2 text-green-300">${startIndex + index + 1}</td>
-      <td class="p-2 text-green-200 font-mono">${item.COD}</td>
-      <td class="p-2 text-green-100">${item.DENUMIRE}</td>
-      <td class="p-2 text-green-300">${item.PM}</td>
-      <td class="p-2 text-right text-green-400 font-mono">${formatNumber(item.VALOARE)}</td>
-      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.CANTITATE, 0)}</td>
-      <td class="p-2 text-right text-green-300 font-mono">${item.CLIENTI}</td>
-      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.PRET_VANZARE)}</td>
-      <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.COST)}</td>
-      <td class="p-2 text-right ${profitClass} font-mono font-bold">
-        ${item.PROFIT_BRUT === 'nu e disponibil' ? 'N/A' : item.PROFIT_BRUT.toFixed(2) + '%'}
-      </td>
-      <td class="p-2 text-green-200">${item.FURNIZOR_EXT}</td>
-      <td class="p-2 text-center">
-        ${item.URL && item.URL !== 'nu e disponibil' ? 
-          `<img data-url="${item.URL}" 
-                class="lazy-image w-16 h-16 object-contain rounded cursor-pointer hover:scale-150 transition-transform" 
-                onclick="window.open('${item.URL}', '_blank')"
-                alt="Loading...">` : 
-          '<span class="text-gray-500">N/A</span>'}
-      </td>
+      item.PROFIT_BRUT > 30 ? 'text-green-400' :
+      item.PROFIT_BRUT > 20 ? 'text-yellow-400' : 'text-red-400';
+
+    const profitText = item.PROFIT_BRUT === 'nu e disponibil' ? 'N/A' : Number.isFinite(item.PROFIT_BRUT) ? item.PROFIT_BRUT.toFixed(2) + '%' : 'N/A';
+
+    const imageCell = item.URL && item.URL !== 'nu e disponibil' ?
+      `<img data-url="${escapeHtml(item.URL)}" class="lazy-image w-16 h-16 object-contain rounded cursor-pointer hover:scale-150 transition-transform" onclick="window.open('${escapeJs(item.URL)}', '_blank')" alt="Loading...">` :
+      '<span class="text-gray-500">N/A</span>';
+
+    return `
+      <tr class="border-b border-green-500/10 hover:bg-green-500/5 transition-colors">
+        <td class="p-2 text-green-300">${startIndex + index + 1}</td>
+        <td class="p-2 text-green-200 font-mono">${escapeHtml(item.COD)}</td>
+        <td class="p-2 text-green-100">${escapeHtml(item.DENUMIRE)}</td>
+        <td class="p-2 text-green-300">${escapeHtml(item.PM)}</td>
+        <td class="p-2 text-right text-green-400 font-mono">${formatNumber(item.VALOARE)}</td>
+        <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.CANTITATE, 0)}</td>
+        <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.CLIENTI, 0)}</td>
+        <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.PRET_VANZARE)}</td>
+        <td class="p-2 text-right text-green-300 font-mono">${formatNumber(item.COST)}</td>
+        <td class="p-2 text-right ${profitClass} font-mono font-bold">${profitText}</td>
+        <td class="p-2 text-green-200">${escapeHtml(item.FURNIZOR_EXT)}</td>
+        <td class="p-2 text-center">${imageCell}</td>
+      </tr>
     `;
-    
-    tbody.appendChild(row);
-  });
-  
-  // Lazy load images
+  }).join('');
+
   lazyLoadImages();
-  
-  // Update pagination
   updatePagination();
-  
-  // Update table info
-  document.getElementById('tableInfo').textContent = `Afișare ${startIndex + 1}-${Math.min(endIndex, filteredData.length)} din ${filteredData.length}`;
+  document.getElementById('tableInfo').textContent = filteredData.length > 0 ?
+    `Afișare ${Math.min(startIndex + 1, filteredData.length)}-${Math.min(endIndex, filteredData.length)} din ${filteredData.length}` :
+    'Niciun rezultat';
 }
 
-// Lazy Load Images
+function escapeHtml(unsafe) {
+  return unsafe == null ? '' : String(unsafe).replace(/[&<>"'`=\/]/g, s => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+  })[s]);
+}
+
+function escapeJs(s) {
+  return s == null ? '' : String(s).replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
 async function lazyLoadImages() {
   const images = document.querySelectorAll('.lazy-image[data-url]');
-  
   for (const img of images) {
     const url = img.dataset.url;
-    
-    // Check cache first
-    if (imageCache.has(url)) {
-      img.src = imageCache.get(url);
+    if (!url || imageCache.has(url)) {
+      if (imageCache.has(url)) img.src = imageCache.get(url);
+      else img.alt = 'N/A';
       img.classList.add('loaded');
       continue;
     }
-    
-    // Load image
+
+    img.onload = () => {
+      imageCache.set(url, img.src);
+      img.classList.add('loaded');
+    };
+    img.onerror = () => {
+      img.alt = 'No image';
+      img.classList.add('loaded');
+    };
+
     try {
-      const response = await fetch(url);
-      const html = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const ogImage = doc.querySelector('meta[property="og:image"]')?.content;
-      
-      if (ogImage) {
-        imageCache.set(url, ogImage);
-        img.src = ogImage;
-        img.classList.add('loaded');
-      } else {
-        img.alt = 'No image';
-        img.classList.add('loaded');
-      }
-    } catch (error) {
-      img.alt = 'Error';
+      img.src = url;
+    } catch (err) {
+      console.warn('Error setting image src:', err);
+      img.alt = 'No image';
       img.classList.add('loaded');
     }
   }
 }
 
-// Update Pagination
 function updatePagination() {
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-  
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
   document.getElementById('pageInfo').textContent = `Pagina ${currentPage} din ${totalPages}`;
-  
-  document.getElementById('prevPage').disabled = currentPage === 1;
-  document.getElementById('nextPage').disabled = currentPage === totalPages;
+  document.getElementById('prevPage').disabled = currentPage <= 1;
+  document.getElementById('nextPage').disabled = currentPage >= totalPages;
 }
 
-// Change Page
 function changePage(direction) {
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
   const newPage = currentPage + direction;
-  
   if (newPage >= 1 && newPage <= totalPages) {
     currentPage = newPage;
     renderTable();
   }
 }
 
-// Render Charts
 function renderCharts() {
   renderDistributionChart();
   renderProfitabilityChart();
 }
 
-// Distribution Chart
 function renderDistributionChart() {
-  const ctx = document.getElementById('distributionChart').getContext('2d');
-  
-  if (distributionChart) {
-    distributionChart.destroy();
-  }
-  
-  const pmFilter = document.getElementById('filterPM').value;
-  
+  const ctx = document.getElementById('distributionChart')?.getContext('2d');
+  if (!ctx) return;
+  if (distributionChart) distributionChart.destroy();
+
+  const pmFilter = document.getElementById('filterPM')?.value || 'all';
   if (pmFilter === 'all') {
-    // Pie chart for PM distribution
     const pmData = {};
     filteredData.forEach(item => {
-      pmData[item.PM] = (pmData[item.PM] || 0) + item.VALOARE;
+      const key = item.PM || 'Altele';
+      pmData[key] = (pmData[key] || 0) + (item.VALOARE || 0);
     });
-    
+
     distributionChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: Object.keys(pmData),
         datasets: [{
           data: Object.values(pmData),
-          backgroundColor: [
-            '#10b981', '#059669', '#047857', '#065f46',
-            '#064e3b', '#14b8a6', '#0d9488', '#0f766e'
-          ],
+          backgroundColor: ['#10b981', '#059669', '#047857', '#065f46', '#064e3b', '#14b8a6', '#0d9488', '#0f766e'],
           borderColor: '#111827',
           borderWidth: 2
         }]
@@ -1093,30 +1133,18 @@ function renderDistributionChart() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              color: '#10b981',
-              font: {
-                family: 'monospace'
-              }
-            }
-          }
-        }
+        plugins: { legend: { position: 'right', labels: { color: '#10b981', font: { family: 'monospace' } } } }
       }
     });
   } else {
-    // Bar chart for top products
     const topProducts = filteredData.slice(0, 10);
-    
     distributionChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: topProducts.map(p => p.COD),
+        labels: topProducts.map(p => p.COD || 'N/A'),
         datasets: [{
           label: 'Valoare',
-          data: topProducts.map(p => p.VALOARE),
+          data: topProducts.map(p => p.VALOARE || 0),
           backgroundColor: 'rgba(16, 185, 129, 0.5)',
           borderColor: '#10b981',
           borderWidth: 2
@@ -1126,56 +1154,31 @@ function renderDistributionChart() {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: {
-            ticks: { color: '#10b981' },
-            grid: { color: 'rgba(16, 185, 129, 0.1)' }
-          },
-          y: {
-            ticks: { color: '#10b981' },
-            grid: { color: 'rgba(16, 185, 129, 0.1)' }
-          }
+          x: { ticks: { color: '#10b981' }, grid: { color: 'rgba(16,185,129,0.1)' } },
+          y: { ticks: { color: '#10b981' }, grid: { color: 'rgba(16,185,129,0.1)' } }
         },
-        plugins: {
-          legend: {
-            labels: { color: '#10b981' }
-          }
-        }
+        plugins: { legend: { labels: { color: '#10b981' } } }
       }
     });
   }
 }
 
-// Profitability Chart
 function renderProfitabilityChart() {
-  const ctx = document.getElementById('profitabilityChart').getContext('2d');
-  
-  if (profitabilityChart) {
-    profitabilityChart.destroy();
-  }
-  
-  // Group products by profit ranges
-  const profitRanges = {
-    '< 0%': 0,
-    '0-10%': 0,
-    '10-20%': 0,
-    '20-30%': 0,
-    '> 30%': 0,
-    'N/A': 0
-  };
-  
+  const ctx = document.getElementById('profitabilityChart')?.getContext('2d');
+  if (!ctx) return;
+  if (profitabilityChart) profitabilityChart.destroy();
+
+  const profitRanges = { '< 0%': 0, '0-10%': 0, '10-20%': 0, '20-30%': 0, '> 30%': 0, 'N/A': 0 };
   filteredData.forEach(item => {
-    if (item.PROFIT_BRUT === 'nu e disponibil') {
-      profitRanges['N/A']++;
-    } else {
-      const profit = parseFloat(item.PROFIT_BRUT);
-      if (profit < 0) profitRanges['< 0%']++;
-      else if (profit <= 10) profitRanges['0-10%']++;
-      else if (profit <= 20) profitRanges['10-20%']++;
-      else if (profit <= 30) profitRanges['20-30%']++;
-      else profitRanges['> 30%']++;
-    }
+    const p = item.PROFIT_BRUT === 'nu e disponibil' ? null : parseFloat(item.PROFIT_BRUT);
+    if (p == null) profitRanges['N/A']++;
+    else if (p < 0) profitRanges['< 0%']++;
+    else if (p <= 10) profitRanges['0-10%']++;
+    else if (p <= 20) profitRanges['10-20%']++;
+    else if (p <= 30) profitRanges['20-30%']++;
+    else profitRanges['> 30%']++;
   });
-  
+
   profitabilityChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -1183,9 +1186,7 @@ function renderProfitabilityChart() {
       datasets: [{
         label: 'Număr Produse',
         data: Object.values(profitRanges),
-        backgroundColor: [
-          '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981', '#6b7280'
-        ],
+        backgroundColor: ['#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981', '#6b7280'],
         borderColor: '#111827',
         borderWidth: 2
       }]
@@ -1194,96 +1195,68 @@ function renderProfitabilityChart() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: {
-          ticks: { color: '#10b981' },
-          grid: { color: 'rgba(16, 185, 129, 0.1)' }
-        },
-        y: {
-          ticks: { color: '#10b981' },
-          grid: { color: 'rgba(16, 185, 129, 0.1)' }
-        }
+        x: { ticks: { color: '#10b981' }, grid: { color: 'rgba(16,185,129,0.1)' } },
+        y: { ticks: { color: '#10b981' }, grid: { color: 'rgba(16,185,129,0.1)' } }
       },
-      plugins: {
-        legend: {
-          labels: { color: '#10b981' }
-        }
-      }
+      plugins: { legend: { labels: { color: '#10b981' } } }
     }
   });
 }
 
-// Update Statistics
 function updateStats() {
   const totalProducts = filteredData.length;
-  const totalValue = filteredData.reduce((sum, item) => sum + item.VALOARE, 0);
-  
+  const totalValue = filteredData.reduce((sum, item) => sum + (item.VALOARE || 0), 0);
   const validProfits = filteredData
-    .filter(item => item.PROFIT_BRUT !== 'nu e disponibil')
+    .filter(item => item.PROFIT_BRUT !== 'nu e disponibil' && Number.isFinite(parseFloat(item.PROFIT_BRUT)))
     .map(item => parseFloat(item.PROFIT_BRUT));
-  
-  const avgProfit = validProfits.length > 0 ? 
-    validProfits.reduce((sum, p) => sum + p, 0) / validProfits.length : 0;
-  
+  const avgProfit = validProfits.length ? validProfits.reduce((s, p) => s + p, 0) / validProfits.length : 0;
+
   document.getElementById('statTotal').textContent = formatNumber(totalProducts, 0);
   document.getElementById('statValue').textContent = formatNumber(totalValue);
-  document.getElementById('statProfit').textContent = avgProfit.toFixed(2) + '%';
+  document.getElementById('statProfit').textContent = formatNumber(avgProfit, 2) + '%';
 }
 
-// Format Number Helper
 function formatNumber(num, decimals = 2) {
-  if (typeof num !== 'number' || isNaN(num)) return 'N/A';
-  return num.toLocaleString('ro-RO', { 
-    minimumFractionDigits: decimals, 
-    maximumFractionDigits: decimals 
-  });
+  return Number.isFinite(num) ? num.toLocaleString('ro-RO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : 'N/A';
 }
 
-// Debounce Helper
 function debounce(func, wait) {
   let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
+  return (...args) => {
     clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+    timeout = setTimeout(() => func(...args), wait);
   };
 }
 
-// Processing Overlay
 function showProcessing(progress, text) {
   const overlay = document.getElementById('processingOverlay');
   const progressBar = document.getElementById('processingProgress');
   const progressText = document.getElementById('processingText');
   const details = document.getElementById('processingDetails');
-  
+
+  if (!overlay || !progressBar || !progressText || !details) return;
+
   overlay.classList.remove('hidden');
-  
-  if (!matrixInstances.processing.running) {
-    matrixInstances.processing.start();
-  }
-  
-  progressBar.style.width = `${progress}%`;
-  progressText.textContent = text;
-  
-  // Add details
-  if (progress < 100) {
-    details.innerHTML = `
-      <div>› Progress: ${progress.toFixed(0)}%</div>
-      <div>› Status: ${text}</div>
-      <div>› Time: ${new Date().toLocaleTimeString('ro-RO')}</div>
-    `;
-  }
+  matrixInstances.processing?.start();
+
+  const p = Math.max(0, Math.min(100, Number(progress) || 0));
+  progressBar.style.width = `${p}%`;
+  progressText.textContent = text || '';
+  details.innerHTML = `
+    <div>› Progress: ${p}%</div>
+    <div>› Status: ${escapeHtml(text || '')}</div>
+    <div>› Time: ${new Date().toLocaleTimeString('ro-RO')}</div>
+  `;
 }
 
 function hideProcessing() {
   setTimeout(() => {
-    document.getElementById('processingOverlay').classList.add('hidden');
-    matrixInstances.processing.stop();
-  }, 500);
+    document.getElementById('processingOverlay')?.classList.add('hidden');
+    matrixInstances.processing?.stop();
+  }, 300);
 }
-</script>
 
+console.info('Script loaded. Awaiting user actions.');
+</script>
 </body>
 </html>
