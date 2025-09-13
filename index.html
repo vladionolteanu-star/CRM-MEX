@@ -804,10 +804,11 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // ===================== MERGE DATASETS =====================
+  // ===================== MERGE DATASETS - CORRECTED =====================
   function mergeDatasets() {
     showProcessingMatrix(0, "Inițializare proces de fuziune date...", "FUZIUNE DATE");
 
+    // Agregare corectă: COD + AN ca cheie unică
     let temp = {};
     let idx = 0;
     let batchSize = 5000;
@@ -818,8 +819,11 @@
       
       for (; idx < end; idx++) {
         const s = salesData[idx];
-        if (!temp[s.COD]) {
-          temp[s.COD] = {
+        // Cheie unică: COD + AN pentru agregare corectă pe ani
+        const key = `${s.COD}_${s.AN}`;
+        
+        if (!temp[key]) {
+          temp[key] = {
             COD: s.COD,
             DENUMIRE: s.DENUMIRE,
             PM: s.PM,
@@ -829,9 +833,9 @@
             AN: s.AN
           };
         }
-        temp[s.COD].VALOARE += s.VALOARE;
-        temp[s.COD].CANTITATE += s.CANTITATE;
-        temp[s.COD].CLIENTI += s.CLIENTI;
+        temp[key].VALOARE += s.VALOARE;
+        temp[key].CANTITATE += s.CANTITATE;
+        temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI); // Max pentru clienți unici
       }
 
       const progress = Math.floor((idx / totalRecords) * 80);
@@ -849,10 +853,21 @@
         setTimeout(() => {
           mergedData = Object.values(temp).map(item => {
             const p = productsMap[item.COD] || {};
+            
+            // Parsare corectă pentru format RO
+            const parseRomanianNumber = (val) => {
+              if (!val || val === "N/A") return 0;
+              return parseFloat(String(val).replace(',', '.').replace(/\s/g, '')) || 0;
+            };
+            
             const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
-              ? parseFloat(p.PRET_VANZARE) 
+              ? parseRomanianNumber(p.PRET_VANZARE)
               : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
-            const cost = p.COST !== "N/A" && p.COST ? parseFloat(p.COST) : 0;
+            
+            const cost = p.COST !== "N/A" && p.COST 
+              ? parseRomanianNumber(p.COST) 
+              : 0;
+            
             const profitBrut = (pretVanzare > 0 && cost > 0) 
               ? ((pretVanzare - cost) / pretVanzare * 100).toFixed(2) 
               : "N/A";
@@ -866,6 +881,11 @@
               PROFIT_BRUT: profitBrut
             };
           });
+
+          // Log pentru verificare
+          const totalValue = mergedData.reduce((sum, d) => sum + d.VALOARE, 0);
+          console.log(`Total processat: ${formatNumber(Math.round(totalValue))} RON`);
+          console.log(`Total înregistrări: ${mergedData.length}`);
 
           showProcessingMatrix(95, "Finalizare procesare...", "FINALIZARE");
           
