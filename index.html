@@ -75,20 +75,20 @@
     }
     
     /* Password Input - Semi Transparent */
-    #passwordInput {
+    #passwordInput, #supplierPasswordInput {
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(34, 197, 94, 0.15);
       color: rgba(34, 197, 94, 0.8);
       transition: all 0.3s;
     }
     
-    #passwordInput:focus {
+    #passwordInput:focus, #supplierPasswordInput:focus {
       background: rgba(0, 0, 0, 0.5);
       border-color: rgba(34, 197, 94, 0.3);
       box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
     }
     
-    #passwordInput::placeholder {
+    #passwordInput::placeholder, #supplierPasswordInput::placeholder {
       color: rgba(34, 197, 94, 0.3);
       font-size: 0.85rem;
     }
@@ -152,6 +152,8 @@
     /* Table Styles */
     .table-dark {
       background: rgba(0, 0, 0, 0.3);
+      width: 100%;
+      table-layout: fixed;
     }
     
     .table-dark thead {
@@ -167,6 +169,20 @@
     .table-dark tbody tr:hover {
       background: rgba(34, 197, 94, 0.05);
     }
+    
+    /* Column Widths */
+    .table-dark th:nth-child(1), .table-dark td:nth-child(1) { width: 4%; } /* # */
+    .table-dark th:nth-child(2), .table-dark td:nth-child(2) { width: 8%; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* Cod */
+    .table-dark th:nth-child(3), .table-dark td:nth-child(3) { width: 15%; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* Denumire */
+    .table-dark th:nth-child(4), .table-dark td:nth-child(4) { width: 6%; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* PM */
+    .table-dark th:nth-child(5), .table-dark td:nth-child(5) { width: 10%; } /* Valoare */
+    .table-dark th:nth-child(6), .table-dark td:nth-child(6) { width: 8%; } /* Cantitate */
+    .table-dark th:nth-child(7), .table-dark td:nth-child(7) { width: 8%; } /* Clienți */
+    .table-dark th:nth-child(8), .table-dark td:nth-child(8) { width: 8%; } /* Preț Vânzare */
+    .table-dark th:nth-child(9), .table-dark td:nth-child(9) { width: 8%; } /* Cost */
+    .table-dark th:nth-child(10), .table-dark td:nth-child(10) { width: 8%; } /* Profit % */
+    .table-dark th:nth-child(11), .table-dark td:nth-child(11) { width: 10%; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* Furnizor */
+    .table-dark th:nth-child(12), .table-dark td:nth-child(12) { width: 27%; } /* Imagine */
     
     /* Scrollbar Styles */
     ::-webkit-scrollbar {
@@ -201,8 +217,8 @@
     
     /* Image Styles */
     .product-image {
-      width: 130px;
-      height: 130px;
+      width: 260px;
+      height: 260px;
       object-fit: contain;
       border: 1px solid rgba(34, 197, 94, 0.2);
       border-radius: 8px;
@@ -302,94 +318,105 @@
 
 <!-- Main Dashboard -->
 <div class="hidden" id="mainContent">
-  <div class="flex h-screen dashboard-gradient">
-    <!-- Sidebar -->
-    <div class="w-80 bg-black/50 backdrop-blur-md border-r border-gray-800">
-      <div class="p-6 border-b border-gray-800">
-        <h1 class="homedit-brand">HOMEDIT</h1>
-        <p class="text-gray-500 text-xs mt-1 mono">ANALYTICS DASHBOARD v2.0</p>
-      </div>
-      
-      <div class="p-6 space-y-6 overflow-y-auto" style="height: calc(100vh - 100px);">
-        <!-- Căutare -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Căutare Avansată
-          </label>
-          <input type="text" id="searchInput" 
-            placeholder="Cod / Denumire / PM / Furnizor..." 
-            class="w-full p-3 input-dark rounded-lg text-sm">
-        </div>
-        
-        <!-- Upload Produse -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Date Produse
-          </label>
-          <input type="file" id="uploadProducts" accept=".xlsx,.csv" 
-            class="w-full text-sm text-gray-400 
-            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 
-            file:text-xs file:font-semibold file:bg-green-600 file:text-black 
-            hover:file:bg-green-500 file:transition-all file:duration-300">
-        </div>
-        
-        <!-- Upload Vânzări -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Date Vânzări
-          </label>
-          <input type="file" id="uploadSales" accept=".xlsx,.csv" 
-            class="w-full text-sm text-gray-400 
-            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 
-            file:text-xs file:font-semibold file:bg-blue-600 file:text-white 
-            hover:file:bg-blue-500 file:transition-all file:duration-300">
-        </div>
-        
-        <!-- Filtru An -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Perioada
-          </label>
-          <select id="filterYear" class="w-full p-3 input-dark rounded-lg text-sm">
-            <option value="all">Toate Perioadele</option>
-          </select>
-        </div>
-        
-        <!-- Filtru PM -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Product Manager
-          </label>
-          <select id="filterPM" class="w-full p-3 input-dark rounded-lg text-sm">
-            <option value="all">Toți PM</option>
-          </select>
-        </div>
-        
-        <!-- Criteriu Top -->
-        <div>
-          <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
-            Criteriu Analiză
-          </label>
-          <select id="topCriteria" class="w-full p-3 input-dark rounded-lg text-sm">
-            <option value="valoare">Top Valoric</option>
-            <option value="cantitate">Top Cantitativ</option>
-            <option value="clienti">Top Nr. Clienți</option>
-            <option value="profit">Top Profitabilitate</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
+  <div class="flex dashboard-gradient">
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col">
       <!-- Header -->
       <div class="p-6 bg-black/30 backdrop-blur-md border-b border-gray-800">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col">
           <div>
             <h1 class="text-2xl font-bold text-white">Dashboard Analiză</h1>
             <p class="text-gray-500 text-sm mt-1">Monitorizare performanță produse în timp real</p>
           </div>
-          <div id="loadingBar" class="hidden">
+          <div class="bg-black/50 backdrop-blur-md mt-4">
+            <div class="p-6 border-b border-gray-800">
+              <h1 class="homedit-brand">HOMEDIT</h1>
+              <p class="text-gray-500 text-xs mt-1 mono">ANALYTICS DASHBOARD v2.0</p>
+            </div>
+            <div class="p-6 space-y-6">
+              <!-- Căutare -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Căutare Avansată
+                </label>
+                <input type="text" id="searchInput" 
+                  placeholder="Cod / Denumire / PM / Furnizor..." 
+                  class="w-full p-3 input-dark rounded-lg text-sm">
+              </div>
+              
+              <!-- Upload Produse -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Date Produse
+                </label>
+                <input type="file" id="uploadProducts" accept=".xlsx,.csv" 
+                  class="w-full text-sm text-gray-400 
+                  file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 
+                  file:text-xs file:font-semibold file:bg-green-600 file:text-black 
+                  hover:file:bg-green-500 file:transition-all file:duration-300">
+              </div>
+              
+              <!-- Upload Vânzări -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Date Vânzări
+                </label>
+                <input type="file" id="uploadSales" accept=".xlsx,.csv" 
+                  class="w-full text-sm text-gray-400 
+                  file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 
+                  file:text-xs file:font-semibold file:bg-blue-600 file:text-white 
+                  hover:file:bg-blue-500 file:transition-all file:duration-300">
+              </div>
+              
+              <!-- Filtru An -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Perioada
+                </label>
+                <select id="filterYear" class="w-full p-3 input-dark rounded-lg text-sm">
+                  <option value="all">Toate Perioadele</option>
+                </select>
+              </div>
+              
+              <!-- Filtru PM -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Product Manager
+                </label>
+                <select id="filterPM" class="w-full p-3 input-dark rounded-lg text-sm">
+                  <option value="all">Toți PM</option>
+                </select>
+              </div>
+              
+              <!-- Criteriu Top -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Criteriu Analiză
+                </label>
+                <select id="topCriteria" class="w-full p-3 input-dark rounded-lg text-sm">
+                  <option value="valoare">Top Valoric</option>
+                  <option value="cantitate">Top Cantitativ</option>
+                  <option value="clienti">Top Nr. Clienți</option>
+                  <option value="profit">Top Profitabilitate</option>
+                </select>
+              </div>
+              
+              <!-- Supplier Password -->
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-2 mono uppercase tracking-wider">
+                  Parolă Furnizor
+                </label>
+                <input type="password" id="supplierPasswordInput" 
+                  class="w-full p-3 input-dark rounded-lg text-sm"
+                  placeholder="Parolă pentru afișare furnizor">
+                <button onclick="checkSupplierPassword()" 
+                  class="mt-2 btn-cyber py-2 px-4 rounded-lg text-xs tracking-wider">
+                  Deblochează Furnizor
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="loadingBar" class="hidden mt-4">
             <div class="w-64 bg-gray-800 rounded-full h-2 overflow-hidden">
               <div id="loadingProgress" class="h-2 progress-bar rounded-full"></div>
             </div>
@@ -427,7 +454,7 @@
               Analiză Detaliată Produse
             </h2>
           </div>
-          <div class="overflow-x-auto">
+          <div class="overflow-x-hidden">
             <table class="w-full table-dark">
               <thead>
                 <tr class="text-xs mono uppercase tracking-wider text-gray-400">
@@ -576,6 +603,33 @@
     }
   }
 
+  // Supplier Password Logic
+  let isSupplierUnlocked = false;
+  function checkSupplierPassword() {
+    const input = document.getElementById("supplierPasswordInput").value;
+    if (input === "333") {
+      isSupplierUnlocked = true;
+      renderTopTable();
+      document.getElementById("supplierPasswordInput").value = "";
+      alert("Furnizor deblocat!");
+    } else {
+      const inputEl = document.getElementById("supplierPasswordInput");
+      inputEl.style.animation = "shake 0.5s";
+      inputEl.style.borderColor = "#ef4444";
+      setTimeout(() => {
+        inputEl.style.animation = "";
+        inputEl.style.borderColor = "";
+        inputEl.value = "";
+        inputEl.focus();
+      }, 500);
+    }
+  }
+
+  // Enter key pentru parolă furnizor
+  document.getElementById('supplierPasswordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') checkSupplierPassword();
+  });
+
   // ===================== VARIABILE GLOBALE =====================
   let productsData = [];
   let productsMap = {};
@@ -677,7 +731,7 @@
         d.COD.toLowerCase().includes(searchQuery) || 
         d.DENUMIRE.toLowerCase().includes(searchQuery) ||
         d.PM.toLowerCase().includes(searchQuery) ||
-        d.FURNIZOR_EXT.toLowerCase().includes(searchQuery)
+        (isSupplierUnlocked && d.FURNIZOR_EXT.toLowerCase().includes(searchQuery))
       );
     }
 
@@ -956,6 +1010,8 @@
         : 'text-red-400'
         : 'text-gray-500';
       
+      const supplierDisplay = isSupplierUnlocked ? d.FURNIZOR_EXT : '***';
+      
       return `
         <tr class="hover:bg-gray-900/50 transition-all duration-200">
           <td class="px-4 py-3 text-gray-500 mono">${start + idx + 1}</td>
@@ -970,8 +1026,8 @@
           <td class="px-4 py-3 text-right mono">${d.PRET_VANZARE}</td>
           <td class="px-4 py-3 text-right mono">${d.COST}</td>
           <td class="px-4 py-3 text-right font-bold ${profitColor} mono">${d.PROFIT_BRUT}${d.PROFIT_BRUT !== "N/A" ? '%' : ''}</td>
-          <td class="px-4 py-3">${d.FURNIZOR_EXT}</td>
-          <td class="px-4 py-4 text-center" style="min-width: 280px;">
+          <td class="px-4 py-3">${supplierDisplay}</td>
+          <td class="px-4 py-4 text-center">
             ${d.URL && d.URL !== "N/A"
               ? `<a href="${d.URL}" target="_blank" class="inline-block">
                    <img data-url="${d.URL}" class="product-image mx-auto" alt="Loading..." loading="lazy">
