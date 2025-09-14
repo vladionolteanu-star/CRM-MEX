@@ -527,6 +527,9 @@
 </div>
 
 <script>
+  // Parola stocată într-o variabilă
+  const PASSWORD = "333";
+
   // ===================== MATRIX RAIN EFFECT OPTIMIZED =====================
   class MatrixRain {
     constructor(canvasId) {
@@ -623,7 +626,7 @@
 
   function checkPassword() {
     const input = document.getElementById("passwordInput").value;
-    if (input === "333") {
+    if (input === PASSWORD) {
       const overlay = document.getElementById("passwordOverlay");
       overlay.style.transition = "opacity 0.5s ease-out";
       overlay.style.opacity = "0";
@@ -650,7 +653,7 @@
   let isSupplierUnlocked = false;
   function checkSupplierPassword() {
     const input = document.getElementById("supplierPasswordInput").value;
-    if (input === "333") {
+    if (input === PASSWORD) {
       isSupplierUnlocked = true;
       renderTopTable();
       document.getElementById("supplierPasswordInput").value = "";
