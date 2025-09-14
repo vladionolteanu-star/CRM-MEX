@@ -86,6 +86,7 @@
       background: rgba(0, 0, 0, 0.5);
       border-color: rgba(34, 197, 94, 0.3);
       box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+      outline: none;
     }
     
     #passwordInput::placeholder, #supplierPasswordInput::placeholder {
@@ -383,7 +384,7 @@
         </div>
         
         <!-- Controale grupate în rând -->
-        <div class="grid grid-cols-7 gap-3">
+        <div class="grid grid-cols-8 gap-3">
           <!-- Upload Produse -->
           <div>
             <label class="block text-xs text-gray-400 mb-1 mono">PRODUSE</label>
@@ -402,6 +403,16 @@
               file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 
               file:text-xs file:bg-blue-600 file:text-white 
               hover:file:bg-blue-500 file:transition-all">
+          </div>
+          
+          <!-- Upload Reclamații -->
+          <div>
+            <label class="block text-xs text-gray-400 mb-1 mono">RECLAMAȚII</label>
+            <input type="file" id="uploadComplaints" accept=".csv" 
+              class="w-full text-xs text-gray-400 
+              file:mr-1 file:py-1 file:px-2 file:rounded file:border-0 
+              file:text-xs file:bg-red-600 file:text-white 
+              hover:file:bg-red-500 file:transition-all">
           </div>
           
           <!-- Filtru An -->
@@ -666,6 +677,7 @@
   let productsData = [];
   let productsMap = {};
   let salesData = [];
+  let complaintsData = [];
   let mergedData = [];
   let pmChart = null;
   let currentPage = 1;
@@ -855,6 +867,17 @@
     }
   });
 
+  document.getElementById("uploadComplaints").addEventListener("change", e => {
+    if (e.target.files[0]) {
+      const fileName = e.target.files[0].name;
+      const fileExt = fileName.split('.').pop().toLowerCase();
+      
+      showProcessingMatrix(0, "Pregătire încărcare date reclamații...", "ÎNCĂRCARE RECLAMAȚII");
+      
+      setTimeout(() => handleFileUpload(e.target.files[0], "complaints", fileExt), 500);
+    }
+  });
+
   function handleFileUpload(file, type, ext) {
     const reader = new FileReader();
     let progressInterval;
@@ -866,11 +889,11 @@
       
       const statusText = ext === 'hdata' 
         ? `Decriptare și validare date securizate: ${Math.round(currentProgress)}%`
-        : `Citire fișier ${type === "products" ? "produse" : "vânzări"}: ${Math.round(currentProgress)}%`;
+        : `Citire fișier ${type === "products" ? "produse" : type === "sales" ? "vânzări" : "reclamații"}: ${Math.round(currentProgress)}%`;
       
       const titleText = ext === 'hdata'
         ? "DECRIPTARE HOMEDIT"
-        : type === "products" ? "ÎNCĂRCARE PRODUSE" : "ÎNCĂRCARE VÂNZĂRI";
+        : type === "products" ? "ÎNCĂRCARE PRODUSE" : type === "sales" ? "ÎNCĂRCARE VÂNZĂRI" : "ÎNCĂRCARE RECLAMAȚII";
       
       showProcessingMatrix(currentProgress, statusText, titleText);
     }, 300);
@@ -933,7 +956,7 @@
           
           processBatch();
           
-        } else {
+        } else if (type === "sales") {
           showProcessingMatrix(90, ext === 'hdata' 
             ? "Finalizare procesare date securizate..." 
             : "Procesare date vânzări...", 
@@ -970,6 +993,38 @@
               if (productsData.length && salesData.length) {
                 setTimeout(() => mergeDatasets(), 1500);
               }
+            }
+          }
+          
+          processBatch();
+        } else if (type === "complaints") {
+          showProcessingMatrix(90, "Procesare date reclamații...", "ÎNCĂRCARE RECLAMAȚII");
+          
+          complaintsData = [];
+          const batchSize = 1000;
+          let index = 0;
+          
+          function processBatch() {
+            const end = Math.min(index + batchSize, json.length);
+            
+            for (let i = index; i < end; i++) {
+              const row = json[i];
+              complaintsData.push({
+                COD: normalizeValue(row["ARTICOL COD"]),
+                AN: normalizeValue(row["AN RECLAMATIE"]),
+                CANTITATE_RECLAMATA: parseFloat(row["Cantitate Reclamata"] || 0)
+              });
+            }
+            
+            index = end;
+            
+            if (index < json.length) {
+              const progress = 90 + (index / json.length) * 10;
+              showProcessingMatrix(progress, `Procesare: ${formatNumber(index)} / ${formatNumber(json.length)} reclamații`, "PROCESARE DATE");
+              setTimeout(processBatch, 10);
+            } else {
+              showProcessingMatrix(100, `${complaintsData.length} reclamații încărcate cu succes!`, "ÎNCĂRCARE COMPLETĂ");
+              setTimeout(() => renderTopTable(), 1500);
             }
           }
           
@@ -1219,6 +1274,15 @@
     }, 150);
   });
 
+  // Function to change page
+  function changePage(page) {
+    const totalPages = Math.ceil(getFilteredData().length / rowsPerPage);
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
+      renderTopTable();
+    }
+  }
+
   function renderTopTable() {
     let data = getFilteredData();
     updateStats(data);
@@ -1237,6 +1301,7 @@
     const start = (currentPage - 1) * rowsPerPage;
     const pagedData = data.slice(start, start + rowsPerPage);
 
+    const yearFilter = document.getElementById("filterYear").value;
     const tbody = document.getElementById("topTableBody");
     tbody.innerHTML = pagedData.map((d, idx) => {
       const profitColor = d.PROFIT_BRUT !== "N/A" 
@@ -1253,6 +1318,13 @@
              <div class="tooltip-content">${d.DENUMIRE}</div>
            </div>`
         : d.DENUMIRE;
+
+      const complaints = complaintsData
+        .filter(c => c.COD === d.COD && (yearFilter === "all" || c.AN == yearFilter))
+        .reduce((sum, c) => sum + c.CANTITATE_RECLAMATA, 0);
+      const quantityDisplay = complaints > 0 
+        ? `${formatNumber(Math.round(d.CANTITATE))} (${complaints})`
+        : formatNumber(Math.round(d.CANTITATE));
       
       return `
         <tr class="hover:bg-gray-900/50 transition-all duration-200">
@@ -1263,7 +1335,7 @@
             <span class="px-2 py-1 bg-gray-800 rounded text-xs mono">${d.PM}</span>
           </td>
           <td class="px-4 py-3 text-right font-semibold text-green-400">${formatNumber(Math.round(d.VALOARE))}</td>
-          <td class="px-4 py-3 text-right">${formatNumber(Math.round(d.CANTITATE))}</td>
+          <td class="px-4 py-3 text-right">${quantityDisplay}</td>
           <td class="px-4 py-3 text-right">${d.CLIENTI}</td>
           <td class="px-4 py-3 text-right mono">${d.PRET_VANZARE}</td>
           <td class="px-4 py-3 text-right mono">${d.COST}</td>
@@ -1339,12 +1411,6 @@
     }
 
     renderChart(data);
-  }
-
-  function changePage(page) {
-    currentPage = page;
-    renderTopTable();
-    document.querySelector('.table-dark').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function renderChart(data) {
