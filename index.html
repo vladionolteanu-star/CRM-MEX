@@ -428,6 +428,7 @@
               <option value="cantitate">Cantitativ</option>
               <option value="clienti">Clienți</option>
               <option value="profit">Profit</option>
+              <option value="pret_vanzare">Preț Vânzare</option>
             </select>
           </div>
           
@@ -448,7 +449,7 @@
           <div>
             <label class="block text-xs text-gray-400 mb-1 mono">CĂUTARE</label>
             <input type="text" id="searchInput" 
-              placeholder="Cod / Denumire / PM / Furnizor..." 
+              placeholder="Cod / Denumire / PM / Furnizor / Preț..." 
               class="w-full p-1.5 rounded text-xs"
               style="background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: white;">
           </div>
@@ -527,9 +528,6 @@
 </div>
 
 <script>
-  // Parola stocată într-o variabilă
-  const PASSWORD = "333";
-
   // ===================== MATRIX RAIN EFFECT OPTIMIZED =====================
   class MatrixRain {
     constructor(canvasId) {
@@ -538,10 +536,9 @@
       this.fontSize = 14;
       this.columns = 0;
       this.drops = [];
-      // Caractere extinse pentru programare
       this.chars = '01アイウエオカキクケコサシスセソ<>{}[]();&|+-=*/%$#@!?:;.,^~`\\/_.';
       this.running = false;
-      this.fadeSpeed = 0.02; // Mai încet pentru efect smooth
+      this.fadeSpeed = 0.02;
       this.animationId = null;
       
       this.resize();
@@ -570,7 +567,6 @@
     draw() {
       if (!this.running) return;
       
-      // Folosesc fillRect cu opacitate mică pentru fade smooth
       this.ctx.fillStyle = `rgba(0, 0, 0, ${this.fadeSpeed})`;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       
@@ -581,11 +577,9 @@
         const x = i * this.fontSize;
         const y = this.drops[i] * this.fontSize;
         
-        // Variație de culoare pentru diversitate
         const greenIntensity = Math.random() * 155 + 100;
         this.ctx.fillStyle = `rgb(34, ${greenIntensity}, 94)`;
         
-        // Efect de strălucire pentru caracterele noi
         if (Math.random() > 0.98) {
           this.ctx.fillStyle = '#00ff00';
           this.ctx.shadowBlur = 10;
@@ -596,7 +590,6 @@
         
         this.ctx.fillText(text, x, y);
         
-        // Reset drops cu probabilitate variabilă
         if (this.drops[i] * this.fontSize > this.canvas.height && Math.random() > 0.975) {
           this.drops[i] = 0;
         }
@@ -607,26 +600,22 @@
     }
   }
 
-  // Inițializare Matrix Rain pentru login
   const loginMatrix = new MatrixRain('matrixCanvas');
   loginMatrix.start();
   
-  // Matrix Rain pentru procesare
   const processingMatrix = new MatrixRain('processingMatrixCanvas');
 
-  // Focus automat pe input parolă
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('passwordInput').focus();
   });
   
-  // Enter key pentru submit
   document.getElementById('passwordInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') checkPassword();
   });
 
   function checkPassword() {
     const input = document.getElementById("passwordInput").value;
-    if (input === PASSWORD) {
+    if (input === "333") {
       const overlay = document.getElementById("passwordOverlay");
       overlay.style.transition = "opacity 0.5s ease-out";
       overlay.style.opacity = "0";
@@ -649,11 +638,10 @@
     }
   }
 
-  // Supplier Password Logic
   let isSupplierUnlocked = false;
   function checkSupplierPassword() {
     const input = document.getElementById("supplierPasswordInput").value;
-    if (input === PASSWORD) {
+    if (input === "333") {
       isSupplierUnlocked = true;
       renderTopTable();
       document.getElementById("supplierPasswordInput").value = "";
@@ -671,12 +659,10 @@
     }
   }
 
-  // Enter key pentru parolă furnizor
   document.getElementById('supplierPasswordInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') checkSupplierPassword();
   });
 
-  // ===================== VARIABILE GLOBALE =====================
   let productsData = [];
   let productsMap = {};
   let salesData = [];
@@ -685,7 +671,6 @@
   let currentPage = 1;
   const rowsPerPage = 50;
 
-  // ===================== FUNCȚII UTILITARE =====================
   function normalizeValue(val) {
     if (val === null || val === undefined || val === "" || val === "#null") {
       return "N/A";
@@ -723,7 +708,6 @@
     }
     
     if (progress >= 100) {
-      // Extind durata pentru efect mai dramatic
       setTimeout(() => {
         container.style.animation = "fadeOut 0.8s ease-out";
         setTimeout(() => {
@@ -731,7 +715,7 @@
           container.style.animation = "";
           processingMatrix.stop();
         }, 800);
-      }, 1200); // 1.5x mai mult timp
+      }, 1200);
     }
   }
 
@@ -768,9 +752,8 @@
     const criteria = document.getElementById("topCriteria").value;
     const searchQuery = document.getElementById("searchInput").value.toLowerCase().trim();
 
-    let data = [...mergedData]; // Copie pentru siguranță
+    let data = [...mergedData];
     
-    // Filtrare după an și PM
     if (yearFilter !== "all") {
       data = data.filter(d => d.AN == yearFilter);
     }
@@ -778,26 +761,24 @@
       data = data.filter(d => d.PM == pmFilter);
     }
     
-    // SEARCH FUNCTIONALITY - Simplificat și mai robust
     if (searchQuery && searchQuery.length > 0) {
-      console.log("Filtering for:", searchQuery); // Debug
+      console.log("Filtering for:", searchQuery);
       data = data.filter(d => {
-        // Convertim toate valorile în string și verificăm
         const codStr = String(d.COD || "").toLowerCase();
         const denumireStr = String(d.DENUMIRE || "").toLowerCase();
         const pmStr = String(d.PM || "").toLowerCase();
         const furnizorStr = String(d.FURNIZOR_EXT || "").toLowerCase();
+        const pretStr = String(d.PRET_VANZARE || "").toLowerCase();
         
-        // Verificăm dacă oricare conține query-ul
         return codStr.includes(searchQuery) || 
                denumireStr.includes(searchQuery) || 
                pmStr.includes(searchQuery) || 
-               (isSupplierUnlocked && furnizorStr.includes(searchQuery));
+               (isSupplierUnlocked && furnizorStr.includes(searchQuery)) ||
+               pretStr.includes(searchQuery);
       });
-      console.log("Filtered results:", data.length); // Debug
+      console.log("Filtered results:", data.length);
     }
 
-    // Sortare
     if (criteria === "valoare") {
       data.sort((a, b) => b.VALOARE - a.VALOARE);
     } else if (criteria === "cantitate") {
@@ -809,6 +790,12 @@
         const profitA = parseFloat(a.PROFIT_BRUT) || 0;
         const profitB = parseFloat(b.PROFIT_BRUT) || 0;
         return profitB - profitA;
+      });
+    } else if (criteria === "pret_vanzare") {
+      data.sort((a, b) => {
+        const pretA = parseFloat(a.PRET_VANZARE) || 0;
+        const pretB = parseFloat(b.PRET_VANZARE) || 0;
+        return pretB - pretA;
       });
     }
 
@@ -838,7 +825,6 @@
     }
   }
 
-  // ===================== UPLOAD HANDLERS OPTIMIZAT =====================
   document.getElementById("uploadProducts").addEventListener("change", e => {
     if (e.target.files[0]) {
       const fileName = e.target.files[0].name;
@@ -869,15 +855,13 @@
     }
   });
 
-  // Procesare optimizată pentru fișiere mari
   function handleFileUpload(file, type, ext) {
     const reader = new FileReader();
     let progressInterval;
     let currentProgress = 0;
     
-    // Simulare progress mai lentă pentru efect dramatic
     progressInterval = setInterval(() => {
-      currentProgress += Math.random() * 8; // Mai lent
+      currentProgress += Math.random() * 8;
       if (currentProgress > 85) currentProgress = 85;
       
       const statusText = ext === 'hdata' 
@@ -889,12 +873,11 @@
         : type === "products" ? "ÎNCĂRCARE PRODUSE" : "ÎNCĂRCARE VÂNZĂRI";
       
       showProcessingMatrix(currentProgress, statusText, titleText);
-    }, 300); // Interval mai mare pentru smooth
+    }, 300);
     
     reader.onload = e => {
       clearInterval(progressInterval);
       
-      // Procesare cu Web Worker simulat prin setTimeout pentru non-blocking
       setTimeout(() => {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
@@ -907,7 +890,6 @@
             : "Procesare date produse...", 
             ext === 'hdata' ? "VALIDARE SECURITATE" : "ÎNCĂRCARE PRODUSE");
           
-          // Procesare în batch-uri pentru performanță
           productsData = [];
           productsMap = {};
           
@@ -957,7 +939,6 @@
             : "Procesare date vânzări...", 
             ext === 'hdata' ? "VALIDARE SECURITATE" : "ÎNCĂRCARE VÂNZĂRI");
           
-          // Procesare similară pentru sales
           salesData = [];
           const batchSize = 1000;
           let index = 0;
@@ -1000,96 +981,207 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // ===================== MERGE DATASETS OPTIMIZAT =====================
+  const workerCode = `
+    self.onmessage = function(e) {
+      const { type, data, productsMap } = e.data;
+      
+      if (type === 'mergeSales') {
+        const temp = {};
+        const salesData = data;
+        
+        for (let i = 0; i < salesData.length; i++) {
+          const s = salesData[i];
+          const key = s.COD + '_' + s.AN;
+          
+          if (!temp[key]) {
+            temp[key] = {
+              COD: s.COD,
+              DENUMIRE: s.DENUMIRE,
+              PM: s.PM,
+              VALOARE: 0,
+              CANTITATE: 0,
+              CLIENTI: 0,
+              AN: s.AN
+            };
+          }
+          temp[key].VALOARE += s.VALOARE;
+          temp[key].CANTITATE += s.CANTITATE;
+          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI);
+          
+          if (i % 1000 === 0) {
+            self.postMessage({
+              type: 'progress',
+              current: i,
+              total: salesData.length
+            });
+          }
+        }
+        
+        const mergedData = Object.values(temp).map(item => {
+          const p = productsMap[item.COD] || {};
+          
+          const parseRomanianNumber = (val) => {
+            if (!val || val === "N/A") return 0;
+            return parseFloat(String(val).replace(',', '.').replace(/\\s/g, '')) || 0;
+          };
+          
+          const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
+            ? parseRomanianNumber(p.PRET_VANZARE)
+            : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
+          
+          const cost = p.COST !== "N/A" && p.COST 
+            ? parseRomanianNumber(p.COST) 
+            : 0;
+          
+          const profitBrut = (pretVanzare > 0 && cost > 0) 
+            ? ((pretVanzare - cost) / pretVanzare * 100).toFixed(2) 
+            : "N/A";
+          
+          return {
+            ...item,
+            PRET_VANZARE: pretVanzare > 0 ? pretVanzare.toFixed(2) : "N/A",
+            URL: p.URL || "N/A",
+            COST: cost > 0 ? cost.toFixed(2) : "N/A",
+            FURNIZOR_EXT: p.FURNIZOR_EXT || "N/A",
+            PROFIT_BRUT: profitBrut
+          };
+        });
+        
+        self.postMessage({
+          type: 'complete',
+          data: mergedData
+        });
+      }
+    };
+  `;
+  
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const workerUrl = URL.createObjectURL(blob);
+  let dataWorker = null;
+
   function mergeDatasets() {
     showProcessingMatrix(0, "Inițializare fuziune date complexe...", "ANALIZĂ AVANSATĂ");
 
-    let temp = {};
-    let idx = 0;
-    let batchSize = 2000; // Batch mai mic pentru smooth processing
-    let totalRecords = salesData.length;
-
-    function processBatch() {
-      const end = Math.min(idx + batchSize, totalRecords);
+    if (typeof Worker !== 'undefined') {
+      dataWorker = new Worker(workerUrl);
       
-      for (; idx < end; idx++) {
-        const s = salesData[idx];
-        const key = `${s.COD}_${s.AN}`;
-        
-        if (!temp[key]) {
-          temp[key] = {
-            COD: s.COD,
-            DENUMIRE: s.DENUMIRE,
-            PM: s.PM,
-            VALOARE: 0,
-            CANTITATE: 0,
-            CLIENTI: 0,
-            AN: s.AN
-          };
-        }
-        temp[key].VALOARE += s.VALOARE;
-        temp[key].CANTITATE += s.CANTITATE;
-        temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI);
-      }
-
-      const progress = Math.floor((idx / totalRecords) * 80);
-      showProcessingMatrix(
-        progress, 
-        `Analiză: ${formatNumber(idx)} / ${formatNumber(totalRecords)} înregistrări procesate`, 
-        "FUZIUNE DATE COMPLEXE"
-      );
-
-      if (idx < totalRecords) {
-        setTimeout(processBatch, 5); // Delay mai mic pentru smooth
-      } else {
-        showProcessingMatrix(85, "Calculare metrici profitabilitate avansate...", "ANALIZĂ PROFITABILITATE");
-        
-        setTimeout(() => {
-          mergedData = Object.values(temp).map(item => {
-            const p = productsMap[item.COD] || {};
-            
-            const parseRomanianNumber = (val) => {
-              if (!val || val === "N/A") return 0;
-              return parseFloat(String(val).replace(',', '.').replace(/\s/g, '')) || 0;
-            };
-            
-            const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
-              ? parseRomanianNumber(p.PRET_VANZARE)
-              : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
-            
-            const cost = p.COST !== "N/A" && p.COST 
-              ? parseRomanianNumber(p.COST) 
-              : 0;
-            
-            const profitBrut = (pretVanzare > 0 && cost > 0) 
-              ? ((pretVanzare - cost) / pretVanzare * 100).toFixed(2) 
-              : "N/A";
-            
-            return {
-              ...item,
-              PRET_VANZARE: pretVanzare > 0 ? pretVanzare.toFixed(2) : "N/A",
-              URL: p.URL || "N/A",
-              COST: cost > 0 ? cost.toFixed(2) : "N/A",
-              FURNIZOR_EXT: p.FURNIZOR_EXT || "N/A",
-              PROFIT_BRUT: profitBrut
-            };
-          });
-
+      dataWorker.onmessage = function(e) {
+        if (e.data.type === 'progress') {
+          const progress = Math.floor((e.data.current / e.data.total) * 80);
+          showProcessingMatrix(
+            progress, 
+            `Analiză paralelă: ${formatNumber(e.data.current)} / ${formatNumber(e.data.total)} înregistrări`, 
+            "PROCESARE OPTIMIZATĂ"
+          );
+        } else if (e.data.type === 'complete') {
+          mergedData = e.data.data;
+          
           showProcessingMatrix(95, "Finalizare procesare complexă...", "FINALIZARE ANALIZĂ");
           
           setTimeout(() => {
             showProcessingMatrix(100, "Analiză completă! Sistem pregătit...", "SUCCES");
             populateFilters();
             renderTopTable();
+            
+            dataWorker.terminate();
+            dataWorker = null;
           }, 800);
-        }, 600);
-      }
-    }
+        }
+      };
+      
+      dataWorker.postMessage({
+        type: 'mergeSales',
+        data: salesData,
+        productsMap: productsMap
+      });
+      
+    } else {
+      let temp = {};
+      let idx = 0;
+      let batchSize = 500;
+      let totalRecords = salesData.length;
 
-    processBatch();
+      function processBatch() {
+        const end = Math.min(idx + batchSize, totalRecords);
+        
+        for (; idx < end; idx++) {
+          const s = salesData[idx];
+          const key = `${s.COD}_${s.AN}`;
+          
+          if (!temp[key]) {
+            temp[key] = {
+              COD: s.COD,
+              DENUMIRE: s.DENUMIRE,
+              PM: s.PM,
+              VALOARE: 0,
+              CANTITATE: 0,
+              CLIENTI: 0,
+              AN: s.AN
+            };
+          }
+          temp[key].VALOARE += s.VALOARE;
+          temp[key].CANTITATE += s.CANTITATE;
+          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI);
+        }
+
+        const progress = Math.floor((idx / totalRecords) * 80);
+        showProcessingMatrix(
+          progress, 
+          `Analiză: ${formatNumber(idx)} / ${formatNumber(totalRecords)} înregistrări procesate`, 
+          "FUZIUNE DATE COMPLEXE"
+        );
+
+        if (idx < totalRecords) {
+          setTimeout(processBatch, 0);
+        } else {
+          showProcessingMatrix(85, "Calculare metrici profitabilitate avansate...", "ANALIZĂ PROFITABILITATE");
+          
+          setTimeout(() => {
+            mergedData = Object.values(temp).map(item => {
+              const p = productsMap[item.COD] || {};
+              
+              const parseRomanianNumber = (val) => {
+                if (!val || val === "N/A") return 0;
+                return parseFloat(String(val).replace(',', '.').replace(/\s/g, '')) || 0;
+              };
+              
+              const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
+                ? parseRomanianNumber(p.PRET_VANZARE)
+                : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
+              
+              const cost = p.COST !== "N/A" && p.COST 
+                ? parseRomanianNumber(p.COST) 
+                : 0;
+              
+              const profitBrut = (pretVanzare > 0 && cost > 0) 
+                ? ((pretVanzare - cost) / pretVanzare * 100).toFixed(2) 
+                : "N/A";
+              
+              return {
+                ...item,
+                PRET_VANZARE: pretVanzare > 0 ? pretVanzare.toFixed(2) : "N/A",
+                URL: p.URL || "N/A",
+                COST: cost > 0 ? cost.toFixed(2) : "N/A",
+                FURNIZOR_EXT: p.FURNIZOR_EXT || "N/A",
+                PROFIT_BRUT: profitBrut
+              };
+            });
+
+            showProcessingMatrix(95, "Finalizare procesare complexă...", "FINALIZARE ANALIZĂ");
+            
+            setTimeout(() => {
+              showProcessingMatrix(100, "Analiză completă! Sistem pregătit...", "SUCCES");
+              populateFilters();
+              renderTopTable();
+            }, 800);
+          }, 100);
+        }
+      }
+
+      processBatch();
+    }
   }
 
-  // ===================== FILTRE & SEARCH OPTIMIZAT =====================
   function populateFilters() {
     const yearSelect = document.getElementById("filterYear");
     const pmSelect = document.getElementById("filterPM");
@@ -1118,22 +1210,19 @@
     renderTopTable(); 
   });
   
-  // REAL-TIME SEARCH FIX
   let searchTimeout;
   document.getElementById("searchInput").addEventListener("input", (e) => { 
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       currentPage = 1; 
       renderTopTable();
-    }, 150); // Delay mic pentru real-time feel
+    }, 150);
   });
 
-  // ===================== TABEL CU TOOLTIP =====================
   function renderTopTable() {
     let data = getFilteredData();
     updateStats(data);
     
-    // Update search result count - verificăm dacă elementul există
     const searchInput = document.getElementById("searchInput").value.trim();
     const resultCount = document.getElementById("searchResultCount");
     if (resultCount) {
@@ -1158,7 +1247,6 @@
       
       const supplierDisplay = isSupplierUnlocked ? d.FURNIZOR_EXT : '***';
       
-      // Truncate denumire pentru display și tooltip pentru full text
       const denumireDisplay = d.DENUMIRE.length > 30 
         ? `<div class="tooltip-cell">
              <span class="text-truncate block">${d.DENUMIRE.substring(0, 30)}...</span>
@@ -1191,11 +1279,9 @@
         </tr>`;
     }).join("");
 
-    // Load images
     const images = document.querySelectorAll('#topTableBody img');
     images.forEach(img => loadImage(img));
 
-    // Pagination
     const pagination = document.getElementById("pagination");
     if (totalPages > 1) {
       let paginationHTML = `
@@ -1261,7 +1347,6 @@
     document.querySelector('.table-dark').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  // ===================== CHART =====================
   function renderChart(data) {
     const pmFilter = document.getElementById("filterPM").value;
     const criteria = document.getElementById("topCriteria").value;
@@ -1333,14 +1418,17 @@
       if (criteria === "profit") {
         topData = topData.filter(d => d.PROFIT_BRUT !== "N/A")
           .sort((a, b) => parseFloat(b.PROFIT_BRUT) - parseFloat(a.PROFIT_BRUT));
+      } else if (criteria === "pret_vanzare") {
+        topData = topData.filter(d => d.PRET_VANZARE !== "N/A")
+          .sort((a, b) => parseFloat(b.PRET_VANZARE) - parseFloat(a.PRET_VANZARE));
       } else {
         topData = topData.sort((a, b) => b.VALOARE - a.VALOARE);
       }
       
       topData = topData.slice(0, 20);
       
-      const dataKey = criteria === "profit" ? "PROFIT_BRUT" : "VALOARE";
-      const label = criteria === "profit" ? "Profit %" : "Valoare Facturată";
+      const dataKey = criteria === "profit" ? "PROFIT_BRUT" : criteria === "pret_vanzare" ? "PRET_VANZARE" : "VALOARE";
+      const label = criteria === "profit" ? "Profit %" : criteria === "pret_vanzare" ? "Preț Vânzare" : "Valoare Facturată";
       
       pmChart = new Chart(ctx, {
         type: "bar",
@@ -1348,10 +1436,10 @@
           labels: topData.map(d => d.COD), 
           datasets: [{
             label: label,
-            data: topData.map(d => criteria === "profit" ? parseFloat(d[dataKey]) : d[dataKey]),
+            data: topData.map(d => criteria === "profit" || criteria === "pret_vanzare" ? parseFloat(d[dataKey]) : d[dataKey]),
             backgroundColor: criteria === "profit" 
               ? topData.map(d => parseFloat(d.PROFIT_BRUT) > 30 ? '#22c55e' : parseFloat(d.PROFIT_BRUT) > 15 ? '#eab308' : '#ef4444')
-              : '#3b82f6',
+              : criteria === "pret_vanzare" ? '#10b981' : '#3b82f6',
             borderColor: 'rgba(0, 0, 0, 0.5)',
             borderWidth: 1
           }]
@@ -1369,6 +1457,8 @@
                 label: function(context) {
                   if (criteria === "profit") {
                     return `Profit: ${context.parsed.x}%`;
+                  } else if (criteria === "pret_vanzare") {
+                    return `Preț: ${formatNumber(Math.round(context.parsed.x))} RON`;
                   }
                   return `${label}: ${formatNumber(Math.round(context.parsed.x))} RON`;
                 }
@@ -1400,12 +1490,9 @@
     }
   }
 
-  // ===================== INIT =====================
   window.addEventListener('DOMContentLoaded', () => {
-    // Set initial focus
     document.getElementById('passwordInput').focus();
     
-    // Add smooth transitions
     document.querySelectorAll('input, select, button').forEach(el => {
       el.style.transition = 'all 0.3s ease';
     });
