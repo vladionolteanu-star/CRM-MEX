@@ -661,7 +661,7 @@
       const inputEl = document.getElementById("supplierPasswordInput");
       inputEl.style.animation = "shake 0.5s";
       inputEl.style.borderColor = "#ef4444";
-      setTimeout(() => {
+setTimeout(() => {
         inputEl.style.animation = "";
         inputEl.style.borderColor = "";
         inputEl.value = "";
@@ -766,15 +766,11 @@
 
     let data = [...mergedData];
     
-    if (yearFilter !== "all") {
-      data = data.filter(d => d.AN == yearFilter);
-    }
-    if (pmFilter !== "all") {
-      data = data.filter(d => d.PM == pmFilter);
-    }
-    
+    // Dacă avem un search query, grupăm datele pe SKU (ignorăm anii)
     if (searchQuery && searchQuery.length > 0) {
       console.log("Filtering for:", searchQuery);
+      
+      // Mai întâi filtrăm după search query
       data = data.filter(d => {
         const codStr = String(d.COD || "").toLowerCase();
         const denumireStr = String(d.DENUMIRE || "").toLowerCase();
@@ -788,7 +784,36 @@
                (isSupplierUnlocked && furnizorStr.includes(searchQuery)) ||
                pretStr.includes(searchQuery);
       });
-      console.log("Filtered results:", data.length);
+      
+      // Apoi grupăm pe COD și adunăm toate valorile
+      const groupedData = {};
+      data.forEach(d => {
+        if (!groupedData[d.COD]) {
+          groupedData[d.COD] = {
+            ...d,
+            AN: "Toate", // Marcăm că include toate anii
+            VALOARE: 0,
+            CANTITATE: 0,
+            CLIENTI: 0,
+            CANTITATE_RECLAMATA: 0
+          };
+        }
+        groupedData[d.COD].VALOARE += d.VALOARE || 0;
+        groupedData[d.COD].CANTITATE += d.CANTITATE || 0;
+        groupedData[d.COD].CLIENTI += d.CLIENTI || 0;
+        groupedData[d.COD].CANTITATE_RECLAMATA += d.CANTITATE_RECLAMATA || 0;
+      });
+      
+      data = Object.values(groupedData);
+      console.log("Filtered and grouped results:", data.length);
+    } else {
+      // Comportament normal când nu avem search query
+      if (yearFilter !== "all") {
+        data = data.filter(d => d.AN == yearFilter);
+      }
+      if (pmFilter !== "all") {
+        data = data.filter(d => d.PM == pmFilter);
+      }
     }
 
     if (criteria === "valoare") {
@@ -819,9 +844,9 @@
     if (data.length > 0) {
       statsCards.style.display = "grid";
       
-      const totalProducts = data.length;
-      const totalValue = data.reduce((sum, d) => sum + d.VALOARE, 0);
-      const totalQuantity = data.reduce((sum, d) => sum + d.CANTITATE, 0);
+      const totalProducts = new Set(data.map(d => d.COD)).size;
+      const totalValue = data.reduce((sum, d) => sum + (parseFloat(d.VALOARE) || 0), 0);
+      const totalQuantity = data.reduce((sum, d) => sum + (parseFloat(d.CANTITATE) || 0), 0);
       
       const profitableProducts = data.filter(d => d.PROFIT_BRUT !== "N/A" && parseFloat(d.PROFIT_BRUT) > 0);
       const avgProfit = profitableProducts.length > 0 
@@ -1024,7 +1049,7 @@
               setTimeout(processBatch, 10);
             } else {
               showProcessingMatrix(100, `${complaintsData.length} reclamații încărcate cu succes!`, "ÎNCĂRCARE COMPLETĂ");
-              setTimeout(() => renderTopTable(), 1500);
+              setTimeout(() => mergeDatasets(), 1500);
             }
           }
           
@@ -1038,7 +1063,7 @@
 
   const workerCode = `
     self.onmessage = function(e) {
-      const { type, data, productsMap } = e.data;
+      const { type, data, productsMap, complaintsData } = e.data;
       
       if (type === 'mergeSales') {
         const temp = {};
@@ -1056,12 +1081,13 @@
               VALOARE: 0,
               CANTITATE: 0,
               CLIENTI: 0,
-              AN: s.AN
+              AN: s.AN,
+              CANTITATE_RECLAMATA: 0
             };
           }
-          temp[key].VALOARE += s.VALOARE;
-          temp[key].CANTITATE += s.CANTITATE;
-          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI);
+          temp[key].VALOARE += parseFloat(s.VALOARE) || 0;
+          temp[key].CANTITATE += parseFloat(s.CANTITATE) || 0;
+          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, parseFloat(s.CLIENTI) || 0);
           
           if (i % 1000 === 0) {
             self.postMessage({
@@ -1069,6 +1095,25 @@
               current: i,
               total: salesData.length
             });
+          }
+        }
+        
+        // Add complaints data
+        for (let c of complaintsData) {
+          const key = c.COD + '_' + c.AN;
+          if (temp[key]) {
+            temp[key].CANTITATE_RECLAMATA += parseFloat(c.CANTITATE_RECLAMATA) || 0;
+          } else {
+            temp[key] = {
+              COD: c.COD,
+              DENUMIRE: productsMap[c.COD]?.DENUMIRE || "N/A",
+              PM: productsMap[c.COD]?.PM || "N/A",
+              VALOARE: 0,
+              CANTITATE: 0,
+              CLIENTI: 0,
+              AN: c.AN,
+              CANTITATE_RECLAMATA: parseFloat(c.CANTITATE_RECLAMATA) || 0
+            };
           }
         }
         
@@ -1080,9 +1125,8 @@
             return parseFloat(String(val).replace(',', '.').replace(/\\s/g, '')) || 0;
           };
           
-          const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
-            ? parseRomanianNumber(p.PRET_VANZARE)
-            : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
+          // MODIFICARE PRINCIPALĂ: Calculăm prețul de vânzare din valoare / cantitate
+          const pretVanzare = item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
           
           const cost = p.COST !== "N/A" && p.COST 
             ? parseRomanianNumber(p.COST) 
@@ -1147,7 +1191,8 @@
       dataWorker.postMessage({
         type: 'mergeSales',
         data: salesData,
-        productsMap: productsMap
+        productsMap: productsMap,
+        complaintsData: complaintsData
       });
       
     } else {
@@ -1171,12 +1216,13 @@
               VALOARE: 0,
               CANTITATE: 0,
               CLIENTI: 0,
-              AN: s.AN
+              AN: s.AN,
+              CANTITATE_RECLAMATA: 0
             };
           }
-          temp[key].VALOARE += s.VALOARE;
-          temp[key].CANTITATE += s.CANTITATE;
-          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, s.CLIENTI);
+          temp[key].VALOARE += parseFloat(s.VALOARE) || 0;
+          temp[key].CANTITATE += parseFloat(s.CANTITATE) || 0;
+          temp[key].CLIENTI = Math.max(temp[key].CLIENTI, parseFloat(s.CLIENTI) || 0);
         }
 
         const progress = Math.floor((idx / totalRecords) * 80);
@@ -1191,6 +1237,25 @@
         } else {
           showProcessingMatrix(85, "Calculare metrici profitabilitate avansate...", "ANALIZĂ PROFITABILITATE");
           
+          // Add complaints data
+          for (let c of complaintsData) {
+            const key = c.COD + '_' + c.AN;
+            if (temp[key]) {
+              temp[key].CANTITATE_RECLAMATA += parseFloat(c.CANTITATE_RECLAMATA) || 0;
+            } else {
+              temp[key] = {
+                COD: c.COD,
+                DENUMIRE: productsMap[c.COD]?.DENUMIRE || "N/A",
+                PM: productsMap[c.COD]?.PM || "N/A",
+                VALOARE: 0,
+                CANTITATE: 0,
+                CLIENTI: 0,
+                AN: c.AN,
+                CANTITATE_RECLAMATA: parseFloat(c.CANTITATE_RECLAMATA) || 0
+              };
+            }
+          }
+          
           setTimeout(() => {
             mergedData = Object.values(temp).map(item => {
               const p = productsMap[item.COD] || {};
@@ -1200,9 +1265,8 @@
                 return parseFloat(String(val).replace(',', '.').replace(/\s/g, '')) || 0;
               };
               
-              const pretVanzare = p.PRET_VANZARE !== "N/A" && p.PRET_VANZARE 
-                ? parseRomanianNumber(p.PRET_VANZARE)
-                : item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
+              // MODIFICARE PRINCIPALĂ: Calculăm prețul de vânzare din valoare / cantitate
+              const pretVanzare = item.CANTITATE > 0 ? (item.VALOARE / item.CANTITATE) : 0;
               
               const cost = p.COST !== "N/A" && p.COST 
                 ? parseRomanianNumber(p.COST) 
@@ -1241,7 +1305,7 @@
     const yearSelect = document.getElementById("filterYear");
     const pmSelect = document.getElementById("filterPM");
 
-    const years = [...new Set(salesData.map(s => s.AN))].sort();
+    const years = [...new Set(mergedData.map(s => s.AN))].sort();
     yearSelect.innerHTML = '<option value="all">Toate Perioadele</option>';
     years.forEach(y => yearSelect.innerHTML += `<option value="${y}">Anul ${y}</option>`);
 
@@ -1319,16 +1383,14 @@
            </div>`
         : d.DENUMIRE;
 
-      const complaints = complaintsData
-        .filter(c => c.COD === d.COD && (yearFilter === "all" || c.AN == yearFilter))
-        .reduce((sum, c) => sum + c.CANTITATE_RECLAMATA, 0);
-      const quantityDisplay = complaints > 0 
-        ? `${formatNumber(Math.round(d.CANTITATE))} (${complaints})`
+      const quantityDisplay = d.CANTITATE_RECLAMATA > 0 
+        ? `${formatNumber(Math.round(d.CANTITATE))} (${formatNumber(d.CANTITATE_RECLAMATA)})`
         : formatNumber(Math.round(d.CANTITATE));
       
       return `
         <tr class="hover:bg-gray-900/50 transition-all duration-200">
-          <td class="px-4 py-3 text-gray-500 mono">${start + idx + 1}</td>
+          <td class="px-4 py-3 text-gray-500 mono">${start + idx + 1}
+</td>
           <td class="px-4 py-3 font-medium mono text-blue-400">${d.COD}</td>
           <td class="px-4 py-3">${denumireDisplay}</td>
           <td class="px-4 py-3 text-center">
