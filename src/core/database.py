@@ -36,19 +36,27 @@ def save_db_config(config):
 
 def get_connection_string():
     """Build PostgreSQL connection string"""
-    # 1. Try Environment Variable (Scripts/Cloud Env)
-    env_conn = os.getenv("DB_CONNECTION_STRING")
-    if env_conn:
-        return env_conn
-
-    # 2. Try Streamlit Secrets (Streamlit Cloud)
+    # DEBUG: Visual feedback
     try:
+        # Check Env Var
+        env_conn = os.getenv("DB_CONNECTION_STRING")
+        if env_conn:
+            # st.sidebar.success("✅ Found Env Var connection")
+            return env_conn
+
+        # Check Secrets
         if "DB_CONNECTION_STRING" in st.secrets:
+            # st.sidebar.success("✅ Found Streamlit Secret connection")
             return st.secrets["DB_CONNECTION_STRING"]
-    except:
-        pass  # Not running in Streamlit or no secrets found
+        else:
+            st.sidebar.warning("⚠️ No 'DB_CONNECTION_STRING' found in Secrets!")
+            st.sidebar.info(f"Available secrets keys: {list(st.secrets.keys())}")
+            
+    except Exception as e:
+        st.sidebar.error(f"⚠️ Error reading secrets: {e}")
         
     # 3. Fallback to Local Config (Localhost)
+    st.sidebar.warning("⚠️ Falling back to Localhost (Default)")
     cfg = get_db_config()
     return f"postgresql://{cfg['user']}:{cfg['password']}@{cfg['host']}:{cfg['port']}/{cfg['database']}"
 
