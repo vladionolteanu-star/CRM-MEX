@@ -55,7 +55,14 @@ def get_connection_string():
     except Exception as e:
         st.sidebar.error(f"⚠️ Error reading secrets: {e}")
         
-    # 3. Fallback to Local Config (Localhost)
+    # 3. Fallback to Local Config (Localhost) -> ONLY IF RUNNING LOCALLY
+    # Use a simple check: if we are on linux (Cloud usually), don't fallback to localhost blindly
+    import sys
+    if sys.platform == "linux":
+        # We are likely in Cloud, so this is a configuration error
+        keys_found = list(st.secrets.keys()) if hasattr(st, "secrets") else "No secrets attr"
+        raise Exception(f"☁️ Cloud Setup Error: No 'DB_CONNECTION_STRING' found! Available keys: {keys_found}. Please check Streamlit Settings -> Secrets.")
+
     st.sidebar.warning("⚠️ Falling back to Localhost (Default)")
     cfg = get_db_config()
     return f"postgresql://{cfg['user']}:{cfg['password']}@{cfg['host']}:{cfg['port']}/{cfg['database']}"
