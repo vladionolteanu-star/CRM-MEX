@@ -189,11 +189,19 @@ def process_products_vectorized(df: pd.DataFrame, config: dict, seasonality_data
     df["stoc_magazin_total"] = df["stoc_magazine"]
 
     # Pydantic Compatibility Aliases
-    df["vanzari_ultimele_4_luni"] = df["vanzari_4luni"]
-    df["vanzari_ultimele_360_zile"] = df["vanzari_360z"]
-    df["stoc_disponibil_total"] = df["stoc_total"]
-    df["stoc_in_tranzit"] = df["stoc_tranzit"]
-    df["suggested_order_qty"] = df["suggested_qty"]
+    col_map = {
+        "vanzari_ultimele_4_luni": "vanzari_4luni",
+        "vanzari_ultimele_360_zile": "vanzari_360z",
+        "stoc_disponibil_total": "stoc_total",
+        "stoc_in_tranzit": "stoc_tranzit",
+        "suggested_order_qty": "suggested_qty"
+    }
+    
+    for target, source in col_map.items():
+        if source in df.columns:
+            df[target] = df[source]
+        else:
+            df[target] = 0.0
     
     # Ensure sales_history is dict
     def parse_hist(x):

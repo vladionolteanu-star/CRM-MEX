@@ -484,7 +484,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 st.rerun()
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Build: 26.01.2026 22:20 (Fix AttributeError)")
+    st.sidebar.caption("Build: 26.01.2026 22:25 (Fix Robustness)")
     
     # ============================================================
     # SIDEBAR - COMPACT FILTERS
