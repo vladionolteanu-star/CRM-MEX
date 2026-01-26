@@ -1197,30 +1197,16 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "_cubaj_m3": None,
             "_masa_kg": None,
         }
+
         
-        # ============================================================
-        # SHOW/HIDE TOGGLE FOR DETAILS
-        # ============================================================
-        show_details = st.checkbox("📋 Detalii extinse", key=f"show_det_{segment_name}", help="Afișează coloane suplimentare (familie, stoc pe magazine, etc.)")
-        
-        # Select which columns to display
-        if show_details:
-            display_cols = [col for col in df.columns if not col.startswith("_")]
-        else:
-            display_cols = [col for col in primary_cols if col in df.columns]
-        
-        display_df = df[display_cols].copy()
-        
-        # PIN "NECESAR" by making it the index
-        if "NECESAR" in display_df.columns:
-            display_df.set_index("NECESAR", inplace=True)
+
         
         # ============================================================
         # INLINE TOOLBAR (Consolidated: Search | Details | All | AI | CSV)
         # ============================================================
         
-        # Layout: Search (3) | Details (2) | All (1) | AI (1) | CSV (1)
-        toolbar_cols = st.columns([3, 2, 1, 1, 1])
+        # Layout: Search (3) | Details (1) | All (1) | CSV (1)
+        toolbar_cols = st.columns([3, 1.5, 1, 1])
         
         with toolbar_cols[0]:
              search_text = st.text_input("🔎", key=f"search_{segment_name}", placeholder="Caută cod/denumire...", label_visibility="collapsed")
@@ -1230,19 +1216,26 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
 
         with toolbar_cols[2]:
              if allow_order:
-                 select_all = st.checkbox("✓ All", key=f"sel_all_{segment_name}")
+                 select_all = st.checkbox("All", key=f"sel_all_{segment_name}")
              else:
                  select_all = False
              
-        with toolbar_cols[3]:
-             if allow_order:
-                 explain_btn = st.button("🤖 AI", key=f"explain_{segment_name}", type="primary", help="Explică cantitatea sugerată", use_container_width=True)
-             else:
-                 explain_btn = False
+        # Eliminated AI Button
                   
-        with toolbar_cols[4]:
-             csv_data = df.to_csv(index=False).encode('utf-8')  # Export all data
+        with toolbar_cols[3]:
+             csv_data = df.to_csv(index=False).encode('utf-8')
              st.download_button("📥 CSV", csv_data, f"{segment_name.lower()}.csv", "text/csv", key=f"exp_{segment_name}", use_container_width=True)
+             
+        # Logic for columns display moved AFTER toolbar interaction
+        if show_details:
+            display_cols = [col for col in df.columns if not col.startswith("_")]
+        else:
+            display_cols = [col for col in primary_cols if col in df.columns]
+            
+        display_df = df[display_cols].copy()
+            
+        if "NECESAR" in display_df.columns:
+             display_df.set_index("NECESAR", inplace=True)
         
         # Apply search filter
         family_filter = "Toate"  # Disabled for now
