@@ -764,6 +764,83 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     # UNIFIED NAVIGATION & KPI CARDS (Minimalist "Buttons in Cards")
     # ============================================================
     
+    st.markdown("""
+    <style>
+        /* Modern Gradient Background (Subtle) */
+        .stApp {
+            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        /* Glassmorphism Cards for Metrics */
+        [data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        [data-testid="stMetric"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        }
+        
+        /* Metric Label & Value Styling */
+        [data-testid="stMetricLabel"] {
+            font-size: 0.9rem !important;
+            color: #64748b !important;
+            font-weight: 600 !important;
+        }
+        [data-testid="stMetricValue"] {
+            font-size: 1.8rem !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+        [data-testid="stMetricDelta"] {
+            font-size: 0.8rem !important;
+        }
+
+        /* Sleek Button Styling */
+        div.stButton > button {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            margin-top: 10px;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+        div.stButton > button:hover {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+            border-color: transparent;
+        }
+        div.stButton > button:active {
+            transform: scale(0.98);
+        }
+        
+        /* Active State Button Override */
+        div.stButton > button[kind="secondary"] {
+            background: transparent;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            box-shadow: none;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+             background: rgba(59, 130, 246, 0.05);
+        }
+        
+        /* Hide default header decoration */
+        header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
     # Initialize State
     if "active_tab" not in st.session_state:
         st.session_state.active_tab = "Critical"
@@ -790,7 +867,8 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             
             # Selection Button
             is_active = (st.session_state.active_tab == label)
-            if st.button("Vezi", key=f"nav_{seg_key}", 
+            btn_label = "Active" if is_active else "Select"
+            if st.button(btn_label, key=f"nav_{seg_key}", 
                          type="primary" if is_active else "secondary", 
                          use_container_width=True):
                 st.session_state.active_tab = label
@@ -799,7 +877,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     # Render Order Builder Card
     with nav_cols[5]:
         st.metric("Order Builder", "v2", "")
-        if st.button("Deschide", key="nav_ob", type="primary" if st.session_state.active_tab == "Order Builder" else "secondary", use_container_width=True):
+        if st.button("Open", key="nav_ob", type="secondary", use_container_width=True):
              st.switch_page("pages/1_Order_Builder.py")
              
     # Compatibility mapping for downstream logic
