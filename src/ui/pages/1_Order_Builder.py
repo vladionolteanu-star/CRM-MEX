@@ -49,10 +49,10 @@ st.markdown("""
 
 # Main Application Logic
 def main():
-    # Simple Config (in app.py this comes from json)
-    config = {
-        "default": {"lead_time_days": 30, "safety_stock_days": 7, "moq": 1}
-    }
+    from src.core.config import load_supplier_config
+    
+    # Load config from file (synced with App Settings)
+    config = load_supplier_config()
     
     # Load Cubaj Data
     try:
