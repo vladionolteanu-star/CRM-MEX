@@ -187,6 +187,13 @@ def process_products_vectorized(df: pd.DataFrame, config: dict, seasonality_data
     df["nume_produs"] = df["denumire"]
     df["stoc_indomex"] = df["stoc_total"] 
     df["stoc_magazin_total"] = df["stoc_magazine"]
+
+    # Pydantic Compatibility Aliases
+    df["vanzari_ultimele_4_luni"] = df["vanzari_4luni"]
+    df["vanzari_ultimele_360_zile"] = df["vanzari_360z"]
+    df["stoc_disponibil_total"] = df["stoc_total"]
+    df["stoc_in_tranzit"] = df["stoc_tranzit"]
+    df["suggested_order_qty"] = df["suggested_qty"]
     
     # Ensure sales_history is dict
     def parse_hist(x):
