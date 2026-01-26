@@ -504,7 +504,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                     stare_pm=selected_status if selected_status != "ALL" else None
                 )
         else:
-            st.sidebar.error("❌ Nu pot conecta la PostgreSQL")
+            st.sidebar.error(f"❌ Nu pot conecta la PostgreSQL: {msg}")
             use_postgres = False
     
     if not use_postgres:
