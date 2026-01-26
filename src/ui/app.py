@@ -776,18 +776,34 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     # ============================================================
     # TABS (Simplified - removed ALL DATA, FAMILY VIEW, SUPPLIER AUDIT, Order Builder OLD)
     # ============================================================
-    tab_critical, tab_urgent, tab_attention, tab_ok, tab_overstock, tab_order_v2 = st.tabs([
-        f"CRITICAL ({segment_stats.get('CRITICAL', {}).get('count', 0)})",
-        f"URGENT ({segment_stats.get('URGENT', {}).get('count', 0)})",
-        f"ATTENTION ({segment_stats.get('ATTENTION', {}).get('count', 0)})",
-        f"OK ({segment_stats.get('OK', {}).get('count', 0)})",
-        f"OVERSTOCK ({segment_stats.get('OVERSTOCK', {}).get('count', 0)})",
-        # "ALL DATA",           # 🚫 INACTIVAT
-        # "FAMILY VIEW",        # 🚫 INACTIVAT
-        # "SUPPLIER AUDIT",     # 🚫 INACTIVAT
-        # "Order Builder (OLD)", # 🚫 INACTIVAT
-        "📦 ORDER v2"
-    ])
+    # ============================================================
+    # NAVIGATION (LAZY LOADING)
+    # ============================================================
+    
+    # Construim optiunile pentru meniu cu numarul de produse
+    nav_options = []
+    
+    # 1. Segmente
+    seg_definitions = [
+        ("CRITICAL", "🔴"), 
+        ("URGENT", "🟠"), 
+        ("ATTENTION", "🟡"), 
+        ("OK", "🟢"), 
+        ("OVERSTOCK", "🔵")
+    ]
+    
+    for seg_name, icon in seg_definitions:
+        count = segment_stats.get(seg_name, {}).get("count", 0)
+        nav_options.append(f"{icon} {seg_name} ({count})")
+        
+    # 2. Order Builder
+    nav_options.append("📦 ORDER v2")
+    
+    # Selector orizontal (stil "Tabs")
+    st.markdown('<style>div[role="radiogroup"] >  :first-child { display: none; } div[role="radiogroup"] { flex-direction: row; justify-content: center;gap: 10px; }</style>', unsafe_allow_html=True)
+    selected_nav = st.radio("Navigare", nav_options, horizontal=True, label_visibility="collapsed", index=0)
+    
+    st.markdown("---")
     
     def render_interactive_table(product_list, segment_name, allow_order=True):
         """
@@ -1499,7 +1515,7 @@ Răspunde în română. FII AUTENTIC în thinking."""
         st.dataframe(df, width="stretch", height=400)
         return df
     
-    with tab_critical:
+    if "CRITICAL" in selected_nav:
         with st.expander("ℹ️ Cum se calculeaza CRITICAL? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire < Lead Time`
@@ -1529,7 +1545,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["CRITICAL"], "CRITICAL", allow_order=True)
     
-    with tab_urgent:
+    if "URGENT" in selected_nav:
         with st.expander("ℹ️ Cum se calculeaza URGENT? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time <= Zile Acoperire < Lead Time + Safety Stock`
@@ -1556,7 +1572,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["URGENT"], "URGENT", allow_order=True)
     
-    with tab_attention:
+    if "ATTENTION" in selected_nav:
         with st.expander("ℹ️ Cum se calculeaza ATTENTION? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time + Safety Stock <= Zile Acoperire < Lead Time + Safety Stock + 14 zile`
@@ -1579,7 +1595,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["ATTENTION"], "ATTENTION", allow_order=True)
     
-    with tab_ok:
+    if "OK" in selected_nav:
         with st.expander("ℹ️ Cum se calculeaza OK? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time + Safety Stock + 14 zile <= Zile Acoperire <= 90 zile`
@@ -1602,7 +1618,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["OK"], "OK", allow_order=True)
     
-    with tab_overstock:
+    if "OVERSTOCK" in selected_nav:
         with st.expander("ℹ️ Cum se calculeaza OVERSTOCK? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire > 90 zile`
@@ -2261,10 +2277,9 @@ Cantitate Sugerata = Vanzari Medii Zilnice × (Lead Time + Safety Stock + 60) - 
     # ============================================================
     # ORDER BUILDER v2 TAB
     # ============================================================
-    with tab_order_v2:
+    if "ORDER v2" in selected_nav:
         render_order_builder_v2(config, cubaj_data)
 
 
 if __name__ == "__main__":
     main()
-
