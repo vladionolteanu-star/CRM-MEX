@@ -923,7 +923,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 # Red Alert: When Lead Time - Days Coverage < 10 OR segment is CRITICAL
                 "_diff_alert": p.lead_time_days - p.days_of_coverage if p.days_of_coverage < 999 else 999,
                 "Status": f"{p.segment}" if (p.segment == "CRITICAL" or (p.lead_time_days - p.days_of_coverage < 10 and p.days_of_coverage < 999)) else p.segment,
-                "Cant.Sug.": suggested_qty,
+                "NECESAR": suggested_qty,
                 
                 # ============================================================
                 # SECONDARY COLUMNS (Hidden by default - show via toggle)
@@ -980,7 +980,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "V.Oct'25", "V.Oct'24", "Tr.Oct",
             "V.Nov'25", "V.Nov'24", "Tr.Nov",
             "V.Dec'25", "V.Dec'24",
-            "Status", "Cant.Sug."
+            "Status", "NECESAR"
         ]
         
         # Define SECONDARY columns (hidden by default, toggle to show)
@@ -1073,9 +1073,9 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "Status",
                 help="CRITICAL = stockout iminent, URGENT = comandă azi, OK = stoc suficient, OVERSTOCK = prea mult"
             ),
-            "Cant.Sug.": st.column_config.NumberColumn(
-                "📊 Cant.Sug.",
-                help="Cantitatea sugerată pentru comandă",
+            "NECESAR": st.column_config.NumberColumn(
+                "NECESAR (buc)",
+                help="Cantitatea necesară de comandat",
                 format="%d"
             ),
             
@@ -1133,6 +1133,10 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         
         display_df = df[display_cols].copy()
         
+        # PIN "NECESAR" by making it the index
+        if "NECESAR" in display_df.columns:
+            display_df.set_index("NECESAR", inplace=True)
+        
         # ============================================================
         # INLINE TOOLBAR (Filters + Actions - simplified)
         # ============================================================
@@ -1181,7 +1185,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             column_config=column_config,
             width="stretch",
             height=550,
-            hide_index=True,
+            hide_index=False,
             key=f"editor_{segment_name}",
             disabled=[col for col in display_df.columns if col != "Selecteaza"]  # All columns except checkbox are read-only
         )
