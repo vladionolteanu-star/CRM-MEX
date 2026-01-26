@@ -80,6 +80,7 @@ def get_engine():
 # QUERY FUNCTIONS
 # ============================================================
 
+@st.cache_data(ttl=300)
 def load_products_from_db(furnizor=None, stare_pm=None, limit=None, offset=0, order_by="cod_articol", order_dir="ASC"):
     """
     Load products from PostgreSQL database
@@ -317,6 +318,7 @@ def get_segment_counts(furnizor=None, stare_pm=None):
         }
     return result
 
+@st.cache_data(ttl=300)
 def load_segment_from_db(segment, furnizor=None, stare_pm=None, limit=500, offset=0):
     """
     Load products for a specific segment with pagination - FAST!

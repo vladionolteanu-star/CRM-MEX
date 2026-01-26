@@ -291,7 +291,7 @@ def main():
     # ============================================================
     col_title, col_settings = st.columns([6, 1])
     with col_title:
-        st.markdown("## INDOMEX Calcul Aprovizionare (v22:30 PERF)")
+        st.markdown("## INDOMEX Calcul Aprovizionare (v22:30 CACHED)")
     with col_settings:
         if st.button("Settings", key="open_settings"):
             st.session_state.show_settings = True
