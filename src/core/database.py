@@ -167,6 +167,7 @@ def load_products_from_db(furnizor=None, stare_pm=None, limit=None, offset=0, or
     engine = get_engine()
     return pd.read_sql(text(query), engine, params=params)
 
+@st.cache_data(ttl=3600)
 def get_unique_suppliers():
     """Get list of unique suppliers from database"""
     engine = get_engine()
@@ -222,6 +223,7 @@ def get_supplier_priority_list() -> list:
     return result
 
 
+@st.cache_data(ttl=3600)
 def get_unique_statuses():
     """Get list of unique PM statuses from database"""
     engine = get_engine()
@@ -247,6 +249,7 @@ def test_connection():
     except Exception as e:
         return False, f"❌ Eroare conexiune: {str(e)}"
 
+@st.cache_data(ttl=3600)
 def get_unique_families():
     """Get list of unique families from database"""
     engine = get_engine()
@@ -285,6 +288,7 @@ def load_family_products_from_db(family_name):
 # OPTIMIZED SEGMENT FUNCTIONS (pre-computed in DB)
 # ============================================================
 
+@st.cache_data(ttl=300)
 def get_segment_counts(furnizor=None, stare_pm=None):
     """Get product counts per segment - INSTANT"""
     engine = get_engine()
