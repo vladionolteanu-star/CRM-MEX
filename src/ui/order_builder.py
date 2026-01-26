@@ -321,106 +321,126 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
     sim_lt_override = st.session_state.get("sim_lead_time_override", 0)
     sim_ignore_moq = st.session_state.get("sim_ignore_moq", False)
 
-    # Build table data directly from DataFrame (NO Product() loop!)
-    data = []
-    for _, row in products_df.iterrows():
-        cod = str(row.get("cod_articol", ""))
-        cubaj_info = cubaj_data.get(cod, {})
-        
-        # Raw Data extraction
-        avg_daily_raw = float(row.get("avg_daily_sales", 0) or 0)
-        
-        # Apply Seasonal Factor
-        avg_daily = avg_daily_raw * sim_factor
-        
-        lead_time_raw = float(row.get("lead_time_days", 30) or 30)
-        # Apply Lead Time Override
-        lead_time = sim_lt_override if sim_lt_override > 0 else lead_time_raw
-        
-        safety_stock = float(row.get("safety_stock_days", 7) or 7)
-        stock_total = float(row.get("stoc_total", 0) or 0)
-        transit = float(row.get("stoc_tranzit", 0) or 0)
-        
-        moq_raw = float(row.get("moq", 1) or 1)
-        # Apply MOQ Override
-        moq = 1.0 if sim_ignore_moq else (moq_raw if moq_raw >= 1 else 1.0)
-        
-        sales_360 = float(row.get("vanzari_360z", 0) or 0)
-        segment = str(row.get("segment", "OK"))
-        days_cov = float(row.get("days_of_coverage", 999) or 999)
-
-        # ----------------------------------------------------------------
-        # REAL-TIME CALCULATION (SIMULATION)
-        # ----------------------------------------------------------------
-        calc_details = ""
-        suggested_qty = 0
-        
-        # Dead Stock Rule (ignored if Seasonal Factor is high? No, maintain logic)
-        # Maybe user wants to revive dead stock? Let's keep rule but mention it.
-        if sales_360 < 3 and sim_factor <= 1.5: # Allow revival if factor is huge? No, keep simple.
-            suggested_qty = 0
-            calc_details = "Dead Stock (<3 vanzari/an)"
-        else:
-            # Target Stock (Days) = LeadTime + OrderFreq + SafetyStock + Buffer
-            target_days = lead_time + sim_freq + safety_stock + sim_buffer
-            
-            # Target Quantity
-            target_qty = avg_daily * target_days
-            
-            # Net Need
-            needed = target_qty - (stock_total + transit)
-            needed = max(0, needed)
-            
-            # MOQ Rounding
-            suggested_qty = math.ceil(needed / moq) * moq
-            suggested_qty = int(suggested_qty)
-            
-            # Detailed explanation for tooltip/column
-            # Detailed explanation for tooltip/column
-            # Using ' || ' instead of newlines for better table readability
-            calc_details = (
-                f"1. CONSUM: {avg_daily_raw:.2f}/zi (x {sim_factor} sezon) = {avg_daily:.2f}/zi || "
-                f"2. DURATA: {lead_time:.0f} (Lead) + {sim_freq:.0f} (Interval) + {safety_stock + sim_buffer:.0f} (Safe) = {target_days:.0f} Zile || "
-                f"3. NECESAR BRUT: {avg_daily:.2f} x {target_days:.0f} zile = {target_qty:.0f} buc || "
-                f"4. STOC: {stock_total:.0f} (Depozit) + {transit:.0f} (Tranzit) = {stock_total + transit:.0f} buc || "
-                f"5. DE COMANDAT: {target_qty:.0f} - {stock_total + transit:.0f} = {needed:.0f} buc"
-            )
-
-        
-        data.append({
-            "☑️": False,
-            # PRIMARY COLUMNS
-            "Cod": cod,
-            "Produs": (str(row.get("denumire", ""))[:25] + ".." 
-                      if len(str(row.get("denumire", ""))) > 25 
-                      else str(row.get("denumire", ""))),
-            "Seg": segment,
-            "Stoc": int(stock_total),
-            "V.4L": int(row.get("vanzari_4luni", 0) or 0),
-            "Cost": int(row.get("cost_achizitie", 0) or 0),
-            "Cant": suggested_qty,
-            # EXTENDED COLUMNS
-            "Denumire": str(row.get("denumire", "")),
-            "Tranzit": int(transit),
-            "V.360": int(sales_360),
-            "Med/Zi": round(avg_daily, 2),
-            "Zile Ac.": round(days_cov, 1) if days_cov < 999 else 999.0,
-            "Lead": int(lead_time),
-            "Cubaj": f"{cubaj_info.get('cubaj_m3', 0):.3f}" if cubaj_info.get('cubaj_m3') else "-",
-            "Masa": f"{cubaj_info.get('masa_kg', 0):.1f}" if cubaj_info.get('masa_kg') else "-",
-            "PVanz": int(row.get("pret_vanzare", 0) or 0),
-            "Detalii Calcul": calc_details,
-            # Hidden for calculations
-            "_cod": cod,
-            "_denumire": str(row.get("denumire", "")),
-            "_cost": float(row.get("cost_achizitie", 0) or 0),
-            "_cubaj": cubaj_info.get("cubaj_m3"),
-            "_masa": cubaj_info.get("masa_kg"),
-            "_qty": suggested_qty,
-            "_segment": segment,
-        })
+    # ----------------------------------------------------------------
+    # VECTORIZED CALCULATION (FAST)
+    # ----------------------------------------------------------------
     
-    df = pd.DataFrame(data)
+    # 1. Fill NA to ensures numeric ops work
+    df_calc = products_df.copy()
+    cols_to_fix = ["avg_daily_sales", "lead_time_days", "safety_stock_days", "stoc_total", "stoc_tranzit", "moq", "vanzari_360z", "vanzari_4luni", "cost_achizitie", "pret_vanzare", "days_of_coverage"]
+    for c in cols_to_fix:
+        if c not in df_calc.columns:
+            df_calc[c] = 0.0
+        df_calc[c] = pd.to_numeric(df_calc[c], errors='coerce').fillna(0)
+
+    # 2. Apply Simulation Parameters
+    # Seasonality
+    df_calc["sim_avg_daily"] = df_calc["avg_daily_sales"] * sim_factor
+    
+    # Lead Time Override
+    if sim_lt_override > 0:
+        df_calc["sim_lead_time"] = sim_lt_override
+    else:
+        df_calc["sim_lead_time"] = df_calc["lead_time_days"]
+        
+    # MOQ Override
+    if sim_ignore_moq:
+        df_calc["sim_moq"] = 1.0
+    else:
+        df_calc["sim_moq"] = df_calc["moq"].clip(lower=1.0)
+
+    # 3. Calculate Formulas
+    # Target Days = Lead + Interval + Safety + Buffer
+    df_calc["target_days"] = df_calc["sim_lead_time"] + sim_freq + df_calc["safety_stock_days"] + sim_buffer
+    
+    # Target Qty
+    df_calc["target_qty"] = df_calc["sim_avg_daily"] * df_calc["target_days"]
+    
+    # Stock
+    df_calc["total_stock_avail"] = df_calc["stoc_total"] + df_calc["stoc_tranzit"]
+    
+    # Net Need
+    df_calc["needed"] = (df_calc["target_qty"] - df_calc["total_stock_avail"]).clip(lower=0)
+    
+    # Rounding to MOQ
+    # ceil(needed / moq) * moq
+    df_calc["qty_suggested"] = np.ceil(df_calc["needed"] / df_calc["sim_moq"]) * df_calc["sim_moq"]
+    
+    # Dead Stock Rule (<3 sales in 360 days)
+    # If sim_factor is extreme (>1.5), maybe ignore? No, stick to logic
+    dead_mask = df_calc["vanzari_360z"] < 3
+    df_calc.loc[dead_mask, "qty_suggested"] = 0
+    
+    # Prepare Display Columns
+    df_calc["qty_suggested"] = df_calc["qty_suggested"].astype(int)
+    
+    # Details String (Vectorized string formatting? Can be slow. Use list comp mostly or just format when needed?)
+    # Generating 1000 strings is okay-ish.
+    # Let's simple format.
+    # We can pre-calculate components
+    
+    def fmt_details(row):
+        return (
+            f"1. CONSUM: {row['avg_daily_sales']:.2f}/zi (x {sim_factor}) = {row['sim_avg_daily']:.2f}/zi || "
+            f"2. DURATA: {row['sim_lead_time']:.0f} (Lead) + {sim_freq:.0f} (Int) + {row['safety_stock_days']+sim_buffer:.0f} (Safe) = {row['target_days']:.0f} Zile || "
+            f"3. NECESAR: {row['sim_avg_daily']:.2f} x {row['target_days']:.0f} = {row['target_qty']:.0f} buc || "
+            f"4. STOC: {row['stoc_total']:.0f} + {row['stoc_tranzit']:.0f} = {row['total_stock_avail']:.0f} || "
+            f"5. FINAL: {row['target_qty']:.0f} - {row['total_stock_avail']:.0f} = {row['needed']:.0f} -> {row['qty_suggested']} (bax {row['sim_moq']:.0f})"
+        )
+            
+    df_calc["details_calc"] = df_calc.apply(fmt_details, axis=1)
+    
+    # Map cubaj if needed
+    # (Leaving iterating for cubaj map if dict provided, or map using map())
+    # cubaj_data is dict: cod -> {cubaj_m3, ...}
+    # Optimized map:
+    if cubaj_data:
+        df_calc["_cubaj"] = df_calc["cod_articol"].map(lambda x: cubaj_data.get(str(x), {}).get("cubaj_m3"))
+        df_calc["_masa"] = df_calc["cod_articol"].map(lambda x: cubaj_data.get(str(x), {}).get("masa_kg"))
+    else:
+        df_calc["_cubaj"] = None
+        df_calc["_masa"] = None
+        
+    # Construct Final DataFrame
+    data_list = []
+    # We can use to_dict('records') directly to be faster, but we need mapping to UI names
+    # Mapping columns directly:
+    
+    df_ui = pd.DataFrame()
+    df_ui["☑️"] = [False] * len(df_calc)
+    df_ui["Cod"] = df_calc["cod_articol"].astype(str)
+    # Name truncation
+    df_ui["Produs"] = df_calc["denumire"].astype(str).str.slice(0, 25) + ".."
+    df_ui["Seg"] = df_calc["segment"].fillna("OK")
+    df_ui["Stoc"] = df_calc["stoc_total"].astype(int)
+    df_ui["V.4L"] = df_calc["vanzari_4luni"].fillna(0).astype(int)
+    df_ui["Cost"] = df_calc["cost_achizitie"].fillna(0).astype(int)
+    df_ui["Cant"] = df_calc["qty_suggested"]
+    
+    # Extended
+    df_ui["Denumire"] = df_calc["denumire"].astype(str)
+    df_ui["Tranzit"] = df_calc["stoc_tranzit"].fillna(0).astype(int)
+    df_ui["V.360"] = df_calc["vanzari_360z"].fillna(0).astype(int)
+    df_ui["Med/Zi"] = df_calc["sim_avg_daily"].round(2)
+    days_cov = df_calc["days_of_coverage"].fillna(999)
+    df_ui["Zile Ac."] = np.where(days_cov < 999, days_cov.round(1), 999.0)
+    df_ui["Lead"] = df_calc["sim_lead_time"].astype(int)
+    df_ui["PVanz"] = df_calc["pret_vanzare"].fillna(0).astype(int)
+    df_ui["Cubaj"] = df_calc["_cubaj"]
+    df_ui["Masa"] = df_calc["_masa"]
+    df_ui["Detalii Calcul"] = df_calc["details_calc"]
+    
+    # Hidden
+    df_ui["_cod"] = df_calc["cod_articol"].astype(str)
+    df_ui["_denumire"] = df_calc["denumire"].astype(str)
+    df_ui["_cost"] = df_calc["cost_achizitie"]
+    df_ui["_cubaj"] = df_calc["_cubaj"]
+    df_ui["_masa"] = df_calc["_masa"]
+    df_ui["_qty"] = df_calc["qty_suggested"]
+    df_ui["_segment"] = df_calc["segment"]
+
+    df = df_ui
+
     
     # Toggle for extended details
     show_details = st.checkbox("📋 Detalii extinse", key="ob2_show_details", 

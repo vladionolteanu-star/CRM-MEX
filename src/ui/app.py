@@ -807,6 +807,9 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     st.markdown('<style>div[role="radiogroup"] { flex-direction: row; justify-content: center;gap: 10px; }</style>', unsafe_allow_html=True)
     selected_nav = st.radio("Navigare", nav_options, horizontal=True, label_visibility="collapsed", index=0)
     
+    if "ORDER v2" in selected_nav:
+        st.switch_page("pages/1_Order_Builder.py")
+    
     st.markdown("---")
     
     def render_interactive_table(product_list, segment_name, allow_order=True):
