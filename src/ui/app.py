@@ -1216,24 +1216,33 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             display_df.set_index("NECESAR", inplace=True)
         
         # ============================================================
-        # INLINE TOOLBAR (Filters + Actions - simplified)
+        # INLINE TOOLBAR (Consolidated: Search | Details | All | AI | CSV)
         # ============================================================
-        toolbar_cols = st.columns([3, 1, 1.5, 1])
+        
+        # Layout: Search (3) | Details (2) | All (1) | AI (1) | CSV (1)
+        toolbar_cols = st.columns([3, 2, 1, 1, 1])
+        
         with toolbar_cols[0]:
-            search_text = st.text_input("🔎", key=f"search_{segment_name}", placeholder="Caută cod/denumire...", label_visibility="collapsed")
+             search_text = st.text_input("🔎", key=f"search_{segment_name}", placeholder="Caută cod/denumire...", label_visibility="collapsed")
+        
         with toolbar_cols[1]:
-            if allow_order:
-                select_all = st.checkbox("✓ All", key=f"sel_all_{segment_name}")
-            else:
-                select_all = False
+             show_details = st.checkbox("Detalii extinse", key=f"details_{segment_name}", help="Afișează tranzit, vânzări 360, etc.")
+
         with toolbar_cols[2]:
-            if allow_order:
-                explain_btn = st.button("🤖 AI", key=f"explain_{segment_name}", type="primary", help="Explică cantitatea sugerată")
-            else:
-                explain_btn = False
+             if allow_order:
+                 select_all = st.checkbox("✓ All", key=f"sel_all_{segment_name}")
+             else:
+                 select_all = False
+             
         with toolbar_cols[3]:
-            csv_data = df.to_csv(index=False).encode('utf-8')  # Export all data
-            st.download_button("📥 CSV", csv_data, f"{segment_name.lower()}.csv", "text/csv", key=f"exp_{segment_name}")
+             if allow_order:
+                 explain_btn = st.button("🤖 AI", key=f"explain_{segment_name}", type="primary", help="Explică cantitatea sugerată", use_container_width=True)
+             else:
+                 explain_btn = False
+                  
+        with toolbar_cols[4]:
+             csv_data = df.to_csv(index=False).encode('utf-8')  # Export all data
+             st.download_button("📥 CSV", csv_data, f"{segment_name.lower()}.csv", "text/csv", key=f"exp_{segment_name}", use_container_width=True)
         
         # Apply search filter
         family_filter = "Toate"  # Disabled for now
@@ -1614,7 +1623,6 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
 
 **Actiune recomandata:** Comanda EXPRESS sau cauta furnizor alternativ URGENT!
             """)
-        st.markdown("**Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
         
         # Lazy Load Logic for CRITICAL (same as other tabs)
         if use_postgres:
@@ -1644,7 +1652,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
 **Ce inseamna:** Stocul acopera timpul de livrare, dar intri in Safety Stock. Risc de ruptura daca vanzarile cresc.
 **Actiune recomandata:** Comanda Acum.
             """)
-        st.markdown("**🔢 Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
+
         
         # Lazy Load Logic
         if use_postgres:
@@ -1669,7 +1677,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
 
 **Actiune recomandata:** Planifica comanda, verifica MOQ (Minimum Order Quantity), negociaza cu furnizorul.
             """)
-        st.markdown("**🔢 Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
+
         
         # Lazy Load Logic
         if use_postgres:
@@ -1694,7 +1702,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
 
 **Actiune recomandata:** Monitorizare saptamanala. Nu e nevoie de actiune imediata.
             """)
-        st.markdown("**🔢 Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
+
         
         # Lazy Load Logic
         if use_postgres:
