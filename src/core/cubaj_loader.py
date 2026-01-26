@@ -64,6 +64,9 @@ class CubajLoader:
             d = diametru if diametru else latime
             h = inaltime  # Înălțimea ruloului (nu lungimea covorului!)
             
+            # Extract URL (Image)
+            url_poza = self._get_string(row, "URL POZA")
+            
             # Calculează cubaj cilindric
             if d and h:
                 cubaj = self._calculate_cylinder_volume(d, h)
@@ -74,7 +77,8 @@ class CubajLoader:
             
             self._cubaj_map[cod] = {
                 "cubaj_m3": cubaj,
-                "masa_kg": masa
+                "masa_kg": masa,
+                "image_url": url_poza
             }
         
         self._loaded = True

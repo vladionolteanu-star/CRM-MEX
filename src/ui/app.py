@@ -975,6 +975,8 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             # ============================================================
             row = {
                 "Selecteaza": False,  # Checkbox column
+                # 0. Image
+                "Img": p.image_url if hasattr(p, 'image_url') else None,
                 # 1. Produs (Code + Name)
                 "Produs": f"{p.nr_art} | {(p.nume_produs[:18] + '..' if len(p.nume_produs) > 18 else p.nume_produs)}",
                 # 2. Pret (Cost / Sell)
@@ -1054,7 +1056,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         # Define PRIMARY columns (Buyer 12 - always visible)
         # Oct, Nov, Dec 2025 vs 2024 + Trends for Oct and Nov
         primary_cols = [
-            "Selecteaza", "Produs", "Cost", "PVanz", "Stoc Idx", "Stoc Mag", "V.3L",
+            "Selecteaza", "Img", "Produs", "Cost", "PVanz", "Stoc Idx", "Stoc Mag", "V.3L",
             "V.Oct'25", "V.Oct'24", "Tr.Oct",
             "V.Nov'25", "V.Nov'24", "Tr.Nov",
             "V.Dec'25", "V.Dec'24",
@@ -1076,6 +1078,10 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "✓",
                 help="Bifează produsele pentru comandă",
                 default=False
+            ),
+            "Img": st.column_config.ImageColumn(
+                "Img",
+                help="Poză produs"
             ),
             "Produs": st.column_config.TextColumn(
                 "Produs",

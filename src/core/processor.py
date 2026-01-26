@@ -117,11 +117,15 @@ def process_products_vectorized(df: pd.DataFrame, config: dict, seasonality_data
     if cubaj_data:
         cubaj_map = {k: v.get("cubaj_m3") for k, v in cubaj_data.items()}
         masa_map = {k: v.get("masa_kg") for k, v in cubaj_data.items()}
+        img_map = {k: v.get("image_url") for k, v in cubaj_data.items()}
+        
         df["cubaj_m3"] = df["cod_articol"].map(cubaj_map).where(pd.notnull(df["cod_articol"].map(cubaj_map)), None)
         df["masa_kg"] = df["cod_articol"].map(masa_map).where(pd.notnull(df["cod_articol"].map(masa_map)), None)
+        df["image_url"] = df["cod_articol"].map(img_map).where(pd.notnull(df["cod_articol"].map(img_map)), None)
     else:
         df["cubaj_m3"] = None
         df["masa_kg"] = None
+        df["image_url"] = None
 
     # 7. Suggested Order Quantity (Simplified Formula - Matching Order Builder)
     # Formula: Need = (AvgDaily * (Lead + Frequency + Safety)) - TotalStock
