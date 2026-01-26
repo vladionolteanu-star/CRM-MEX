@@ -123,63 +123,48 @@ def process_products_vectorized(df: pd.DataFrame, config: dict, seasonality_data
         df["cubaj_m3"] = None
         df["masa_kg"] = None
 
-    # 7. Suggested Order Quantity (Vectorized)
+    # 7. Suggested Order Quantity (Simplified Formula - Matching Order Builder)
+    # Formula: Need = (AvgDaily * (Lead + Frequency + Safety)) - TotalStock
     
-    # Buffer Days: 30 if avg_sales > 0.2 else 21
-    buffer_days = np.where(df["avg_daily_sales"] > 0.2, 30, 21)
+    # 1. Constants matching Order Builder defaults
+    review_period_days = 30.0  # Equivalent to 'sim_freq' = 30
     
-    # Adjusted Safety Stock
-    adj_safety = df["safety_stock_days"] * df["dimension_coefficient"]
-    # Rising Star (+50%)
-    adj_safety = np.where(df["is_rising_star"], adj_safety * 1.5, adj_safety)
-    # High Volatility (+30%)
-    adj_safety = np.where(df["volatility"] > 1.0, adj_safety * 1.3, adj_safety)
+    # 2. Target Days
+    # Note: We use raw safety_stock_days without dimension coefficient to match Builder
+    # If Builder uses raw, we use raw. If Builder uses coeff, we use coeff.
+    # Builder code: df_calc["safety_stock_days"]. It comes from DB/Config.
+    # Processor used: df["safety_stock_days"] * df["dimension_coefficient"].
+    # We will stick to the simplest interpretation of "Same as Builder": Raw.
+    target_days = df["lead_time_days"] + review_period_days + df["safety_stock_days"]
     
-    # Trend Multiplier
-    # Default 1.0
-    trend_mult = pd.Series(1.0, index=df.index)
+    # 3. Target Quantity
+    # Builder: df_calc["sim_avg_daily"] * df_calc["target_days"]
+    # We ignore seasonality here to match Builder simulation default (sim_factor=1.0)
+    # BUT App usually wants seasonality?
+    # User said "formula in builder sa fie peste tot". Builder defaults to sim_factor=1.0.
+    # So we use raw avg_daily_sales.
+    target_qty = df["avg_daily_sales"] * target_days
     
-    # Growth > 20%
-    cond_growth = df["yoy_growth"] > 20
-    growth_bonus = np.minimum(df["yoy_growth"] / 100 * 0.5, 0.3)
-    trend_mult = np.where(cond_growth, 1.0 + growth_bonus, trend_mult)
-    
-    # Decline < -30%
-    cond_decline = df["yoy_growth"] < -30
-    decline_malus = np.maximum(0.7, 1.0 + df["yoy_growth"] / 100 * 0.5)
-    trend_mult = np.where(cond_decline, decline_malus, trend_mult)
-    
-    # COLD trend
-    trend_mult = np.where(df["trend_label"] == "COLD", trend_mult * 0.8, trend_mult)
-    
-    # Base Calculation
-    coverage_needed = df["lead_time_days"] + buffer_days + adj_safety
-    base_needed = df["avg_daily_sales"] * df["seasonality_index"] * coverage_needed
-    adjusted_needed = (base_needed * trend_mult) - df["total_stock"]
+    # 4. Net Need
+    net_needed = target_qty - df["total_stock"]
     
     # Ensure non-negative
-    raw_qty = np.maximum(0, adjusted_needed)
+    raw_qty = np.maximum(0, net_needed)
     
-    # MOQ Rounding
-    # if moq > 1: max(moq, ceil(raw_qty/moq)*moq)
-    # Vectorized ceiling: np.ceil(raw_qty / moq) * moq
+    # 5. MOQ Rounding
     df["suggested_qty"] = np.where(
         df["moq"] > 1,
         np.maximum(df["moq"], np.ceil(raw_qty / df["moq"]) * df["moq"]),
         np.round(raw_qty, 0)
     )
     
-    # Dead Stock Rule: < 3 sales in 360d -> 0 qty (unless family rescue, implemented simplified here)
-    # Only zero out if NO family (simplified) or very dead. 
-    # To match 'app.py' logic: if dead_stock and has_family -> 1, else 0.
+    # 6. Dead Stock Rule
+    # If sales_360z < 3 -> 0 (simplified)
+    # Builder logic: dead_mask = df_calc["vanzari_360z"] < 3 -> 0.
     is_dead = df["vanzari_360z"] < 3
-    has_family = df["familie"] != ""
+    df["suggested_qty"] = np.where(is_dead, 0.0, df["suggested_qty"])
     
-    # Logic: If dead: (if has_family: 1 else 0) else kept_qty
-    dead_qty = np.where(has_family, 1.0, 0.0)
-    df["suggested_qty"] = np.where(is_dead, dead_qty, df["suggested_qty"])
-    
-    # Final clamp to 0 if sales=0 (redundant with avg_daily_sales logic but safe)
+    # Final clamp to 0 if sales=0
     df["suggested_qty"] = np.where(df["avg_daily_sales"] <= 0, 0.0, df["suggested_qty"])
 
     # 8. Mapped Columns for UI (Compatible with render_interactive_table expectations)

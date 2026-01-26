@@ -585,7 +585,7 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
     
     # Header with fullscreen toggle
     col_title, col_fs = st.columns([6, 1])
-    col_title, col_fs = st.columns([6, 1])
+
     with col_title:
         st.markdown("## Order Builder")
         st.caption("Planșă rapidă pentru construirea comenzilor")
