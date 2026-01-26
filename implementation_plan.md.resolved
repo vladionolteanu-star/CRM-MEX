@@ -1,0 +1,88 @@
+# Implementation Plan - Supply Chain Tool Redesign
+
+## Goal
+Transform the current "noisy" dashboard into a streamlined, buyer-focused assistant. The new tool will prioritize actionable insights, correct YoY trend calculations, and introduce a Store Stock Audit feature.
+
+## User Review Required
+> [!IMPORTANT]
+> **Data Sources**: The plan assumes [2025.csv](file:///c:/Users/volteanu/Downloads/Tcioara/data/2025.csv) (and similar historical files) contain the transaction-level data required for granular monthly analysis.
+> **Stock Definitions**: We will strictly separate "Stoc Indomex" (Depozit + Accesorii + Outlet -> available for dispatch) from "Stoc Magazine" (Physical store stock -> shelf presence).
+
+## Proposed Changes
+
+### 1. Data Processing & Logic ([src/ui/app.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py), [src/models/product.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/models/product.py))
+
+#### Sales Metrics Refinement
+Instead of generic "Seasonality Index" or "Trend", we will calculate specific monthly comparisons to help buyers order for the upcoming season.
+*   **Granular Aggregation**: Process historical CSVs to calculate sales *per month* for every product.
+*   **New Metrics**:
+    *   `Sales_Last_3M`: Total sales in the last 3 completed months.
+    *   `Sales_Ref_Month_YoY`: Sales comparison for the target procurement months (e.g., Oct, Nov, Dec) between Current Year and Last Year.
+    *   **Correction**: "Trend" will be defined as [(Sales Ref Month Current Year / Sales Ref Month Last Year) - 1](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py#167-1775).
+
+#### Stock Logic Clarification
+*   **Stoc Indomex**: `Stoc Disponibil Cantitativ Magazine Dep+Acc+Outlet` (from forecast CSV). This is the key "Available to Sell" metric.
+*   **Stoc Magazine**: `Stoc Disponibil Cantitativ Magazine`. This is purely informational for "Coverage".
+
+### 2. UI Simplification ([src/ui/app.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py))
+
+#### Main Table Columns (The "Buyer 12")
+We will reduce the default view to ~12 essential columns. Other columns will be available via a "Show Details" toggle or hidden by default `column_order`.
+
+1.  **Produs**: Code + Name (truncated)
+2.  **Pret**: Acquisition Cost / Selling Price
+3.  **Stoc Indomex**: (Primary Stock)
+4.  **Stoc Mag**: (Network Stock)
+5.  **V.3L**: Sales Last 3 Months
+6.  **V.Oct '24**: Est/Actual sales
+7.  **V.Oct '23**: Historical baseline
+8.  **Trend Oct**: YoY % for Oct
+9.  **V.Nov '24**: Est/Actual sales
+10. **V.Nov '23**: Historical baseline
+11. **Trend Nov**: YoY % for Nov
+12. **Status**: (CRITICAL, OK, OVERSTOCK)
+
+*Hidden/Expandable*: Totals 2024/2025, detailed store splits, transit, granular attributes (Dimension, Family).
+
+### 3. New Feature: Store Stock Audit ([src/ui/app.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py) -> New Tab)
+
+A dedicated view for Product Managers to ensure assortment compliance.
+
+*   **Input**: Dropdown to select a specific Store (e.g., "M & D RETAIL MILITARI").
+*   **Logic**:
+    1.  Filter active products (Status != OUT/LIQUIDATION).
+    2.  Check `Stoc Indomex` > 0 (Item is available to send).
+    3.  Check `Stoc [Selected_Store]` == 0.
+    4.  **Result**: List of "Missing Items" for that store.
+*   **Action**: "Notify Manager" or "Export List" button.
+
+### 4. Code Structure Updates
+
+#### [src/models/product.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/models/product.py)
+*   Add fields for specific monthly history: `self.sales_history = { '2024-10': 50, '2023-10': 45, ... }`.
+*   Update `sales_trend` property to accept a `target_month` argument.
+
+#### [src/ui/app.py](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py)
+*   **Redesign [render_interactive_table](file:///c:/Users/volteanu/Downloads/Tcioara/src/ui/app.py#672-1270)**:
+    *   Implement `column_config` with `hidden=True` for non-essential columns.
+    *   Create dynamic column headers based on current date (e.g., if it's Aug, show Sept/Oct/Nov forecasts).
+*   **Add `render_store_audit_tab()`**: Implementation of the audit logic.
+
+## Verification Plan
+
+### Automated Checks
+*   Verify `Sales_Last_3M` matches sum of relevant CSV transaction rows.
+*   Verify YoY calculation: Manual check of 5 sample SKUs against raw CSV data.
+
+### User Verification
+*   **UI Review**: Does the simplified table look clean? Are the toggleable columns sufficient?
+*   **Audit Test**: Select a known store. Verify the list of "Missing Products" matches reality (items that exist in warehouse but are 0 in that store).
+
+### 5. New Feature: Deep Dive SKU Analysis
+*   **Goal**: Leverage granular transaction data ([2025.csv](file:///c:/Users/volteanu/Downloads/Tcioara/data/2025.csv)) to tell the "full story" of a product when selected.
+*   **UI Implementation**: expanded expader or side panel when a product is clicked.
+*   **Metrics to Display**:
+    *   **Daily Sales Velocity**: Chart showing sales spikes on specific days.
+    *   **Store Performance**: Breakdown of which stores are selling this specific SKU best vs worst.
+    *   **Stock vs Sales**: Overlay of stock levels over time against sales (if historical stock data allows, otherwise just current snapshot vs recent sales).
+

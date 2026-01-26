@@ -1,0 +1,32 @@
+{
+  "default": {
+    "lead_time_days": 90,
+    "safety_stock_days": 7.0,
+    "moq": 1.0
+  },
+  "ARTE ESPINA": {
+    "lead_time_days": 30,
+    "safety_stock_days": 20.0,
+    "moq": 20.0
+  },
+  "BANYOLIN HALI SAN VE TIC AS": {
+    "lead_time_days": 70,
+    "safety_stock_days": 7.0,
+    "moq": 10.0
+  },
+  "CAYIRLI HALI IC VE DIS TIC AS": {
+    "lead_time_days": 180,
+    "safety_stock_days": 7.0,
+    "moq": 1.0
+  },
+  "HERITAGE EXPORT CO": {
+    "lead_time_days": 180,
+    "safety_stock_days": 7.0,
+    "moq": 1.0
+  },
+  "RAGOLLE NV": {
+    "lead_time_days": 121,
+    "safety_stock_days": 7.0,
+    "moq": 1.0
+  }
+}

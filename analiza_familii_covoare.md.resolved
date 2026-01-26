@@ -1,0 +1,91 @@
+# Analiză Pattern Vânzări pe Familii de Produse (Covoare)
+
+## 📊 Descoperiri din Date
+
+Am analizat datele de vânzări pentru familiile de covoare și am identificat un pattern clar de corelare între dimensiuni.
+
+---
+
+## TOP 10 Familii de Covoare (Vânzări 4 luni)
+
+| Familie | Vânzări 4 luni |
+|---------|----------------|
+| **FLORENCE** | 1621 buc |
+| SEBRA | 1038 buc |
+| ROMANTIC | 825 buc |
+| ANTIDERAPANT | 651 buc |
+| PACIFICO31 | 610 buc |
+| PACIFICO05 | 556 buc |
+| DREAM | 550 buc |
+| SHADOW | 375 buc |
+| PAPILLON | 320 buc |
+
+---
+
+## 🔍 Analiza Detaliată: Familia FLORENCE 6015 (VIZON - cea mai vândută culoare)
+
+| Dimensiune | Vânzări 4 luni | Stoc | % din Total Familie |
+|------------|----------------|------|---------------------|
+| **060x120cm** | 82 buc | 45 | ~25% |
+| **080x150cm** | 83 buc | 54 | ~26% |
+| 140x200cm | 49 buc | 19 | ~15% |
+| 160x230cm | 73 buc | 20 | ~22% |
+| 200x290cm | 31 buc | 15 | ~10% |
+
+---
+
+## 📈 Pattern Identificat: DISTRIBUȚIA VÂNZĂRILOR PE DIMENSIUNI
+
+### Regula "Piramidei Inversate"
+
+```
+Dimensiuni MICI (060, 080)  →  ~50% din vânzări
+Dimensiuni MEDII (140, 160) →  ~35% din vânzări  
+Dimensiuni MARI (200, 300)  →  ~15% din vânzări
+```
+
+### Ce înseamnă acest pattern:
+
+1. **Covoarele mici se vând cel mai bine** (preț mai accesibil, spații mai mici)
+2. **Există o corelație INVERSĂ între dimensiune și volum de vânzări**
+3. **Clientul care cumpără 080x150 RAREORI cumpără și 160x230** - sunt pentru încăperi diferite
+
+---
+
+## ⚠️ Implicații pentru Formula de Comandă Actuală
+
+### Problema:
+Formula actuală calculează **fiecare dimensiune INDEPENDENT**:
+```
+Cantitate = Media Zilnică × (Lead Time + Safety Stock + 60) − Stoc Total
+```
+
+Aceasta **NU ține cont** de:
+- Faptul că o familie de covoare ar trebui să aibă **stoc echilibrat** pe toate dimensiunile
+- Că dacă ai STOCKOUT la 080x150 (cea mai cerută), pierzi vânzări chiar dacă ai plin pe 200x290
+- Vânzările se "distribuie" către alte dimensiuni când una nu e disponibilă
+
+### Întrebări pentru tine:
+
+1. **Vrei să adaugăm o logică de "familie"?**
+   - De exemplu: când o dimensiune dintr-o familie este CRITICAL, să atenționeze că întreaga familie ar putea avea probleme
+
+2. **Vrei să ajustăm Safety Stock diferit pe dimensiuni?**
+   - Dimensiunile populare (080, 160) → Safety Stock mai mare
+   - Dimensiunile mari (200, 300) → Safety Stock mai mic (risc financiar mare, vânzări lente)
+
+3. **Sau preferi să păstrăm formula actuală și să faci ajustarea manual?**
+
+---
+
+## 🤔 Recomandare
+
+**Propun să:** PĂSTRĂM formula actuală, dar să adăugăm în interfață:
+- O alertă specială când o familie are dezechilibru (ex: 080x150 e CRITICAL dar 200x290 e OVERSTOCK)
+- Un "Family View" care grupează produsele după gama (FLORENCE, SEBRA, etc.)
+
+Astfel ai vizibilitate, dar decizia finală rămâne la tine.
+
+---
+
+**Aștept confirmarea ta înainte să fac modificări în cod.**
