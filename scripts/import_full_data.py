@@ -11,18 +11,14 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import os
 
+import sys
+sys.path.append('.') # Add root to path
+from src.core.database import get_connection_string
+
 # ============================================================
 # CONFIGURARE CONEXIUNE PostgreSQL
 # ============================================================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "indomex_aprovizionare",
-    "user": "postgres",
-    "password": "123"
-}
-
-DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+DATABASE_URL = get_connection_string()
 
 # ============================================================
 # FISIERE

@@ -1,0 +1,67 @@
+# 🦅 Tcioara: Master Project Documentation
+**Data:** 26 Ianuarie 2026
+**Status:** 🟢 LIVE (Production)
+
+---
+
+## 🔗 Link-uri Rapide
+
+| Serviciu | Link / Detalii |
+| :--- | :--- |
+| **Aplicația Live** | [crm-mex-vhi7v...streamlit.app](https://crm-mex-vhi7vdezk2khyfxd3fwhck.streamlit.app) |
+| **Cod Sursă (GitHub)** | [vladionolteanu-star/CRM-MEX](https://github.com/vladionolteanu-star/CRM-MEX) |
+| **Baza de Date (Supabase)** | [Dashboard Supabase](https://supabase.com/dashboard/project/knegbcaloqceinenffui) |
+
+---
+
+## 🔑 Credențiale & Secrete (CONFIDENȚIAL)
+> ⚠️ **ATENȚIE:** Nu trimite acest fișier altor persoane! Conține parolele de acces.
+
+### 1. Baza de Date (Supabase PostgreSQL)
+*   **Host:** `aws-1-eu-west-1.pooler.supabase.com`
+*   **Port:** `6543` (Transaction Pooler - IPv4 Compatible)
+*   **User:** `postgres.knegbcaloqceinenffui`
+*   **Parola:** `AnaMirai123`
+*   **Database:** [postgres](file:///c:/Users/volteanu/Downloads/Tcioara%20-%20Copy/scripts/import_full_data.py#207-293)
+
+**Connection String (pentru Streamlit Secrets / Scripturi):**
+```toml
+postgresql://postgres.knegbcaloqceinenffui:AnaMirai123@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+```
+
+### 2. GitHub
+*   **Repo:** `https://github.com/vladionolteanu-star/CRM-MEX.git`
+*   **Branch:** [main](file:///c:/Users/volteanu/Downloads/Tcioara%20-%20Copy/scripts/migrate_to_cloud.py#17-90)
+
+---
+
+## 🛠️ Cum administrezi Proiectul?
+
+### A. Cum actualizezi datele (Când apare un CSV nou)?
+Nu trebuie să urci nimic pe site. Totul se face de pe laptopul tău.
+
+1.  Pune noul fișier CSV în folderul [data/](file:///c:/Users/volteanu/Downloads/Tcioara%20-%20Copy/src/core/loader.py#35-46) (înlocuiește-l pe cel vechi).
+2.  Deschide terminalul (VS Code) și rulează:
+    ```powershell
+    python scripts/migrate_to_cloud.py
+    ```
+3.  Dacă ți se cere, lipește **Connection String-ul** de mai sus.
+4.  Așteaptă mesajul `✅ MIGRARE COMPLETĂ!`. Gata, site-ul are datele noi.
+
+### B. Cum modifici codul (Funcționalități noi)?
+1.  Faci modificările pe laptop.
+2.  Testezi local: `streamlit run src/ui/app.py`
+3.  Dacă e OK, trimiți pe GitHub:
+    ```powershell
+    git add .
+    git commit -m "Descriere scurta a ce ai facut"
+    git push origin main
+    ```
+4.  Streamlit Cloud vede modificarea și își face update singur (durează ~2 minute).
+
+---
+
+## 🐛 Status Curent & Probleme Cunoscute
+*   **Performanță:** Aplicația se încarcă greu inițial (încarcă toate produsele).
+    *   *Plan:* Implementare "Lazy Loading" (urmează).
+*   **Conexiune:** Rezolvat problema cu `localhost` vs `st.secrets`. Acum folosește corect baza din Cloud.

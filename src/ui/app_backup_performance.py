@@ -11,13 +11,10 @@ from src.core.loader import DataLoader
 from src.models.product import Product, get_sales_ref_month_yoy
 from src.core.database import (
     load_products_from_db, get_unique_suppliers, get_unique_statuses, 
-    load_products_from_db, get_unique_suppliers, get_unique_statuses, 
     test_connection, get_segment_counts, load_segment_from_db,
     get_unique_families, load_family_products_from_db,
     get_subclass_summary, load_subclass_products
 )
-from src.core.processor import process_products_vectorized
-from types import SimpleNamespace
 from src.core.cubaj_loader import get_cubaj_map, get_cubaj_stats
 from src.ui.order_builder import render_order_builder_v2
 
@@ -484,7 +481,6 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 st.rerun()
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Build: 26.01.2026 22:15 (Performance Fixes)")
     
     # ============================================================
     # SIDEBAR - COMPACT FILTERS
@@ -780,34 +776,18 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     # ============================================================
     # TABS (Simplified - removed ALL DATA, FAMILY VIEW, SUPPLIER AUDIT, Order Builder OLD)
     # ============================================================
-    # ============================================================
-    # NAVIGATION (LAZY LOADING)
-    # ============================================================
-    
-    # Construim optiunile pentru meniu cu numarul de produse
-    nav_options = []
-    
-    # 1. Segmente
-    seg_definitions = [
-        ("CRITICAL", "🔴"), 
-        ("URGENT", "🟠"), 
-        ("ATTENTION", "🟡"), 
-        ("OK", "🟢"), 
-        ("OVERSTOCK", "🔵")
-    ]
-    
-    for seg_name, icon in seg_definitions:
-        count = segment_stats.get(seg_name, {}).get("count", 0)
-        nav_options.append(f"{icon} {seg_name} ({count})")
-        
-    # 2. Order Builder
-    nav_options.append("📦 ORDER v2")
-    
-    # Selector orizontal (stil "Tabs")
-    st.markdown('<style>div[role="radiogroup"] { flex-direction: row; justify-content: center;gap: 10px; }</style>', unsafe_allow_html=True)
-    selected_nav = st.radio("Navigare", nav_options, horizontal=True, label_visibility="collapsed", index=0)
-    
-    st.markdown("---")
+    tab_critical, tab_urgent, tab_attention, tab_ok, tab_overstock, tab_order_v2 = st.tabs([
+        f"CRITICAL ({segment_stats.get('CRITICAL', {}).get('count', 0)})",
+        f"URGENT ({segment_stats.get('URGENT', {}).get('count', 0)})",
+        f"ATTENTION ({segment_stats.get('ATTENTION', {}).get('count', 0)})",
+        f"OK ({segment_stats.get('OK', {}).get('count', 0)})",
+        f"OVERSTOCK ({segment_stats.get('OVERSTOCK', {}).get('count', 0)})",
+        # "ALL DATA",           # 🚫 INACTIVAT
+        # "FAMILY VIEW",        # 🚫 INACTIVAT
+        # "SUPPLIER AUDIT",     # 🚫 INACTIVAT
+        # "Order Builder (OLD)", # 🚫 INACTIVAT
+        "📦 ORDER v2"
+    ])
     
     def render_interactive_table(product_list, segment_name, allow_order=True):
         """
@@ -1519,7 +1499,7 @@ Răspunde în română. FII AUTENTIC în thinking."""
         st.dataframe(df, width="stretch", height=400)
         return df
     
-    if "CRITICAL" in selected_nav:
+    with tab_critical:
         with st.expander("ℹ️ Cum se calculeaza CRITICAL? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire < Lead Time`
@@ -1539,20 +1519,17 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         
         # Lazy Load Logic for CRITICAL (same as other tabs)
         if use_postgres:
-            with st.spinner("Se încarcă produsele CRITICAL (Rapid)..."):
-                # FAST VECTORIZED LOAD
-                raw_df = load_segment_from_db("CRITICAL", 
+            with st.spinner("Se încarcă produsele CRITICAL..."):
+                seg_products = parse_from_postgres(load_segment_from_db("CRITICAL", 
                     furnizor=selected_supplier if selected_supplier != "ALL" else None, 
                     stare_pm=selected_status if selected_status != "ALL" else None,
-                    limit=5000
-                )
-                proc_df = process_products_vectorized(raw_df, config, seasonality_data, advanced_trends_data, cubaj_data)
-                seg_products = [SimpleNamespace(**x) for x in proc_df.to_dict('records')]
+                    limit=1000
+                ), config, seasonality_data, advanced_trends_data, cubaj_data)
             render_interactive_table(seg_products, "CRITICAL", allow_order=True)
         else:
             render_interactive_table(segments["CRITICAL"], "CRITICAL", allow_order=True)
     
-    if "URGENT" in selected_nav:
+    with tab_urgent:
         with st.expander("ℹ️ Cum se calculeaza URGENT? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time <= Zile Acoperire < Lead Time + Safety Stock`
@@ -1569,19 +1546,17 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         
         # Lazy Load Logic
         if use_postgres:
-            with st.spinner("Se încarcă produsele URGENT (Rapid)..."):
-                raw_df = load_segment_from_db("URGENT", 
+            with st.spinner("Se încarcă produsele URGENT..."):
+                seg_products = parse_from_postgres(load_segment_from_db("URGENT", 
                     furnizor=selected_supplier if selected_supplier != "ALL" else None, 
                     stare_pm=selected_status if selected_status != "ALL" else None,
-                    limit=5000
-                )
-                proc_df = process_products_vectorized(raw_df, config, seasonality_data, advanced_trends_data, cubaj_data)
-                seg_products = [SimpleNamespace(**x) for x in proc_df.to_dict('records')]
+                    limit=1000
+                ), config, seasonality_data, advanced_trends_data, cubaj_data)
             render_interactive_table(seg_products, "URGENT")
         else:
             render_interactive_table(segments["URGENT"], "URGENT", allow_order=True)
     
-    if "ATTENTION" in selected_nav:
+    with tab_attention:
         with st.expander("ℹ️ Cum se calculeaza ATTENTION? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time + Safety Stock <= Zile Acoperire < Lead Time + Safety Stock + 14 zile`
@@ -1594,19 +1569,17 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         
         # Lazy Load Logic
         if use_postgres:
-            with st.spinner("Se încarcă produsele ATTENTION (Rapid)..."):
-                raw_df = load_segment_from_db("ATTENTION", 
+            with st.spinner("Se încarcă produsele ATTENTION..."):
+                seg_products = parse_from_postgres(load_segment_from_db("ATTENTION", 
                     furnizor=selected_supplier if selected_supplier != "ALL" else None, 
                     stare_pm=selected_status if selected_status != "ALL" else None,
-                    limit=5000
-                )
-                proc_df = process_products_vectorized(raw_df, config, seasonality_data, advanced_trends_data, cubaj_data)
-                seg_products = [SimpleNamespace(**x) for x in proc_df.to_dict('records')]
+                    limit=1000
+                ), config, seasonality_data, advanced_trends_data, cubaj_data)
             render_interactive_table(seg_products, "ATTENTION", allow_order=True)
         else:
             render_interactive_table(segments["ATTENTION"], "ATTENTION", allow_order=True)
     
-    if "OK" in selected_nav:
+    with tab_ok:
         with st.expander("ℹ️ Cum se calculeaza OK? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time + Safety Stock + 14 zile <= Zile Acoperire <= 90 zile`
@@ -1619,19 +1592,17 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         
         # Lazy Load Logic
         if use_postgres:
-            with st.spinner("Se încarcă produsele OK (Rapid)..."):
-                raw_df = load_segment_from_db("OK", 
+            with st.spinner("Se încarcă produsele OK..."):
+                seg_products = parse_from_postgres(load_segment_from_db("OK", 
                     furnizor=selected_supplier if selected_supplier != "ALL" else None, 
                     stare_pm=selected_status if selected_status != "ALL" else None,
-                    limit=5000
-                )
-                proc_df = process_products_vectorized(raw_df, config, seasonality_data, advanced_trends_data, cubaj_data)
-                seg_products = [SimpleNamespace(**x) for x in proc_df.to_dict('records')]
+                    limit=1000
+                ), config, seasonality_data, advanced_trends_data, cubaj_data)
             render_interactive_table(seg_products, "OK", allow_order=True)
         else:
             render_interactive_table(segments["OK"], "OK", allow_order=True)
     
-    if "OVERSTOCK" in selected_nav:
+    with tab_overstock:
         with st.expander("ℹ️ Cum se calculeaza OVERSTOCK? (click pentru detalii)", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire > 90 zile`
@@ -1653,15 +1624,12 @@ Valoare Stoc = Cantitate x Cost Achizitie
         
         if use_postgres:
             # Load lazy
-            with st.spinner("Se încarcă produsele OVERSTOCK (Rapid)..."):
-                raw_df = load_segment_from_db("OVERSTOCK", 
+            with st.spinner("Se încarcă produsele OVERSTOCK..."):
+                seg_products = parse_from_postgres(load_segment_from_db("OVERSTOCK", 
                     furnizor=selected_supplier if selected_supplier != "ALL" else None, 
                     stare_pm=selected_status if selected_status != "ALL" else None,
-                    limit=5000
-                )
-                proc_df = process_products_vectorized(raw_df, config, seasonality_data, advanced_trends_data, cubaj_data)
-                seg_products = [SimpleNamespace(**x) for x in proc_df.to_dict('records')]
-                
+                    limit=1000
+                ), config, seasonality_data, advanced_trends_data, cubaj_data)
             render_interactive_table(seg_products, "OVERSTOCK", allow_order=False)
             
             # Use pre-calculated stats for total value
@@ -2293,9 +2261,10 @@ Cantitate Sugerata = Vanzari Medii Zilnice × (Lead Time + Safety Stock + 60) - 
     # ============================================================
     # ORDER BUILDER v2 TAB
     # ============================================================
-    if "ORDER v2" in selected_nav:
+    with tab_order_v2:
         render_order_builder_v2(config, cubaj_data)
 
 
 if __name__ == "__main__":
     main()
+
