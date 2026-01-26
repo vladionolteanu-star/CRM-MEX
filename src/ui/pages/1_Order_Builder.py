@@ -18,7 +18,7 @@ except ImportError as e:
 
 # Page Config
 st.set_page_config(
-    page_title="Order Builder v2 | Indomex",
+    page_title="Order Builder | Indomex",
     page_icon="📦",
     layout="wide",
     initial_sidebar_state="collapsed"

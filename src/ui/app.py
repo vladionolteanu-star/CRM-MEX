@@ -291,7 +291,8 @@ def main():
     # ============================================================
     col_title, col_settings = st.columns([6, 1])
     with col_title:
-        st.markdown("## INDOMEX Calcul Aprovizionare (v22:45 FULL CACHE)")
+        st.header("Indomex Aprovizionare")
+        st.caption("v22:45 Cached")
     with col_settings:
         if st.button("Settings", key="open_settings"):
             st.session_state.show_settings = True
@@ -484,14 +485,14 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 st.rerun()
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Build: 26.01.2026 22:25 (Fix Robustness)")
+    st.sidebar.caption("Build: 26.01.2026 (Clean UI)")
     
     # ============================================================
     # SIDEBAR - COMPACT FILTERS
     # ============================================================
     
     # Data Source Toggle (compact)
-    use_postgres = st.sidebar.toggle("🐘 PostgreSQL", value=True, help="Folosește PostgreSQL pentru viteză")
+    use_postgres = st.sidebar.toggle("PostgreSQL", value=True, help="Folosește PostgreSQL pentru viteză")
     
     if use_postgres:
         success, msg = test_connection()
@@ -502,13 +503,13 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             selected_supplier = st.sidebar.selectbox("Furnizor", ["ALL"] + suppliers, key="pg_supplier")
             selected_status = st.sidebar.selectbox("Stare PM", ["ALL"] + pm_statuses, key="pg_status")
             
-            with st.spinner("🐘 Încărcare..."):
+            with st.spinner("Incarcare..."):
                 raw_df = load_products_from_db(
                     furnizor=selected_supplier if selected_supplier != "ALL" else None,
                     stare_pm=selected_status if selected_status != "ALL" else None
                 )
         else:
-            st.sidebar.error(f"❌ Nu pot conecta la PostgreSQL: {msg}")
+            st.sidebar.error(f"Nu pot conecta la PostgreSQL: {msg}")
             use_postgres = False
     
     if not use_postgres:
@@ -528,7 +529,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             loader.load_data()
             return loader.df
         
-        with st.spinner("📂 Încărcare CSV..."):
+        with st.spinner("Incarcare CSV..."):
             try:
                 raw_df = load_raw(data_path)
             except Exception as e:
@@ -543,13 +544,13 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     
     # Supplier Config (collapsed by default)
     if selected_supplier != "ALL":
-        with st.sidebar.expander(f"⚙️ Config: {selected_supplier[:20]}...", expanded=False):
+        with st.sidebar.expander(f"Config: {selected_supplier[:20]}...", expanded=False):
             current_cfg = config.get(selected_supplier, default_cfg.copy())
             sup_lt = st.number_input("Lead Time", value=int(current_cfg.get("lead_time_days", 30)), min_value=1, max_value=180, key="sb_lt")
             sup_ss = st.number_input("Safety Stock", value=float(current_cfg.get("safety_stock_days", 7)), min_value=0.0, key="sb_ss")
             sup_moq = st.number_input("MOQ", value=float(current_cfg.get("moq", 1)), min_value=1.0, key="sb_moq")
             
-            if st.button("💾 Save", key="sb_save"):
+            if st.button("Salveaza", key="sb_save"):
                 config[selected_supplier] = {"lead_time_days": sup_lt, "safety_stock_days": sup_ss, "moq": sup_moq}
                 save_supplier_config(config)
                 # Sync to DB and recalculate segments
@@ -764,18 +765,18 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     # ============================================================
     kpi_cols = st.columns(5)
     segment_info = [
-        ("CRITICAL", "🔴"), 
-        ("URGENT", "🟠"), 
-        ("ATTENTION", "🟡"), 
-        ("OK", "🟢"), 
-        ("OVERSTOCK", "🔵"),
+        ("CRITICAL", "Critical"), 
+        ("URGENT", "Urgent"), 
+        ("ATTENTION", "Attention"), 
+        ("OK", "OK"), 
+        ("OVERSTOCK", "Overstock"),
     ]
     
-    for i, (seg, icon) in enumerate(segment_info):
+    for i, (seg, label) in enumerate(segment_info):
         count = segment_stats.get(seg, {}).get("count", 0)
         value = segment_stats.get(seg, {}).get("value", 0)
         with kpi_cols[i]:
-            st.metric(f"{icon} {seg}", f"{count:,}", f"{value/1000:,.0f}k RON")
+            st.metric(label, f"{count:,}", f"{value/1000:,.0f}k RON")
     
     # ============================================================
     # TABS (Simplified - removed ALL DATA, FAMILY VIEW, SUPPLIER AUDIT, Order Builder OLD)
@@ -789,25 +790,25 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
     
     # 1. Segmente
     seg_definitions = [
-        ("CRITICAL", "🔴"), 
-        ("URGENT", "🟠"), 
-        ("ATTENTION", "🟡"), 
-        ("OK", "🟢"), 
-        ("OVERSTOCK", "🔵")
+        ("CRITICAL", "Critical"), 
+        ("URGENT", "Urgent"), 
+        ("ATTENTION", "Attention"), 
+        ("OK", "OK"), 
+        ("OVERSTOCK", "Overstock")
     ]
     
-    for seg_name, icon in seg_definitions:
+    for seg_name, label in seg_definitions:
         count = segment_stats.get(seg_name, {}).get("count", 0)
-        nav_options.append(f"{icon} {seg_name} ({count})")
+        nav_options.append(f"{label} ({count})")
         
     # 2. Order Builder
-    nav_options.append("📦 ORDER v2")
+    nav_options.append("Order Builder")
     
     # Selector orizontal (stil "Tabs")
     st.markdown('<style>div[role="radiogroup"] { flex-direction: row; justify-content: center;gap: 10px; }</style>', unsafe_allow_html=True)
     selected_nav = st.radio("Navigare", nav_options, horizontal=True, label_visibility="collapsed", index=0)
     
-    if "ORDER v2" in selected_nav:
+    if "Order Builder" in selected_nav:
         st.switch_page("pages/1_Order_Builder.py")
     
     st.markdown("---")
@@ -927,7 +928,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 # 14. Status + Suggested Qty
                 # Red Alert: When Lead Time - Days Coverage < 10 OR segment is CRITICAL
                 "_diff_alert": p.lead_time_days - p.days_of_coverage if p.days_of_coverage < 999 else 999,
-                "Status": f"🚨 {p.segment}" if (p.segment == "CRITICAL" or (p.lead_time_days - p.days_of_coverage < 10 and p.days_of_coverage < 999)) else p.segment,
+                "Status": f"{p.segment}" if (p.segment == "CRITICAL" or (p.lead_time_days - p.days_of_coverage < 10 and p.days_of_coverage < 999)) else p.segment,
                 "Cant.Sug.": suggested_qty,
                 
                 # ============================================================
@@ -935,7 +936,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 # ============================================================
                 "Cod": p.nr_art,
                 "Denumire": p.nume_produs,
-                "Familie": f"⚠️ {p.familie}" if (p.familie and is_unbal) else (p.familie if p.familie else "-"),
+                "Familie": f"{p.familie}" if (p.familie and is_unbal) else (p.familie if p.familie else "-"),
                 "Dim": p.dimensiune if p.dimensiune else "-",
                 "Tranzit": int(p.stoc_in_tranzit),
                 "V.4L": int(p.vanzari_ultimele_4_luni),
@@ -961,7 +962,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "S.Ora": int(p.stoc_oradea),
                 "S.Cta": int(p.stoc_constanta),
                 # Cubaj & Logistics
-                "Cubaj": f"{p.cubaj_m3:.3f}" if p.cubaj_m3 else "⚠️ N/A",
+                "Cubaj": f"{p.cubaj_m3:.3f}" if p.cubaj_m3 else "N/A",
                 "Masa": f"{p.masa_kg:.1f}" if p.masa_kg else "-",
                 # Metadata
                 "_formula": formula_text,
@@ -1203,12 +1204,12 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 selected_codes = edited_df[edited_df["Selecteaza"] == True]["Cod"].tolist()
             
             if not selected_codes:
-                st.warning("⚠️ Selectează cel puțin un produs pentru explicație!")
+                st.warning("Selectează cel puțin un produs pentru explicație!")
             elif not gemini_cfg.get("api_key"):
-                st.warning("⚠️ Configurează API key în Settings > Gemini API")
+                st.warning("Configurează API key în Settings > Gemini API")
             else:
                 # TOAST notification - alert user to scroll
-                st.toast("🤖 AI analizează... Scrollează în jos pentru rezultate!", icon="🔽")
+                st.toast("AI analizează... Scrollează în jos pentru rezultate!")
                 
                 # Build explanation data for selected products
                 products_for_ai = []
@@ -1328,7 +1329,6 @@ Răspunde în română. FII AUTENTIC în thinking."""
                                     padding: 24px; border-radius: 12px; margin: 16px 0;
                                     box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                                <span style="font-size: 1.5rem;">🤖</span>
                                 <span style="color: #60a5fa; font-weight: 600; font-size: 1.1rem;">AI Analysis</span>
                                 <span style="color: #64748b; font-size: 0.85rem; margin-left: auto;">Model: """ + model_name + """</span>
                             </div>
@@ -1393,7 +1393,7 @@ Răspunde în română. FII AUTENTIC în thinking."""
                             
                             thinking_header.markdown("""
                             <div style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 8px;">
-                                💭 <strong>THINKING</strong> — procesul intern de gândire
+                                <strong>THINKING</strong> — procesul intern de gândire
                             </div>
                             """, unsafe_allow_html=True)
                             
@@ -1454,7 +1454,7 @@ Răspunde în română. FII AUTENTIC în thinking."""
                                         # Show response header
                                         response_header.markdown("""
 <div style="color: #60a5fa; font-size: 0.9rem; margin: 16px 0 8px 0; font-weight: 600;">
-    📋 <strong>RĂSPUNS FINAL</strong>
+    <strong>RASPUNS FINAL</strong>
 </div>
 """, unsafe_allow_html=True)
                                         
@@ -1478,12 +1478,12 @@ Răspunde în română. FII AUTENTIC în thinking."""
                             
                             status_placeholder.markdown("""
                             <div style="color: #22c55e; font-size: 0.9rem; font-weight: 600;">
-                                ✅ Analiză completă!
+                                Analiză completă!
                             </div>
                             """, unsafe_allow_html=True)
                             
                         except Exception as e:
-                            st.error(f"❌ Eroare AI: {e}")
+                            st.error(f"Eroare AI: {e}")
         
         return edited_df
     
@@ -1522,8 +1522,8 @@ Răspunde în română. FII AUTENTIC în thinking."""
         st.dataframe(df, width="stretch", height=400)
         return df
     
-    if "CRITICAL" in selected_nav:
-        with st.expander("ℹ️ Cum se calculeaza CRITICAL? (click pentru detalii)", expanded=False):
+    if "Critical" in selected_nav:
+        with st.expander("Cum se calculeaza Critical?", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire < Lead Time`
 
@@ -1538,7 +1538,7 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
 
 **Actiune recomandata:** Comanda EXPRESS sau cauta furnizor alternativ URGENT!
             """)
-        st.markdown("**🔢 Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
+        st.markdown("**Bifează produsele și apasă 'Calculează Selectate' pentru a vedea cantitățile sugerate**")
         
         # Lazy Load Logic for CRITICAL (same as other tabs)
         if use_postgres:
@@ -1555,8 +1555,8 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["CRITICAL"], "CRITICAL", allow_order=True)
     
-    if "URGENT" in selected_nav:
-        with st.expander("ℹ️ Cum se calculeaza URGENT? (click pentru detalii)", expanded=False):
+    if "Urgent" in selected_nav:
+        with st.expander("Cum se calculeaza Urgent?", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time <= Zile Acoperire < Lead Time + Safety Stock`
 
@@ -1584,8 +1584,8 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["URGENT"], "URGENT", allow_order=True)
     
-    if "ATTENTION" in selected_nav:
-        with st.expander("ℹ️ Cum se calculeaza ATTENTION? (click pentru detalii)", expanded=False):
+    if "Attention" in selected_nav:
+        with st.expander("Cum se calculeaza Attention?", expanded=False):
             st.markdown("""
 **Conditie:** `Lead Time + Safety Stock <= Zile Acoperire < Lead Time + Safety Stock + 14 zile`
 
@@ -1634,8 +1634,8 @@ Zile Acoperire = (Stoc Disponibil + Stoc Tranzit) / Vanzari Medii Zilnice
         else:
             render_interactive_table(segments["OK"], "OK", allow_order=True)
     
-    if "OVERSTOCK" in selected_nav:
-        with st.expander("ℹ️ Cum se calculeaza OVERSTOCK? (click pentru detalii)", expanded=False):
+    if "Overstock" in selected_nav:
+        with st.expander("Cum se calculeaza Overstock?", expanded=False):
             st.markdown("""
 **Conditie:** `Zile Acoperire > 90 zile`
 
@@ -1673,7 +1673,7 @@ Valoare Stoc = Cantitate x Cost Achizitie
             render_interactive_table(segments["OVERSTOCK"], "OVERSTOCK", allow_order=False)
             total = sum(p.stock_value for p in segments["OVERSTOCK"])
             
-        st.markdown(f"**💰 Total overstock: {total:,.0f} RON**")
+        st.markdown(f"**Total overstock: {total:,.0f} RON**")
     
     # ============================================================
     # ALL DATA TAB - 🚫 INACTIVAT

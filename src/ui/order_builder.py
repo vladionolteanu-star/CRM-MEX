@@ -124,12 +124,12 @@ def render_order_panel():
     Panoul din dreapta: Comandă Curentă
     OPTIMIZED: Cantitățile sunt editate într-un form pentru a preveni reruns.
     """
-    st.markdown("### 📋 Comandă Curentă")
+    st.markdown("### Comandă Curentă")
     
     order_items = st.session_state.ob2_order_items
     
     if not order_items:
-        st.info("🛒 Comandă goală. Selectează articole din lista din stânga.")
+        st.info("Comandă goală. Selectează articole din lista din stânga.")
         return
     
     # Grupează pe subclasă pentru afișare
@@ -145,7 +145,7 @@ def render_order_panel():
         items_to_delete = []  # Collect items to delete
         
         for subclass, items in by_subclass.items():
-            st.markdown(f"**📦 {subclass}** ({len(items)} art)")
+            st.markdown(f"**{subclass}** ({len(items)} art)")
             
             for item in items:
                 col1, col2, col3 = st.columns([3, 2, 1])
@@ -167,13 +167,13 @@ def render_order_panel():
                     st.caption(f"{item.cost:.0f} × {new_qty} = **{item.cost * new_qty:,.0f}** RON")
                 
                 with col3:
-                    if st.checkbox("🗑️", key=f"del_{item.cod}", help="Marchează pentru ștergere"):
+                    if st.checkbox("Sterge", key=f"del_{item.cod}", help="Marchează pentru ștergere"):
                         items_to_delete.append(item.cod)
             
             st.markdown("---")
         
         # Submit button for quantity updates
-        submitted = st.form_submit_button("💾 Actualizează Cantități", type="secondary")
+        submitted = st.form_submit_button("Actualizează Cantități", type="secondary")
     
     # Process form submission
     if submitted:
@@ -188,7 +188,7 @@ def render_order_panel():
                 del st.session_state.ob2_order_items[cod]
         
         if items_to_delete:
-            st.success(f"🗑️ Șters {len(items_to_delete)} articole")
+            st.success(f"Șters {len(items_to_delete)} articole")
         st.rerun()
     
     # Totaluri (calculated fresh)
@@ -207,7 +207,7 @@ def render_order_panel():
     # Butoane acțiuni (outside form)
     col_exp, col_clear = st.columns(2)
     with col_exp:
-        if st.button("📤 Export Excel", key="ob2_export", type="primary"):
+        if st.button("Export Excel", key="ob2_export", type="primary"):
             excel_data = export_order_excel()
             st.download_button(
                 "⬇️ Descarcă",
@@ -218,7 +218,7 @@ def render_order_panel():
             )
     
     with col_clear:
-        if st.button("🗑️ Golește Tot", key="ob2_clear"):
+        if st.button("Golește Tot", key="ob2_clear"):
             clear_order()
             st.rerun()
 
@@ -244,13 +244,13 @@ def render_subclass_list(subclass_summaries: List[dict]):
         col1, col2 = st.columns([4, 1])
         
         with col1:
-            label = f"{badge} **{sub['subclasa']}** ({sub['article_count']})"
+            label = f"**{sub['subclasa']}** ({sub['article_count']})"
             stats = f"C:{sub['critical_count']} U:{sub['urgent_count']} | {sub['total_value']:,.0f} RON"
             st.markdown(label)
             st.caption(stats)
         
         with col2:
-            if st.button("➕", key=f"ob2_sub_{sub['subclasa'][:20]}", help="Deschide"):
+            if st.button("Deschide", key=f"ob2_sub_{sub['subclasa'][:20]}", help="Deschide"):
                 st.session_state.ob2_current_subclass = sub['subclasa']
                 st.rerun()
         
@@ -259,8 +259,8 @@ def render_subclass_list(subclass_summaries: List[dict]):
 
 def render_simulation_controls():
     """Panou control pentru simulare parametrii calcul"""
-    with st.expander("🧮 Configurare Calcul Necesar (Simulare Avansată)", expanded=False):
-        st.markdown("### 🔧 Parametrii 'Pitroceală'")
+    with st.expander("Configurare Calcul Necesar (Simulare)", expanded=False):
+        st.markdown("### Parametrii Simulare")
         
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -448,10 +448,10 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
                                help="Afișează coloane suplimentare (tranzit, vânzări 360z, cubaj, detalii calcul)")
     
     # Primary columns (compact view)
-    primary_cols = ["☑️", "Cod", "Produs", "Seg", "Stoc", "V.4L", "Cost", "Cant"]
+    primary_cols = ["Sel", "Cod", "Produs", "Seg", "Stoc", "V.4L", "Cost", "Cant"]
     
     # Extended columns (all details)
-    extended_cols = ["☑️", "Cod", "Denumire", "Seg", "Stoc", "Tranzit", "V.4L", "V.360", 
+    extended_cols = ["Sel", "Cod", "Denumire", "Seg", "Stoc", "Tranzit", "V.4L", "V.360", 
                      "Med/Zi", "Zile Ac.", "Lead", "Cost", "PVanz", "Cubaj", "Masa", "Cant", "Detalii Calcul"]
     
     display_cols = extended_cols if show_details else primary_cols
@@ -461,7 +461,7 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
         edited_df = st.data_editor(
             df[display_cols],
             column_config={
-                "☑️": st.column_config.CheckboxColumn("", default=False, width="small"),
+                "Sel": st.column_config.CheckboxColumn("", default=False, width="small"),
                 "Seg": st.column_config.TextColumn("Seg", width="small"),
                 "Cant": st.column_config.NumberColumn("Cant", format="%d", width="small"),
                 "Detalii Calcul": st.column_config.TextColumn("Detalii Calcul", width="medium", help="Explicatie calcul necesar"),
@@ -472,11 +472,11 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
         )
         
         # Submit button inside form
-        submitted = st.form_submit_button("✅ Adaugă Selectate în Comandă", type="primary")
+        submitted = st.form_submit_button("Adaugă Selectate în Comandă", type="primary")
     
     # Process selection only on form submit
     if submitted:
-        selected_mask = edited_df["☑️"] == True
+        selected_mask = edited_df["Sel"] == True
         selected_count = selected_mask.sum()
         
         if selected_count > 0:
@@ -503,7 +503,7 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
             st.warning("⚠️ Selectează cel puțin un articol.")
     
     # Show selection preview (outside form, updates on rerun)
-    selected_mask = edited_df["☑️"] == True
+    selected_mask = edited_df["Sel"] == True
     selected_count = selected_mask.sum()
     
     if selected_count > 0:
@@ -512,10 +512,10 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
         total_value = int((selected_df["_qty"] * selected_df["_cost"]).sum())
         
         st.markdown(f"""
-        <div style="background: #1e293b; padding: 12px; border-radius: 8px; color: white; margin: 10px 0;">
-            ☑️ <strong>{selected_count}</strong> selectate | 
-            📦 <strong>{total_qty}</strong> buc | 
-            💰 <strong>{total_value:,}</strong> RON
+        <div style="background: #f1f5f9; padding: 12px; border-radius: 4px; color: #0f172a; margin: 10px 0; border: 1px solid #cbd5e1;">
+            <strong>{selected_count}</strong> selectate | 
+            <strong>{total_qty}</strong> buc | 
+            <strong>{total_value:,}</strong> RON
         </div>
         """, unsafe_allow_html=True)
 
@@ -585,9 +585,10 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
     
     # Header with fullscreen toggle
     col_title, col_fs = st.columns([6, 1])
+    col_title, col_fs = st.columns([6, 1])
     with col_title:
-        st.markdown("## 📦 Order Builder v2")
-        st.markdown("*Planșă rapidă pentru construirea comenzilor*")
+        st.markdown("## Order Builder")
+        st.caption("Planșă rapidă pentru construirea comenzilor")
     with col_fs:
         fs_icon = "⊡ Exit" if st.session_state.ob2_fullscreen else "⛶ Full"
         if st.button(fs_icon, key="ob2_fullscreen_btn", help="Toggle Full Screen Mode"):
@@ -626,7 +627,7 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
             supplier_map[label] = s["furnizor"]
         
         selected_label = st.selectbox(
-            "🏭 Furnizor",
+            "Furnizor",
             options,
             key="ob2_supplier_select"
         )
@@ -636,7 +637,7 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
     
     with col_search:
         search_term = st.text_input(
-            "🔍 Caută articol (cod sau denumire)",
+            "Caută articol (cod sau denumire)",
             value=st.session_state.ob2_search,
             key="ob2_search_input",
             placeholder="Ex: COD123 sau PERSIAN"
@@ -644,7 +645,7 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
         st.session_state.ob2_search = search_term
     
     if not st.session_state.ob2_supplier:
-        st.info("👆 Selectează un furnizor pentru a începe.")
+        st.info("Selectează un furnizor pentru a începe.")
         return
     
     # Main layout: 2 columns
@@ -654,9 +655,9 @@ def render_order_builder_v2(config: dict, cubaj_data: dict = None):
         # Subclass list or articles table
         if st.session_state.ob2_current_subclass:
             # Show articles for selected subclass
-            st.markdown(f"### 📋 {st.session_state.ob2_current_subclass}")
+            st.markdown(f"### {st.session_state.ob2_current_subclass}")
             
-            if st.button("← Înapoi la Subclase", key="ob2_back"):
+            if st.button("Înapoi", key="ob2_back"):
                 st.session_state.ob2_current_subclass = None
                 st.rerun()
             
