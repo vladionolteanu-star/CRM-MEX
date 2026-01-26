@@ -761,34 +761,16 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             }
     
     # ============================================================
-    # COMPACT KPI BAR using native Streamlit (more reliable)
-    # ============================================================
-    kpi_cols = st.columns(5)
-    segment_info = [
-        ("CRITICAL", "Critical"), 
-        ("URGENT", "Urgent"), 
-        ("ATTENTION", "Attention"), 
-        ("OK", "OK"), 
-        ("OVERSTOCK", "Overstock"),
-    ]
-    
-    for i, (seg, label) in enumerate(segment_info):
-        count = segment_stats.get(seg, {}).get("count", 0)
-        value = segment_stats.get(seg, {}).get("value", 0)
-        with kpi_cols[i]:
-            st.metric(label, f"{count:,}", f"{value/1000:,.0f}k RON")
-    
-    # ============================================================
-    # TABS (Simplified - removed ALL DATA, FAMILY VIEW, SUPPLIER AUDIT, Order Builder OLD)
-    # ============================================================
-    # ============================================================
-    # NAVIGATION (LAZY LOADING)
+    # UNIFIED NAVIGATION & KPI CARDS (Minimalist "Buttons in Cards")
     # ============================================================
     
-    # Construim optiunile pentru meniu cu numarul de produse
-    nav_options = []
+    # Initialize State
+    if "active_tab" not in st.session_state:
+        st.session_state.active_tab = "Critical"
     
-    # 1. Segmente
+    # Render 6 Columns (5 Segments + Order Builder)
+    nav_cols = st.columns(6)
+    
     seg_definitions = [
         ("CRITICAL", "Critical"), 
         ("URGENT", "Urgent"), 
@@ -797,19 +779,31 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         ("OVERSTOCK", "Overstock")
     ]
     
-    for seg_name, label in seg_definitions:
-        count = segment_stats.get(seg_name, {}).get("count", 0)
-        nav_options.append(f"{label} ({count})")
+    # Render Segment Cards
+    for i, (seg_key, label) in enumerate(seg_definitions):
+        count = segment_stats.get(seg_key, {}).get("count", 0)
+        value = segment_stats.get(seg_key, {}).get("value", 0)
         
-    # 2. Order Builder
-    nav_options.append("Order Builder")
-    
-    # Selector orizontal (stil "Tabs")
-    st.markdown('<style>div[role="radiogroup"] { flex-direction: row; justify-content: center;gap: 10px; }</style>', unsafe_allow_html=True)
-    selected_nav = st.radio("Navigare", nav_options, horizontal=True, label_visibility="collapsed", index=0)
-    
-    if "Order Builder" in selected_nav:
-        st.switch_page("pages/1_Order_Builder.py")
+        with nav_cols[i]:
+            # Metric Display
+            st.metric(label, f"{count:,}", f"{value/1000:,.0f}k RON")
+            
+            # Selection Button
+            is_active = (st.session_state.active_tab == label)
+            if st.button("Vezi", key=f"nav_{seg_key}", 
+                         type="primary" if is_active else "secondary", 
+                         use_container_width=True):
+                st.session_state.active_tab = label
+                st.rerun()
+                
+    # Render Order Builder Card
+    with nav_cols[5]:
+        st.metric("Order Builder", "v2", "")
+        if st.button("Deschide", key="nav_ob", type="primary" if st.session_state.active_tab == "Order Builder" else "secondary", use_container_width=True):
+             st.switch_page("pages/1_Order_Builder.py")
+             
+    # Compatibility mapping for downstream logic
+    selected_nav = st.session_state.active_tab
     
     st.markdown("---")
     
