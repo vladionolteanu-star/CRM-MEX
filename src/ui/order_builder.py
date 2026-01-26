@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Optional
 import io
 import math
+import numpy as np
 
 # ============================================================
 # DATA CLASSES
