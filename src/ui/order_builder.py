@@ -408,7 +408,7 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
     # Mapping columns directly:
     
     df_ui = pd.DataFrame()
-    df_ui["☑️"] = [False] * len(df_calc)
+    df_ui["Sel"] = [False] * len(df_calc)
     df_ui["Cod"] = df_calc["cod_articol"].astype(str)
     # Name truncation
     df_ui["Produs"] = df_calc["denumire"].astype(str).str.slice(0, 25) + ".."
