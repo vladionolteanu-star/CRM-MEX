@@ -143,7 +143,7 @@ def sync_supplier_to_db(supplier_name, lead_time, safety_stock, moq):
 # PAGE CONFIG
 # ============================================================
 st.set_page_config(
-    page_title="INDOMEX Calcul Aprovizionare",
+    page_title="INDOMEX Aprovizionare v27.01 11:05",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1235,6 +1235,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                  select_all = False
              
         # Eliminated AI Button
+        explain_btn = False  # AI button was removed, keeping variable for backward compatibility
                   
         with toolbar_cols[3]:
              csv_data = df.to_csv(index=False).encode('utf-8')
