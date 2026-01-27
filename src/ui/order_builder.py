@@ -424,8 +424,20 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
     df_ui["V.360"] = df_calc["vanzari_360z"].fillna(0).astype(int)
     df_ui["Med/Zi"] = df_calc["sim_avg_daily"].round(2)
     days_cov = df_calc["days_of_coverage"].fillna(999)
-    df_ui["Zile Ac."] = np.where(days_cov < 999, days_cov.round(1), 999.0)
-    df_ui["Lead"] = df_calc["sim_lead_time"].astype(int)
+    df_ui["_days_cov_raw"] = np.where(days_cov < 999, days_cov.round(1), 999.0)
+    df_ui["_lead_raw"] = df_calc["sim_lead_time"].astype(int)
+    df_ui["_marja_raw"] = df_ui["_days_cov_raw"] - df_ui["_lead_raw"]
+    
+    # Apply Lead Time Alert styling (🔴 when Marja < 5)
+    def fmt_with_alert(val, marja, is_marja=False):
+        if marja < 5 and val < 999:
+            return f"🔴 {val:.1f}" if isinstance(val, float) else f"🔴 {val}"
+        return f"{val:.1f}" if isinstance(val, float) else str(val)
+    
+    df_ui["Zile Ac."] = df_ui.apply(lambda r: fmt_with_alert(r["_days_cov_raw"], r["_marja_raw"]), axis=1)
+    df_ui["Lead"] = df_ui.apply(lambda r: fmt_with_alert(r["_lead_raw"], r["_marja_raw"]), axis=1)
+    df_ui["Marja"] = df_ui.apply(lambda r: fmt_with_alert(r["_marja_raw"], r["_marja_raw"], True), axis=1)
+    
     df_ui["PVanz"] = df_calc["pret_vanzare"].fillna(0).astype(int)
     df_ui["Cubaj"] = df_calc["_cubaj"]
     df_ui["Masa"] = df_calc["_masa"]
@@ -447,12 +459,12 @@ def render_articles_table(products_df: pd.DataFrame, config: dict, cubaj_data: d
     show_details = st.checkbox("📋 Detalii extinse", key="ob2_show_details", 
                                help="Afișează coloane suplimentare (tranzit, vânzări 360z, cubaj, detalii calcul)")
     
-    # Primary columns (compact view)
-    primary_cols = ["Sel", "Cod", "Produs", "Seg", "Stoc", "V.4L", "Cost", "Cant"]
+    # Primary columns (compact view) - now with Lead Time Alert columns
+    primary_cols = ["Sel", "Cod", "Produs", "Seg", "Stoc", "V.4L", "Zile Ac.", "Lead", "Marja", "Cost", "Cant"]
     
     # Extended columns (all details)
     extended_cols = ["Sel", "Cod", "Denumire", "Seg", "Stoc", "Tranzit", "V.4L", "V.360", 
-                     "Med/Zi", "Zile Ac.", "Lead", "Cost", "PVanz", "Cubaj", "Masa", "Cant", "Detalii Calcul"]
+                     "Med/Zi", "Zile Ac.", "Lead", "Marja", "Cost", "PVanz", "Cubaj", "Masa", "Cant", "Detalii Calcul"]
     
     display_cols = extended_cols if show_details else primary_cols
     

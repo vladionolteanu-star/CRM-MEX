@@ -1000,10 +1000,18 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "V.Dec'25": int(dec_data["current_year_sales"]),
                 "V.Dec'24": int(dec_data["prior_year_sales"]),
                 # 14. Status + Suggested Qty
-                # Red Alert: When Lead Time - Days Coverage < 10 OR segment is CRITICAL
-                "_diff_alert": p.lead_time_days - p.days_of_coverage if p.days_of_coverage < 999 else 999,
-                "Status": f"{p.segment}" if (p.segment == "CRITICAL" or (p.lead_time_days - p.days_of_coverage < 10 and p.days_of_coverage < 999)) else p.segment,
+                "Status": p.segment,
                 "NECESAR": suggested_qty,
+                
+                # ============================================================
+                # LEAD TIME ALERT COLUMNS (Primary - always visible)
+                # Marja = Zile Acoperire - Lead Time
+                # Red alert (🔴) when Marja < 5
+                # ============================================================
+                "_marja_raw": (round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days,
+                "Zile Ac.": f"🔴 {round(p.days_of_coverage, 1):.1f}" if ((round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days < 5 and p.days_of_coverage < 999) else (f"{round(p.days_of_coverage, 1):.1f}" if p.days_of_coverage < 999 else "999"),
+                "Lead": f"🔴 {p.lead_time_days}" if ((round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days < 5 and p.days_of_coverage < 999) else str(p.lead_time_days),
+                "Marja": f"🔴 {((round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days):.1f}" if ((round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days < 5 and p.days_of_coverage < 999) else f"{((round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999) - p.lead_time_days):.1f}",
                 
                 # ============================================================
                 # SECONDARY COLUMNS (Hidden by default - show via toggle)
@@ -1018,8 +1026,6 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "V.2024": int(p.vanzari_2024),
                 "V.2025": int(p.vanzari_2025),
                 "Med/Zi": round(p.avg_daily_sales, 2),
-                "Zile Ac.": round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999.0,
-                "Lead": p.lead_time_days,
                 "Sezon": round(p.seasonality_index, 2),
                 "YoY%": f"{int(p.yoy_growth):+d}%" if p.yoy_growth != 0 else "-",
                 "Clasa": p.clasa[:15] if p.clasa else "-",
@@ -1060,14 +1066,14 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "V.Oct'25", "V.Oct'24", "Tr.Oct",
             "V.Nov'25", "V.Nov'24", "Tr.Nov",
             "V.Dec'25", "V.Dec'24",
-            "Status", "NECESAR"
+            "Zile Ac.", "Lead", "Marja", "Status", "NECESAR"
         ]
         
         # Define SECONDARY columns (hidden by default, toggle to show)
         # Includes Jan/Feb data moved here
         secondary_cols = [
             "Cod", "Denumire", "Familie", "Dim", "Tranzit", 
-            "V.4L", "V.360", "V.2024", "V.2025", "Med/Zi", "Zile Ac.", "Lead",
+            "V.4L", "V.360", "V.2024", "V.2025", "Med/Zi",
             "Sezon", "YoY%", "Clasa", "Subclasa",
             "S.Ban", "S.Pip", "S.Mil", "S.Pan", "S.Iasi", "S.Bras", "S.Pit", "S.Sib", "S.Ora", "S.Cta"
         ]
@@ -1174,8 +1180,10 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "V.2024": st.column_config.NumberColumn("V.2024", help="Vânzări 2024", format="%d"),
             "V.2025": st.column_config.NumberColumn("V.2025", help="Vânzări 2025", format="%d"),
             "Med/Zi": st.column_config.NumberColumn("Med/Zi", help="Media zilnică", format="%.2f"),
-            "Zile Ac.": st.column_config.NumberColumn("Zile Ac.", help="Zile acoperire", format="%.1f"),
-            "Lead": st.column_config.NumberColumn("Lead", help="Lead time zile", format="%d"),
+            "Zile Ac.": st.column_config.TextColumn("Zile Ac.", help="Zile acoperire. 🔴 = Marja < 5 zile"),
+            "Lead": st.column_config.TextColumn("Lead", help="Lead time zile. 🔴 = Marja < 5 zile"),
+            "Marja": st.column_config.TextColumn("Marja", help="Zile Acoperire - Lead Time. 🔴 = sub 5 zile marjă de siguranță"),
+            "_marja_raw": None,
             "Sezon": st.column_config.NumberColumn("Sezon", help="Index sezonalitate", format="%.2f"),
             "YoY%": st.column_config.TextColumn("YoY%", help="Trend anual"),
             "Clasa": st.column_config.TextColumn("Clasa"),
@@ -1586,6 +1594,12 @@ Răspunde în română. FII AUTENTIC în thinking."""
             elif p.vanzari_2024 > 0 and p.vanzari_2025 == 0:
                 trend_pct = -100
             
+            # Calculate Marja for Lead Time Alert
+            days_cov = round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999.0
+            lead_time = p.lead_time_days
+            marja = days_cov - lead_time
+            is_alert = marja < 5 and days_cov < 999
+            
             row = {
                 "Cod Produs": p.nr_art,
                 "Denumire Produs": (p.nume_produs[:28] + "...") if len(p.nume_produs) > 28 else p.nume_produs,
@@ -1596,8 +1610,9 @@ Răspunde în română. FII AUTENTIC în thinking."""
                 "In Tranzit": int(p.stoc_in_tranzit),
                 "Vanzari 4 Luni": int(p.vanzari_ultimele_4_luni),
                 "Media Zilnica": round(p.avg_daily_sales, 2),
-                "Zile Acoperire": round(p.days_of_coverage, 1) if p.days_of_coverage < 999 else 999.0,
-                "Timp Livrare": p.lead_time_days,
+                "Zile Acoperire": f"🔴 {days_cov}" if is_alert else str(days_cov),
+                "Timp Livrare": f"🔴 {lead_time}" if is_alert else str(lead_time),
+                "Marja": f"🔴 {marja:.1f}" if is_alert else f"{marja:.1f}",
                 "Cost Unitar": round(p.cost_achizitie, 2),
             }
             data.append(row)
