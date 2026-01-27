@@ -292,7 +292,7 @@ def main():
     col_title, col_settings = st.columns([6, 1])
     with col_title:
         st.header("Indomex Aprovizionare")
-        st.caption("v22:45 Cached")
+        st.caption("v27.01 11:10 - Lead Time Alert")
     with col_settings:
         if st.button("Settings", key="open_settings"):
             st.session_state.show_settings = True
