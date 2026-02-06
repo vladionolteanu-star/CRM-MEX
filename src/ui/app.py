@@ -1387,11 +1387,11 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         # Oct, Nov, Dec 2025 vs 2024 + Trends for Oct and Nov
         primary_cols = [
             "Selecteaza", "Img", "Produs", "Cost", "PVanz", "Stoc Idx", "Stoc Mag", "V.3L",
-            "V.Int1", "V.Int2",  # Calendar Interval Comparison
             "V.Oct'25", "V.Oct'24", "Tr.Oct",
             "V.Nov'25", "V.Nov'24", "Tr.Nov",
             "V.Dec'25", "V.Dec'24",
-            "Zile Ac.", "Lead", "Marja", "Status", "NECESAR"
+            "Zile Ac.", "Lead", "Marja", "Status", 
+            "V.Int1", "V.Int2", "NECESAR"  # Interval columns next to NECESAR
         ]
         
         # Define SECONDARY columns (hidden by default, toggle to show)
