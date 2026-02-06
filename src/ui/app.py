@@ -530,7 +530,7 @@ def main():
     col_title, col_settings = st.columns([6, 1])
     with col_title:
         st.header("Indomex Aprovizionare")
-        st.caption("v06.02 13:00 - Dual Calendar Comparison")
+        st.caption("v06.02 13:18 - Dual Calendar + V.Int Columns")
     with col_settings:
         if st.button("Settings", key="open_settings"):
             st.session_state.show_settings = True
