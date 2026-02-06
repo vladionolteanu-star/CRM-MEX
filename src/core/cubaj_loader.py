@@ -78,7 +78,7 @@ class CubajLoader:
             self._cubaj_map[cod] = {
                 "cubaj_m3": cubaj,
                 "masa_kg": masa,
-                "product_url": url_online,  # Product page URL (not direct image)
+                "product_url": url_poza,  # Product page URL (not direct image)
                 "image_url": None  # Will be lazy-fetched from product_url
             }
         

@@ -593,3 +593,58 @@ def get_unique_subclasses(furnizor=None):
     except Exception as e:
         print(f"Error fetching subclasses: {e}")
         return []
+
+
+# ============================================================
+# CALENDAR INTERVAL QUERIES (for Dual Calendar Feature)
+# ============================================================
+
+@st.cache_data(ttl=60)
+def get_sales_in_interval(start_date, end_date) -> dict:
+    """
+    Get total sales quantity per product for a specific date interval.
+    
+    Args:
+        start_date: Start date (datetime.date or string 'YYYY-MM-DD')
+        end_date: End date (datetime.date or string 'YYYY-MM-DD')
+    
+    Returns:
+        Dict mapping cod_articol -> total quantity sold in interval
+    """
+    engine = get_engine()
+    
+    query = """
+        SELECT cod_articol, SUM(cantitate) as qty
+        FROM sales_transactions
+        WHERE data BETWEEN :start AND :end
+        GROUP BY cod_articol
+    """
+    
+    try:
+        df = pd.read_sql(text(query), engine, params={"start": start_date, "end": end_date})
+        return dict(zip(df["cod_articol"], df["qty"]))
+    except Exception as e:
+        print(f"[get_sales_in_interval] Error: {e}")
+        return {}
+
+
+def get_transactions_date_range() -> tuple:
+    """
+    Get min and max dates available in sales_transactions table.
+    
+    Returns:
+        (min_date, max_date) or (None, None) if table empty/missing
+    """
+    engine = get_engine()
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT MIN(data), MAX(data) FROM sales_transactions
+            """))
+            row = result.fetchone()
+            return (row[0], row[1]) if row else (None, None)
+    except Exception as e:
+        print(f"[get_transactions_date_range] Error: {e}")
+        return (None, None)
+

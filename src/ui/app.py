@@ -14,8 +14,10 @@ from src.core.database import (
     load_products_from_db, get_unique_suppliers, get_unique_statuses, 
     test_connection, get_segment_counts, load_segment_from_db,
     get_unique_families, load_family_products_from_db,
-    get_subclass_summary, load_subclass_products, get_unique_subclasses
+    get_subclass_summary, load_subclass_products, get_unique_subclasses,
+    get_sales_in_interval, get_transactions_date_range
 )
+from datetime import datetime, timedelta, date
 from src.core.processor import process_products_vectorized
 from types import SimpleNamespace
 from src.core.cubaj_loader import get_cubaj_map, get_cubaj_stats
@@ -721,9 +723,74 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 st.rerun()
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Build: 26.01.2026 (Clean UI)")
+    st.sidebar.caption("Build: 06.02.2026 (Dual Calendar)")
     
     # ============================================================
+    # DUAL CALENDAR - Compare Sales Intervals
+    # ============================================================
+    st.sidebar.markdown("### 📆 Comparație Intervale")
+    
+    # Get available date range from transactions
+    min_date, max_date = get_transactions_date_range()
+    
+    if min_date and max_date:
+        # Default: Interval 1 = last 30 days, Interval 2 = same period last year
+        today = date.today()
+        default_end1 = min(today, max_date) if isinstance(max_date, date) else today
+        default_start1 = default_end1 - timedelta(days=30)
+        
+        # Last year same period
+        default_end2 = default_end1.replace(year=default_end1.year - 1)
+        default_start2 = default_start1.replace(year=default_start1.year - 1)
+        
+        col_cal1, col_cal2 = st.sidebar.columns(2)
+        
+        with col_cal1:
+            st.caption("Interval 1")
+            interval1 = st.date_input(
+                "📅 Int.1",
+                value=(default_start1, default_end1),
+                min_value=min_date,
+                max_value=max_date,
+                key="interval_1",
+                label_visibility="collapsed"
+            )
+        
+        with col_cal2:
+            st.caption("Interval 2")
+            interval2 = st.date_input(
+                "📅 Int.2",
+                value=(default_start2, default_end2),
+                min_value=min_date,
+                max_value=max_date,
+                key="interval_2",
+                label_visibility="collapsed"
+            )
+        
+        # Parse intervals (handle single date or range)
+        if isinstance(interval1, tuple) and len(interval1) == 2:
+            int1_start, int1_end = interval1
+        else:
+            int1_start = int1_end = interval1 if interval1 else default_start1
+            
+        if isinstance(interval2, tuple) and len(interval2) == 2:
+            int2_start, int2_end = interval2
+        else:
+            int2_start = int2_end = interval2 if interval2 else default_start2
+        
+        # Store in session state for use in tables
+        st.session_state.interval1_range = (int1_start, int1_end)
+        st.session_state.interval2_range = (int2_start, int2_end)
+        
+        # Show selected ranges
+        st.sidebar.caption(f"Int.1: {int1_start} → {int1_end}")
+        st.sidebar.caption(f"Int.2: {int2_start} → {int2_end}")
+    else:
+        st.sidebar.warning("⚠️ Nu există date tranzacții")
+        st.session_state.interval1_range = None
+        st.session_state.interval2_range = None
+    
+    st.sidebar.markdown("---")
     # SIDEBAR - COMPACT FILTERS
     # ============================================================
     
@@ -1123,6 +1190,20 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         month_names = {1: "Ian", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mai", 6: "Iun",
                        7: "Iul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
         
+        # ============================================================
+        # FETCH INTERVAL SALES FROM DUAL CALENDAR
+        # ============================================================
+        interval1_sales = {}
+        interval2_sales = {}
+        
+        if st.session_state.get("interval1_range"):
+            int1_start, int1_end = st.session_state.interval1_range
+            interval1_sales = get_sales_in_interval(int1_start, int1_end)
+        
+        if st.session_state.get("interval2_range"):
+            int2_start, int2_end = st.session_state.interval2_range
+            interval2_sales = get_sales_in_interval(int2_start, int2_end)
+        
         data = []
         for p in sorted_products:
             # Get YoY data for Oct, Nov, Dec (2025 vs 2024)
@@ -1230,6 +1311,11 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 # Cubaj & Logistics
                 "Cubaj": f"{p.cubaj_m3:.3f}" if p.cubaj_m3 else "N/A",
                 "Masa": f"{p.masa_kg:.1f}" if p.masa_kg else "-",
+                # ============================================================
+                # CALENDAR INTERVAL COLUMNS (Dual Comparison)
+                # ============================================================
+                "V.Int1": int(interval1_sales.get(p.cod_articol, 0)),
+                "V.Int2": int(interval2_sales.get(p.cod_articol, 0)),
                 # Metadata
                 "_formula": formula_text,
                 "_unbalanced": is_unbal,
@@ -1249,6 +1335,7 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
         # Oct, Nov, Dec 2025 vs 2024 + Trends for Oct and Nov
         primary_cols = [
             "Selecteaza", "Img", "Produs", "Cost", "PVanz", "Stoc Idx", "Stoc Mag", "V.3L",
+            "V.Int1", "V.Int2",  # Calendar Interval Comparison
             "V.Oct'25", "V.Oct'24", "Tr.Oct",
             "V.Nov'25", "V.Nov'24", "Tr.Nov",
             "V.Dec'25", "V.Dec'24",
@@ -1261,7 +1348,8 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "Cod", "Denumire", "Familie", "Dim", "Tranzit", 
             "V.4L", "V.360", "V.2024", "V.2025", "Med/Zi",
             "Sezon", "YoY%", "Clasa", "Subclasa",
-            "S.Ban", "S.Pip", "S.Mil", "S.Pan", "S.Iasi", "S.Bras", "S.Pit", "S.Sib", "S.Ora", "S.Cta"
+            "S.Ban", "S.Pip", "S.Mil", "S.Pan", "S.Iasi", "S.Bras", "S.Pit", "S.Sib", "S.Ora", "S.Cta",
+            "Cubaj", "Masa"
         ]
         
         column_config = {
@@ -1302,6 +1390,17 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             "V.3L": st.column_config.NumberColumn(
                 "V.3L",
                 help="Vânzări ultimele 3 luni (sau 4 luni dacă 3L nu e disponibil)",
+                format="%d"
+            ),
+            # CALENDAR INTERVAL COLUMNS
+            "V.Int1": st.column_config.NumberColumn(
+                "V.Int1",
+                help=f"Vânzări Interval 1: {st.session_state.get('interval1_range', ('N/A', 'N/A'))}",
+                format="%d"
+            ),
+            "V.Int2": st.column_config.NumberColumn(
+                "V.Int2",
+                help=f"Vânzări Interval 2: {st.session_state.get('interval2_range', ('N/A', 'N/A'))}",
                 format="%d"
             ),
             # OCTOBER columns
