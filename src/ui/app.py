@@ -530,7 +530,7 @@ def main():
     col_title, col_settings = st.columns([6, 1])
     with col_title:
         st.header("Indomex Aprovizionare")
-        st.caption("v06.02 11:15 - Lead Time Alert & Fixes")
+        st.caption("v06.02 13:00 - Dual Calendar Comparison")
     with col_settings:
         if st.button("Settings", key="open_settings"):
             st.session_state.show_settings = True
@@ -723,74 +723,17 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 st.rerun()
     
     st.sidebar.markdown("---")
-    st.sidebar.caption("Build: 06.02.2026 (Dual Calendar)")
+    st.sidebar.caption("Build: 06.02.2026 (v13:00)")
     
     # ============================================================
-    # DUAL CALENDAR - Compare Sales Intervals
+    # Initialize interval session state (will be set by main toolbar)
     # ============================================================
-    st.sidebar.markdown("### 📆 Comparație Intervale")
-    
-    # Get available date range from transactions
-    min_date, max_date = get_transactions_date_range()
-    
-    if min_date and max_date:
-        # Default: Interval 1 = last 30 days, Interval 2 = same period last year
-        today = date.today()
-        default_end1 = min(today, max_date) if isinstance(max_date, date) else today
-        default_start1 = default_end1 - timedelta(days=30)
-        
-        # Last year same period
-        default_end2 = default_end1.replace(year=default_end1.year - 1)
-        default_start2 = default_start1.replace(year=default_start1.year - 1)
-        
-        col_cal1, col_cal2 = st.sidebar.columns(2)
-        
-        with col_cal1:
-            st.caption("Interval 1")
-            interval1 = st.date_input(
-                "📅 Int.1",
-                value=(default_start1, default_end1),
-                min_value=min_date,
-                max_value=max_date,
-                key="interval_1",
-                label_visibility="collapsed"
-            )
-        
-        with col_cal2:
-            st.caption("Interval 2")
-            interval2 = st.date_input(
-                "📅 Int.2",
-                value=(default_start2, default_end2),
-                min_value=min_date,
-                max_value=max_date,
-                key="interval_2",
-                label_visibility="collapsed"
-            )
-        
-        # Parse intervals (handle single date or range)
-        if isinstance(interval1, tuple) and len(interval1) == 2:
-            int1_start, int1_end = interval1
-        else:
-            int1_start = int1_end = interval1 if interval1 else default_start1
-            
-        if isinstance(interval2, tuple) and len(interval2) == 2:
-            int2_start, int2_end = interval2
-        else:
-            int2_start = int2_end = interval2 if interval2 else default_start2
-        
-        # Store in session state for use in tables
-        st.session_state.interval1_range = (int1_start, int1_end)
-        st.session_state.interval2_range = (int2_start, int2_end)
-        
-        # Show selected ranges
-        st.sidebar.caption(f"Int.1: {int1_start} → {int1_end}")
-        st.sidebar.caption(f"Int.2: {int2_start} → {int2_end}")
-    else:
-        st.sidebar.warning("⚠️ Nu există date tranzacții")
+    if "interval1_range" not in st.session_state:
         st.session_state.interval1_range = None
+    if "interval2_range" not in st.session_state:
         st.session_state.interval2_range = None
     
-    st.sidebar.markdown("---")
+    # ============================================================
     # SIDEBAR - COMPACT FILTERS
     # ============================================================
     
@@ -1069,6 +1012,115 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
                 "count": len(segments[seg_name]),
                 "value": sum(p.stock_value for p in segments[seg_name])
             }
+    
+    # ============================================================
+    # INLINE CALENDAR TOOLBAR - Compare Sales Intervals
+    # Premium UX: Visible in main area, not hidden in sidebar
+    # ============================================================
+    
+    # Get available date range from transactions
+    min_date_tx, max_date_tx = get_transactions_date_range()
+    
+    if min_date_tx and max_date_tx:
+        # Add custom CSS for calendar toolbar styling
+        st.markdown("""
+        <style>
+        .calendar-toolbar {
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin: 8px 0 16px 0;
+            box-shadow: 0 2px 8px rgba(20, 184, 166, 0.1);
+        }
+        .calendar-label {
+            font-weight: 600;
+            color: #0f766e;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .interval-badge {
+            display: inline-block;
+            background: #0d9488;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Toolbar header
+        with st.container():
+            toolbar_cols = st.columns([0.8, 2, 0.5, 2, 0.5, 2])
+            
+            with toolbar_cols[0]:
+                st.markdown("##### 📅 Comparație")
+            
+            # Default dates: Interval 1 = last 30 days
+            today = date.today()
+            default_end1 = min(today, max_date_tx) if isinstance(max_date_tx, date) else today
+            default_start1 = default_end1 - timedelta(days=30)
+            
+            # Interval 2 = same period last year
+            default_end2 = default_end1.replace(year=default_end1.year - 1)
+            default_start2 = default_start1.replace(year=default_start1.year - 1)
+            
+            with toolbar_cols[1]:
+                st.caption("**V.Int1** - Interval curent")
+                interval1 = st.date_input(
+                    "Interval 1",
+                    value=(default_start1, default_end1),
+                    min_value=min_date_tx,
+                    max_value=max_date_tx,
+                    key="interval_1_main",
+                    label_visibility="collapsed"
+                )
+            
+            with toolbar_cols[2]:
+                st.markdown("<div style='text-align:center; padding-top:24px; font-size:18px; color:#64748b'>vs</div>", unsafe_allow_html=True)
+            
+            with toolbar_cols[3]:
+                st.caption("**V.Int2** - Referință")
+                interval2 = st.date_input(
+                    "Interval 2",
+                    value=(default_start2, default_end2),
+                    min_value=min_date_tx,
+                    max_value=max_date_tx,
+                    key="interval_2_main",
+                    label_visibility="collapsed"
+                )
+            
+            with toolbar_cols[4]:
+                st.empty()  # Spacer
+            
+            with toolbar_cols[5]:
+                # Quick presets
+                st.caption("**Preseturi rapide**")
+                preset = st.selectbox(
+                    "Preset",
+                    ["Custom", "Luna curentă vs An trecut", "Ultimele 7 zile", "Ultimele 90 zile"],
+                    key="date_preset",
+                    label_visibility="collapsed"
+                )
+            
+            # Parse intervals (handle single date or range)
+            if isinstance(interval1, tuple) and len(interval1) == 2:
+                int1_start, int1_end = interval1
+            else:
+                int1_start = int1_end = interval1 if interval1 else default_start1
+                
+            if isinstance(interval2, tuple) and len(interval2) == 2:
+                int2_start, int2_end = interval2
+            else:
+                int2_start = int2_end = interval2 if interval2 else default_start2
+            
+            # Store in session state for use in tables
+            st.session_state.interval1_range = (int1_start, int1_end)
+            st.session_state.interval2_range = (int2_start, int2_end)
+        
+        st.markdown("---")
     
     # ============================================================
     # UNIFIED NAVIGATION & KPI CARDS (Minimalist "Buttons in Cards")
