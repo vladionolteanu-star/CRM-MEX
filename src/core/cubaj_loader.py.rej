@@ -1,0 +1,12 @@
+diff a/src/core/cubaj_loader.py b/src/core/cubaj_loader.py	(rejected hunks)
+@@ -64,8 +64,8 @@ class CubajLoader:
+             d = diametru if diametru else latime
+             h = inaltime  # ├Än─âl╚Ťimea ruloului (nu lungimea covorului!)
+             
+-            # Extract URL (Image)
+-            url_poza = self._get_string(row, "URL POZA")
++            # Extract URL (product page URL for lazy image fetch)
++            url_online = self._get_string(row, "URL ONLINE")
+             
+             # Calculeaz─â cubaj cilindric
+             if d and h:

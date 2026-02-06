@@ -572,3 +572,24 @@ def load_subclass_products(furnizor: str, subclasa: str, limit: int = None, offs
     engine = get_engine()
     return pd.read_sql(text(query), engine, params={"furnizor": furnizor, "subclasa": subclasa})
 
+
+def get_unique_subclasses(furnizor=None):
+    """
+    Get list of unique subclasses, optionally filtered by supplier.
+    """
+    engine = get_engine()
+    query = "SELECT DISTINCT subclasa FROM products"
+    params = {}
+
+    if furnizor:
+        query += " WHERE furnizor = :furnizor"
+        params["furnizor"] = furnizor
+
+    query += " ORDER BY subclasa"
+
+    try:
+        df = pd.read_sql(text(query), engine, params=params)
+        return [s for s in df["subclasa"].tolist() if s]  # Filter None/Empty
+    except Exception as e:
+        print(f"Error fetching subclasses: {e}")
+        return []

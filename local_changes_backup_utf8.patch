@@ -1,0 +1,589 @@
+﻿diff --git a/src/core/cubaj_loader.py b/src/core/cubaj_loader.py
+index 278a3f8..f35699a 100644
+--- a/src/core/cubaj_loader.py
++++ b/src/core/cubaj_loader.py
+@@ -64,8 +64,8 @@ class CubajLoader:
+             d = diametru if diametru else latime
+             h = inaltime  # ├Än─âl╚Ťimea ruloului (nu lungimea covorului!)
+             
+-            # Extract URL (Image)
+-            url_poza = self._get_string(row, "URL POZA")
++            # Extract URL (product page URL for lazy image fetch)
++            url_online = self._get_string(row, "URL ONLINE")
+             
+             # Calculeaz─â cubaj cilindric
+             if d and h:
+@@ -78,7 +78,8 @@ class CubajLoader:
+             self._cubaj_map[cod] = {
+                 "cubaj_m3": cubaj,
+                 "masa_kg": masa,
+-                "image_url": url_poza
++                "product_url": url_online,  # Product page URL (not direct image)
++                "image_url": None  # Will be lazy-fetched from product_url
+             }
+         
+         self._loaded = True
+diff --git a/src/core/database.py b/src/core/database.py
+index 1b529f7..30c7b6c 100644
+--- a/src/core/database.py
++++ b/src/core/database.py
+@@ -572,3 +572,26 @@ def load_subclass_products(furnizor: str, subclasa: str, limit: int = None, offs
+     engine = get_engine()
+     return pd.read_sql(text(query), engine, params={"furnizor": furnizor, "subclasa": subclasa})
+ 
++
++def get_unique_subclasses(furnizor=None):
++    """
++    Get list of unique subclasses, optionally filtered by supplier.
++    """
++    engine = get_engine()
++    query = "SELECT DISTINCT subclasa FROM products"
++    params = {}
++    
++    if furnizor:
++        query += " WHERE furnizor = :furnizor"
++        params["furnizor"] = furnizor
++        
++    query += " ORDER BY subclasa"
++    
++    try:
++        df = pd.read_sql(text(query), engine, params=params)
++        return [s for s in df["subclasa"].tolist() if s]  # Filter None/Empty
++    except Exception as e:
++        print(f"Error fetching subclasses: {e}")
++        return []
++
++
+diff --git a/src/core/processor.py b/src/core/processor.py
+index 0e29dbd..8227aba 100644
+--- a/src/core/processor.py
++++ b/src/core/processor.py
+@@ -117,14 +117,16 @@ def process_products_vectorized(df: pd.DataFrame, config: dict, seasonality_data
+     if cubaj_data:
+         cubaj_map = {k: v.get("cubaj_m3") for k, v in cubaj_data.items()}
+         masa_map = {k: v.get("masa_kg") for k, v in cubaj_data.items()}
+-        img_map = {k: v.get("image_url") for k, v in cubaj_data.items()}
++        product_url_map = {k: v.get("product_url") for k, v in cubaj_data.items()}
+         
+         df["cubaj_m3"] = df["cod_articol"].map(cubaj_map).where(pd.notnull(df["cod_articol"].map(cubaj_map)), None)
+         df["masa_kg"] = df["cod_articol"].map(masa_map).where(pd.notnull(df["cod_articol"].map(masa_map)), None)
+-        df["image_url"] = df["cod_articol"].map(img_map).where(pd.notnull(df["cod_articol"].map(img_map)), None)
++        df["product_url"] = df["cod_articol"].map(product_url_map).where(pd.notnull(df["cod_articol"].map(product_url_map)), None)
++        df["image_url"] = None  # Will be lazy-fetched from product_url
+     else:
+         df["cubaj_m3"] = None
+         df["masa_kg"] = None
++        df["product_url"] = None
+         df["image_url"] = None
+ 
+     # 7. Suggested Order Quantity (Simplified Formula - Matching Order Builder)
+diff --git a/src/ui/app.py b/src/ui/app.py
+index 55fa9e9..39d5405 100644
+--- a/src/ui/app.py
++++ b/src/ui/app.py
+@@ -14,11 +14,12 @@ from src.core.database import (
+     load_products_from_db, get_unique_suppliers, get_unique_statuses, 
+     test_connection, get_segment_counts, load_segment_from_db,
+     get_unique_families, load_family_products_from_db,
+-    get_subclass_summary, load_subclass_products
++    get_subclass_summary, load_subclass_products, get_unique_subclasses
+ )
+ from src.core.processor import process_products_vectorized
+ from types import SimpleNamespace
+ from src.core.cubaj_loader import get_cubaj_map, get_cubaj_stats
++from src.core.image_fetcher import get_product_image_cached
+ from src.ui.order_builder import render_order_builder_v2
+ 
+ # ============================================================
+@@ -150,77 +151,312 @@ st.set_page_config(
+ )
+ 
+ # ============================================================
+-# COMPACT ENTERPRISE THEME
++# INDOMEX ENTERPRISE THEME - Teal/Emerald Premium
++# Using @frontend-specialist agent + Purple Ban rule
+ # ============================================================
+ st.markdown("""
+ <style>
+-    /* Base */
+-    .stApp { background-color: #f8f9fa; }
++    /* ========================================
++       CSS VARIABLES - Enterprise Teal Palette
++       ======================================== */
++    :root {
++        --primary: #0D9488;
++        --primary-hover: #0F766E;
++        --primary-light: #CCFBF1;
++        --background: #F1F5F9;
++        --surface: #FFFFFF;
++        --text-primary: #0F172A;
++        --text-secondary: #475569;
++        --text-muted: #94A3B8;
++        --border: #E2E8F0;
++        --critical: #DC2626;
++        --critical-bg: #FEF2F2;
++        --urgent: #EA580C;
++        --urgent-bg: #FFF7ED;
++        --attention: #D97706;
++        --attention-bg: #FFFBEB;
++        --ok: #059669;
++        --ok-bg: #ECFDF5;
++        --overstock: #475569;
++        --overstock-bg: #F1F5F9;
++    }
++    
++    /* ========================================
++       BASE LAYOUT
++       ======================================== */
++    .stApp { 
++        background: var(--background);
++        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
++    }
++    
+     section[data-testid="stSidebar"] { 
+-        background-color: #ffffff; 
+-        border-right: 1px solid #e0e0e0;
+-        width: 260px !important;
++        background: var(--surface);
++        border-right: 1px solid var(--border);
++        width: 280px !important;
+     }
+     section[data-testid="stSidebar"] > div { padding-top: 1rem !important; }
+     
+-    /* Reduce vertical margins */
+-    .block-container { padding-top: 1rem !important; padding-bottom: 0 !important; }
++    .block-container { 
++        padding-top: 1rem !important; 
++        padding-bottom: 0 !important;
++        max-width: 100% !important;
++    }
+     .element-container { margin-bottom: 0.25rem !important; }
+     
+-    /* Headers - smaller */
+-    h1, h2, h3 { color: #1a1a2e !important; font-weight: 600 !important; margin-bottom: 0.5rem !important; }
+-    h1 { font-size: 1.4rem !important; }
+-    h2 { font-size: 1.2rem !important; }
++    /* ========================================
++       TYPOGRAPHY - Sharp, Professional
++       ======================================== */
++    h1, h2, h3 { 
++        color: var(--text-primary) !important; 
++        font-weight: 700 !important; 
++        margin-bottom: 0.5rem !important;
++        letter-spacing: -0.02em;
++    }
++    h1 { font-size: 1.5rem !important; }
++    h2 { font-size: 1.25rem !important; }
+     h3 { font-size: 1rem !important; }
+     
+-    /* Metrics - compact */
+-    [data-testid="stMetric"] { background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; }
+-    [data-testid="stMetricLabel"] { color: #6c757d !important; font-size: 0.7rem !important; }
+-    [data-testid="stMetricValue"] { color: #212529 !important; font-family: 'Consolas', monospace !important; font-size: 1rem !important; }
++    /* ========================================
++       SEGMENT CARDS - Color-Coded Premium
++       ======================================== */
++    [data-testid="stMetric"] { 
++        background: var(--surface);
++        border: 1px solid var(--border);
++        border-radius: 4px;
++        padding: 12px 16px;
++        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
++        transition: transform 0.15s ease, box-shadow 0.15s ease;
++    }
++    [data-testid="stMetric"]:hover {
++        transform: translateY(-1px);
++        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
++    }
++    
++    [data-testid="stMetricLabel"] { 
++        color: var(--text-secondary) !important; 
++        font-size: 0.75rem !important;
++        font-weight: 600 !important;
++        text-transform: uppercase;
++        letter-spacing: 0.05em;
++    }
++    [data-testid="stMetricValue"] { 
++        color: var(--text-primary) !important; 
++        font-family: 'JetBrains Mono', 'Consolas', monospace !important; 
++        font-size: 1.25rem !important;
++        font-weight: 700 !important;
++    }
++    [data-testid="stMetricDelta"] {
++        font-size: 0.7rem !important;
++        font-weight: 500 !important;
++    }
+     
+-    /* Data table */
+-    .stDataFrame { border: 1px solid #dee2e6 !important; border-radius: 6px; }
+-    .stDataFrame thead th { background-color: #f1f3f4 !important; color: #495057 !important; font-size: 0.7rem !important; text-transform: uppercase; font-weight: 600 !important; padding: 6px !important; }
+-    .stDataFrame tbody td { background-color: #ffffff !important; color: #212529 !important; font-family: 'Consolas', monospace !important; font-size: 0.8rem !important; padding: 4px 6px !important; }
++    /* ========================================
++       DATA TABLE - Readable, Monospace Numbers
++       ======================================== */
++    .stDataFrame { 
++        border: 1px solid var(--border) !important; 
++        border-radius: 4px;
++        overflow: hidden;
++    }
++    .stDataFrame thead th { 
++        background: #F8FAFC !important; 
++        color: var(--text-secondary) !important; 
++        font-size: 0.7rem !important; 
++        text-transform: uppercase; 
++        font-weight: 600 !important; 
++        padding: 8px 12px !important;
++        border-bottom: 2px solid var(--border) !important;
++    }
++    .stDataFrame tbody td { 
++        background: var(--surface) !important; 
++        color: var(--text-primary) !important; 
++        font-family: 'JetBrains Mono', 'Consolas', monospace !important; 
++        font-size: 0.8rem !important; 
++        padding: 6px 12px !important;
++        border-bottom: 1px solid #F1F5F9 !important;
++    }
++    .stDataFrame tbody tr:hover td {
++        background: #F8FAFC !important;
++    }
+     
+-    /* Tabs - compact, sticky */
++    /* ========================================
++       TABS - Teal Active State
++       ======================================== */
+     .stTabs [data-baseweb="tab-list"] { 
+-        background-color: #ffffff; 
+-        border-bottom: 2px solid #e0e0e0; 
+-        position: sticky; 
+-        top: 0; 
++        background: var(--surface);
++        border-bottom: 2px solid var(--border);
++        position: sticky;
++        top: 0;
+         z-index: 100;
+         padding: 0 !important;
++        gap: 0 !important;
++    }
++    .stTabs [data-baseweb="tab"] { 
++        background: transparent;
++        color: var(--text-secondary);
++        border: none;
++        padding: 10px 16px;
++        font-size: 0.8rem;
++        font-weight: 500;
++        transition: color 0.15s ease;
++    }
++    .stTabs [data-baseweb="tab"]:hover {
++        color: var(--text-primary);
++    }
++    .stTabs [aria-selected="true"] { 
++        color: var(--primary) !important; 
++        border-bottom: 3px solid var(--primary) !important;
++        font-weight: 600 !important;
+     }
+-    .stTabs [data-baseweb="tab"] { background-color: transparent; color: #6c757d; border: none; padding: 8px 12px; font-size: 0.8rem; font-weight: 500; }
+-    .stTabs [aria-selected="true"] { color: #1a1a2e !important; border-bottom: 3px solid #3b82f6 !important; background: #f8f9fa; }
+-    
+-    /* Buttons - compact */
+-    .stButton > button { background-color: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 0.8rem; font-weight: 500; padding: 6px 12px; }
+-    .stButton > button:hover { background-color: #2563eb; }
+     
+-    /* Inputs - compact */
+-    .stTextInput input, .stSelectbox select { font-size: 0.85rem !important; padding: 4px 8px !important; }
+-    .stTextInput > div > div, .stSelectbox > div > div { min-height: 32px !important; }
++    /* ========================================
++       BUTTONS - Teal Primary, Sharp Edges
++       ======================================== */
++    .stButton > button { 
++        background: var(--primary);
++        color: white;
++        border: none;
++        border-radius: 4px;
++        font-size: 0.8rem;
++        font-weight: 600;
++        padding: 8px 16px;
++        transition: all 0.15s ease;
++        box-shadow: 0 1px 2px rgba(13, 148, 136, 0.2);
++    }
++    .stButton > button:hover { 
++        background: var(--primary-hover);
++        box-shadow: 0 4px 8px rgba(13, 148, 136, 0.25);
++        transform: translateY(-1px);
++    }
++    .stButton > button:active {
++        transform: translateY(0);
++    }
+     
+-    /* Hide streamlit extras */
+-    #MainMenu, footer, header { visibility: hidden; }
++    /* Secondary buttons */
++    .stButton > button[kind="secondary"] {
++        background: transparent;
++        color: var(--primary);
++        border: 1px solid var(--primary);
++        box-shadow: none;
++    }
++    .stButton > button[kind="secondary"]:hover {
++        background: var(--primary-light);
++    }
+     
+-    /* Expander compact */
+-    .streamlit-expanderHeader { font-size: 0.85rem !important; padding: 8px !important; }
++    /* ========================================
++       INPUTS - Compact, Clean
++       ======================================== */
++    .stTextInput input, .stSelectbox select, .stNumberInput input { 
++        font-size: 0.85rem !important;
++        padding: 6px 10px !important;
++        border: 1px solid var(--border) !important;
++        border-radius: 4px !important;
++    }
++    .stTextInput input:focus, .stSelectbox select:focus {
++        border-color: var(--primary) !important;
++        box-shadow: 0 0 0 2px var(--primary-light) !important;
++    }
+     
+-    /* Sidebar inputs - compact */
++    /* ========================================
++       SIDEBAR COMPACT
++       ======================================== */
+     section[data-testid="stSidebar"] .stTextInput input,
+     section[data-testid="stSidebar"] .stSelectbox select,
+-    section[data-testid="stSidebar"] .stNumberInput input { font-size: 0.85rem !important; }
++    section[data-testid="stSidebar"] .stNumberInput input { 
++        font-size: 0.85rem !important;
++    }
++    
++    /* ========================================
++       SEGMENT STATUS COLORS - Inline Badges
++       ======================================== */
++    .segment-critical { 
++        color: var(--critical) !important;
++        background: var(--critical-bg);
++        padding: 2px 8px;
++        border-radius: 4px;
++        font-weight: 700;
++    }
++    .segment-urgent { 
++        color: var(--urgent) !important;
++        background: var(--urgent-bg);
++        padding: 2px 8px;
++        border-radius: 4px;
++        font-weight: 600;
++    }
++    .segment-attention { 
++        color: var(--attention) !important;
++        background: var(--attention-bg);
++        padding: 2px 8px;
++        border-radius: 4px;
++        font-weight: 600;
++    }
++    .segment-ok { 
++        color: var(--ok) !important;
++        background: var(--ok-bg);
++        padding: 2px 8px;
++        border-radius: 4px;
++        font-weight: 500;
++    }
++    .segment-overstock { 
++        color: var(--overstock) !important;
++        background: var(--overstock-bg);
++        padding: 2px 8px;
++        border-radius: 4px;
++        font-weight: 500;
++    }
+     
+-    /* Red Alert - Critical coverage styling */
+-    .critical-alert {
+-        color: #dc2626 !important;
++    /* ========================================
++       DAYS TO ZERO - Urgency Indicator
++       ======================================== */
++    .days-critical {
++        color: var(--critical) !important;
+         font-weight: 700 !important;
++        background: var(--critical-bg);
++        padding: 2px 6px;
++        border-radius: 3px;
++    }
++    .days-urgent {
++        color: var(--urgent) !important;
++        font-weight: 600 !important;
++    }
++    .days-ok {
++        color: var(--ok) !important;
++    }
++    
++    /* ========================================
++       DEAD STOCK INDICATOR
++       ======================================== */
++    .dead-stock {
++        color: #6B7280 !important;
++        text-decoration: line-through;
++        opacity: 0.7;
++    }
++    .dead-stock-badge {
++        background: #F3F4F6;
++        color: #6B7280;
++        padding: 2px 6px;
++        border-radius: 3px;
++        font-size: 0.7rem;
++        font-weight: 600;
++    }
++    
++    /* ========================================
++       UTILITY
++       ======================================== */
++    #MainMenu, footer, header { visibility: hidden; }
++    
++    .streamlit-expanderHeader { 
++        font-size: 0.85rem !important;
++        padding: 10px !important;
++        background: #F8FAFC !important;
++        border-radius: 4px !important;
+     }
+-    .critical-row {
+-        background-color: #fef2f2 !important;
++    
++    /* Responsive adjustments */
++    @media (prefers-reduced-motion: reduce) {
++        *, *::before, *::after {
++            transition-duration: 0.01ms !important;
++        }
+     }
+ </style>
+ """, unsafe_allow_html=True)
+@@ -508,6 +744,13 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
+                     furnizor=selected_supplier if selected_supplier != "ALL" else None,
+                     stare_pm=selected_status if selected_status != "ALL" else None
+                 )
++                
++                # Subclass Filter (Dynamic)
++                unique_subclasses = get_unique_subclasses(selected_supplier if selected_supplier != "ALL" else None)
++                selected_subclasses = st.sidebar.multiselect("Subclas─â/Gam─â", unique_subclasses, key="pg_subclass")
++                
++                if selected_subclasses:
++                     raw_df = raw_df[raw_df['subclasa'].isin(selected_subclasses)]
+         else:
+             st.sidebar.error(f"Nu pot conecta la PostgreSQL: {msg}")
+             use_postgres = False
+@@ -764,82 +1007,8 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
+     # UNIFIED NAVIGATION & KPI CARDS (Minimalist "Buttons in Cards")
+     # ============================================================
+     
+-    st.markdown("""
+-    <style>
+-        /* Modern Gradient Background (Subtle) */
+-        .stApp {
+-            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+-        }
+-        
+-        /* Glassmorphism Cards for Metrics */
+-        [data-testid="stMetric"] {
+-            background: rgba(255, 255, 255, 0.7);
+-            backdrop-filter: blur(10px);
+-            -webkit-backdrop-filter: blur(10px);
+-            border-radius: 16px;
+-            padding: 20px;
+-            border: 1px solid rgba(255, 255, 255, 0.5);
+-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+-        }
+-        
+-        [data-testid="stMetric"]:hover {
+-            transform: translateY(-2px);
+-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+-        }
+-        
+-        /* Metric Label & Value Styling */
+-        [data-testid="stMetricLabel"] {
+-            font-size: 0.9rem !important;
+-            color: #64748b !important;
+-            font-weight: 600 !important;
+-        }
+-        [data-testid="stMetricValue"] {
+-            font-size: 1.8rem !important;
+-            color: #0f172a !important;
+-            font-weight: 700 !important;
+-        }
+-        [data-testid="stMetricDelta"] {
+-            font-size: 0.8rem !important;
+-        }
+-
+-        /* Sleek Button Styling */
+-        div.stButton > button {
+-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+-            color: white;
+-            border: none;
+-            border-radius: 12px;
+-            padding: 0.5rem 1rem;
+-            font-weight: 500;
+-            margin-top: 10px;
+-            width: 100%;
+-            transition: all 0.2s ease;
+-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+-        }
+-        div.stButton > button:hover {
+-            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+-            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+-            border-color: transparent;
+-        }
+-        div.stButton > button:active {
+-            transform: scale(0.98);
+-        }
+-        
+-        /* Active State Button Override */
+-        div.stButton > button[kind="secondary"] {
+-            background: transparent;
+-            color: #3b82f6;
+-            border: 1px solid #3b82f6;
+-            box-shadow: none;
+-        }
+-        div.stButton > button[kind="secondary"]:hover {
+-             background: rgba(59, 130, 246, 0.05);
+-        }
+-        
+-        /* Hide default header decoration */
+-        header {visibility: hidden;}
+-    </style>
+-    """, unsafe_allow_html=True)
++    # CSS is now consolidated in the main theme block above (lines 155-462)
++    # Removed duplicate Glassmorphism/Blue gradient styles per @frontend-specialist agent
+ 
+     # Initialize State
+     if "active_tab" not in st.session_state:
+@@ -975,8 +1144,11 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
+             # ============================================================
+             row = {
+                 "Selecteaza": False,  # Checkbox column
+-                # 0. Image
+-                "Img": p.image_url if hasattr(p, 'image_url') else None,
++                # 0. Image - Lazy fetch from product URL if needed
++                "Img": (
++                    p.image_url if hasattr(p, 'image_url') and p.image_url 
++                    else (get_product_image_cached(p.product_url) if hasattr(p, 'product_url') and p.product_url else None)
++                ),
+                 # 1. Produs (Code + Name)
+                 "Produs": f"{p.nr_art} | {(p.nume_produs[:18] + '..' if len(p.nume_produs) > 18 else p.nume_produs)}",
+                 # 2. Pret (Cost / Sell)
+@@ -999,6 +1171,20 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
+                 # 12-13. DECEMBER: 2025 vs 2024 (no trend - future month)
+                 "V.Dec'25": int(dec_data["current_year_sales"]),
+                 "V.Dec'24": int(dec_data["prior_year_sales"]),
++                
++                # ============================================================
++                # ZILEÔćĺ0: Days Until Stockout (Priority Feature)
++                # ­čö┤ = < Lead Time (STOCKOUT IMMINENT)
++                # ÔÜá´ŞĆ = < Lead Time + 14 days (URGENT)
++                # Ôťů = > Lead Time + 14 days (SAFE)
++                # ============================================================
++                "ZileÔćĺ0": (
++                    f"­čö┤ {int(p.days_of_coverage)}" if p.days_of_coverage < p.lead_time_days else
++                    f"ÔÜá´ŞĆ {int(p.days_of_coverage)}" if p.days_of_coverage < (p.lead_time_days + 14) else
++                    f"Ôťů {int(p.days_of_coverage)}" if p.days_of_coverage < 999 else
++                    "Ôł×"
++                ) if p.avg_daily_sales > 0 else "Ôł×",
++                
+                 # 14. Status + Suggested Qty
+                 "Status": p.segment,
+                 "NECESAR": suggested_qty,
