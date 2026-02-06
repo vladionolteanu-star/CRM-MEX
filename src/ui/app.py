@@ -1121,6 +1121,21 @@ Cand zilele de acoperire scad sub acest prag, trebuie comandat.
             st.session_state.interval2_range = (int2_start, int2_end)
         
         st.markdown("---")
+    else:
+        # Fallback when sales_transactions table doesn't exist
+        with st.expander("📅 **Comparație Intervale** — Nu sunt disponibile date istorice", expanded=False):
+            st.info("""
+            **Pentru a activa comparația de vânzări pe intervale:**
+            
+            1. Importați datele din tranzacții în baza de date:
+               ```bash
+               python scripts/import_transactions.py
+               ```
+            2. Asigurați-vă că tabelul `sales_transactions` există în PostgreSQL
+            3. Reîncărcați aplicația
+            
+            *Această funcție compară vânzările pe 2 intervale de date custom.*
+            """)
     
     # ============================================================
     # UNIFIED NAVIGATION & KPI CARDS (Minimalist "Buttons in Cards")
